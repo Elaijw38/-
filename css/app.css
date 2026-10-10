@@ -207,8 +207,11 @@
   .edfoot{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
   textarea.io{width:100%;height:120px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;
        border:1px solid var(--line);border-radius:5px;padding:8px;background:#fff;resize:vertical}
-  /* ---------- 构件显示形态 ---------- */
-  .piece .g.ob{font-family:"Courier New",monospace;font-weight:700;color:#4a3a22}
+  /* ---------- 构件显示形态 ----------
+     注意：这里原先写 font-family:"Courier New" 来冒充"甲骨文构件"，
+     其实只是把同一个今字换个等宽字体，是假的。
+     真甲骨字形改由 modes.css 的内联 SVG 呈现（.pieceob / .obcomp 等）。 */
+  .piece .g.ob{font-weight:700;color:#4a3a22}
   .piece .g.ob.no{color:#6b5a3a}
   .piece.obpiece{background:#f7f2e6;border-color:#c9b48a}
   .piece.obpiece.no-label .n{display:none}
@@ -218,7 +221,7 @@
   .piece .g.gimg{width:34px;height:34px;object-fit:contain;display:block;margin:0 auto}
   .piece.hasimg{border-color:var(--gold);background:#fffdf7}
   .glyph.gimg{width:96px;height:96px;object-fit:contain;display:block}
-  .glyph.glyphob{color:#6b5a3a;font-family:"Courier New",monospace;font-weight:700}
+  .glyph.glyphob{color:#6b5a3a;font-weight:700}
   .imgpanel{position:fixed;inset:0;background:rgba(28,26,23,.55);z-index:80;display:flex;
             align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
   .imgbox{background:var(--paper);border-radius:9px;max-width:900px;width:100%;

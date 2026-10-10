@@ -129,7 +129,9 @@
   clip-path: polygon(0 5%, 2.6% 0, 100% 0, 100% 95%, 97.4% 100%, 0 100%);
 }
 .wy-card-form { flex: 0 0 auto; color: var(--ink); }
-.wy-card-form .wy-big { display: block; }
+/* 必须给尺寸：SVG 没有 width/height 属性、CSS 又不指定时会被压成 0 宽，
+   于是卡片左侧整片空白、只剩今字（曾因此看起来"点进去咋是简体"）。 */
+.wy-card-form .wy-big { display: block; width: 190px; height: 190px; }
 .wy-card-info { flex: 1 1 240px; }
 .wy-card-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .wy-card-char {
@@ -335,9 +337,61 @@
 }
 .glyphbox .star { position: absolute; bottom: 6px; right: 9px; font-size: 15px; color: var(--bronze); }
 .glyph { font-size: 86px; line-height: 1; color: var(--ink); font-weight: 500; }
-.glyph.glyphob { color: var(--bronze); font-family: "Courier New", monospace; font-weight: 700; }
+/* 出甲骨形时用棕色，与今字的墨色区分开 */
+.glyph.glyphob { color: var(--bronze); font-weight: 700; }
 .glyph.gimg { width: 108px; height: 108px; object-fit: contain; display: block; }
 .glyphbox.masked .glyph { filter: blur(9px); }
+
+/* ---------- 真甲骨字形 ----------
+   构件与字卡都出真字形（glyph-parts.json）。
+   字卡是合体字，数据集没有整字，所以用【它的构件】拼出来，标为「组合示意」。
+   注意：这里出的都是内联 SVG，不是把今字换个等宽字体——
+   原先 `.g.ob` 只写了 font-family:"Courier New"，设置项却叫"甲骨文"，那是假的。 */
+.obsvg, .pieceob, .slotsvg, .glyphone, .obcomp-g {
+  display: block; color: currentColor;
+}
+.glyphone { width: 112px; height: 112px; }
+
+/* 字卡上的「构件组合」：默认左右并置，屋盖类上下相叠 */
+.obcomp {
+  display: flex; align-items: center; justify-content: center;
+  gap: 3px; flex-wrap: nowrap;
+}
+.obcomp.stack { flex-direction: column; gap: 1px; }
+.obcomp-g { width: 64px; height: 64px; }
+.obcomp.stack .obcomp-g { width: 58px; height: 58px; }
+.obcomp-op {
+  font-size: 18px; color: var(--ink-soft); line-height: 1;
+}
+/* 甲骨形下面补一行今字，免得认不出要拼哪个字 */
+.glyphcap {
+  display: block; margin-top: 2px;
+  font-size: 15px; letter-spacing: 2px; color: var(--ink-2);
+}
+
+/* 构件台：真字形 34px + 今字角标 */
+.piece .g.ob { color: var(--bronze); }
+.piece .g .pieceob { width: 34px; height: 34px; }
+.piece.used .g .pieceob { opacity: .45; }
+/* 放置槽里的构件也出真字形 */
+.slot .slotsvg { width: 30px; height: 30px; color: var(--bronze); }
+
+/* 答对后揭晓：玩家自己组出来的甲骨形 */
+.reveal {
+  display: inline-flex; flex-direction: column; align-items: center;
+  gap: 2px; margin-top: 9px; padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--green-tint) 42%, var(--edge));
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--green-tint) 7%, transparent);
+}
+.reveal-t { font-size: 11px; letter-spacing: 1px; color: var(--ink-2); }
+.reveal .obcomp-g { width: 48px; height: 48px; color: var(--ink); }
+.reveal-cap { font-size: 13px; letter-spacing: 2px; color: var(--ink-2); }
+
+/* 复盘表里的组合要小一号，否则撑破表格 */
+.tl-table .obcomp { justify-content: flex-start; gap: 1px; }
+.tl-table .obcomp-g { width: 28px; height: 28px; }
+.tl-table .obcomp-op { font-size: 11px; }
 
 .info { text-align: center; }
 .info .name { font-size: 14px; color: var(--ink); }
@@ -377,7 +431,7 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 }
 .piece:active { transform: scale(.95); }
 .piece .g { font-size: 27px; line-height: 1.1; color: var(--ink); }
-.piece .g.ob { color: var(--bronze); font-family: "Courier New", monospace; font-weight: 700; }
+.piece .g.ob { color: var(--bronze); }
 .piece .n { font-size: 10px; color: var(--ink-soft); margin-top: 1px; }
 .piece.used { filter: grayscale(.75) brightness(.72); cursor: default; }
 .piece.hasimg { border-color: var(--bronze); }

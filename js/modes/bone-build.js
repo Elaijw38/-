@@ -87,12 +87,62 @@
     var CARDS = pack.data.cards.slice();
     var PIECES = pack.data.pieces.slice();
 
+    /* ---------- 甲骨字形 ----------
+       这个玩法叫「甲骨构字」，所以构件与字卡都该出真甲骨字形，
+       而不是把今字换个等宽字体冒充（原先 `.g.ob` 只是
+       `font-family:"Courier New"` —— 设置项写着"甲骨文"其实在骗人）。
+
+       字形取自 js/core/glyph-parts.json（Li & Bian 数据集，CC BY 4.0）：
+       37 个构件全部有真字形；34 张字卡是合体字，数据集里没有整字，
+       所以用「构件组合」的方式拼出来（见 composeOracle）。 */
+    var SVGNS = 'http://www.w3.org/2000/svg';
+    var GLYPH_CANVAS = (App.glyphs && App.glyphs.canvas) || 100;
+
+    function obSvg(name, size, cls) {
+      if (!App.glyphSvg) return null;
+      var inner = App.glyphSvg(name, 'currentColor');
+      if (!inner) return null;
+      var svg = document.createElementNS(SVGNS, 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + GLYPH_CANVAS + ' ' + GLYPH_CANVAS);
+      svg.setAttribute('class', cls || 'obsvg');
+      svg.setAttribute('aria-hidden', 'true');
+      if (size) {
+        svg.style.width = size + 'px';
+        svg.style.height = size + 'px';
+      }
+      svg.innerHTML = inner;
+      return svg;
+    }
+
+    /* 合体字的构件排布方向。
+       多数甲骨合体字是左右并置；下面这些是上下相叠（屋盖在上、
+       手在树上等）。这只是**示意**，不代表该字甲骨原形的精确位置——
+       界面上一律标明"组合示意"，不冒充原形。 */
+    var STACKED = { '家': 1, '安': 1, '灾': 1, '牢': 1, '采': 1, '集': 1, '共': 1, '兵': 1, '焚': 1 };
+
+    /* 把合体字用【真甲骨构件】拼出来：'日+月' → 甲骨日 ＋ 甲骨月 */
+    function composeOracle(card) {
+      var parts = String(card.w || '').split('+').filter(Boolean);
+      var have = parts.filter(function (n) { return !!App.glyphSvg(n); });
+      if (!have.length) return null;
+      var box = U.el('div', 'obcomp' + (STACKED[card.g] || have.length < 2 ? ' stack' : ''));
+      have.forEach(function (n) {
+        /* 不夹分隔符：这是"组出来的字形"，构件应当紧贴；
+           "＋"式的公式说明交给判定文案（正解 宀＋火）。 */
+        var s = obSvg(n, null, 'obcomp-g');
+        if (s) { box.appendChild(s); } else { box.appendChild(U.el('span', 'obcomp-g', n)); }
+      });
+      return box;
+    }
+
     /* ---------- 状态 ---------- */
     var S = {
       mode: 'solo',          /* solo | pvp */
       diff: 'normal',
-      pieceForm: 'ob',       /* 'modern' | 'ob' —— 构件字形 */
-      cardForm: 'modern',    /* 'modern' | 'ob' —— 字卡字形 */
+      pieceForm: 'ob',       /* 'modern' | 'ob' —— 构件字形（ob＝真甲骨字形） */
+      /* 字卡默认出今字：字卡是【题面】，若直接显示拼好的甲骨形就等于剧透答案。
+         玩家要自己把甲骨构件摆进槽里组出来；答对后才揭晓组合结果。 */
+      cardForm: 'modern',    /* 'modern' | 'ob' —— 字卡字形（ob＝直接给答案，慎用） */
       showLabel: true,       /* 是否显示构件名角标 */
       thinkScale: 1.0,
       winSec: 12,            /* 抢答窗口 */
@@ -208,9 +258,9 @@
       /* 4 构件与字卡字形 */
       var s4 = U.el('div', 'sect');
       s4.appendChild(sect('4', '字形显示'));
-      s4.appendChild(selectRow('构件字形', [['ob','字体构件（甲骨文）'], ['modern','纯现代字']],
+      s4.appendChild(selectRow('构件字形', [['ob','真甲骨字形'], ['modern','现代字']],
         S.pieceForm, function (v) { S.pieceForm = v; refresh(); }));
-      s4.appendChild(selectRow('字卡字形', [['modern','现代字'], ['ob','甲骨文']],
+      s4.appendChild(selectRow('字卡字形', [['modern','现代字（推荐）'], ['ob','甲骨形（会剧透）']],
         S.cardForm, function (v) { S.cardForm = v; refresh(); }));
       var sw = U.el('label', 'sw');
       var cb = document.createElement('input');
@@ -220,7 +270,9 @@
       sw.appendChild(document.createTextNode(' 显示构件名角标'));
       s4.appendChild(sw);
       s4.appendChild(U.el('div', 'hint',
-        '构件用甲骨文（练字形辨认）＋字卡保留现代字（保证认得出要拼哪个字），是最常用的组合。'));
+        '构件台出真甲骨字形（取自 Li & Bian 数据集，CC BY 4.0），玩家把它们摆进槽里自己组。' +
+        '字卡是【题面】，默认出今字——若让它直接显示拼好的甲骨形，就等于把答案给了。' +
+        '答对（或复盘的「正解」列）才揭晓组好的甲骨形。'));
       setup.appendChild(s4);
 
       /* 5 对战选项 */
@@ -355,6 +407,10 @@
       gb.appendChild(U.el('span', 'lab', '契文'));
       var gl = U.el('span', 'glyph', ''); gl.id = 'mpGlyph';
       gb.appendChild(gl);
+      /* 出甲骨形时这里显示今字，免得玩家认不出要拼哪个字 */
+      var cap = U.el('span', 'glyphcap', ''); cap.id = 'mpGlyphCap';
+      cap.style.display = 'none';
+      gb.appendChild(cap);
       var st = U.el('span', 'star', ''); st.id = 'mpStars';
       gb.appendChild(st);
       stage.appendChild(gb);
@@ -471,8 +527,26 @@
       var gl = $('mpGlyph');
       var ob = (S.cardForm === 'ob');
       gl.className = 'glyph' + (ob ? ' glyphob' : '');
-      gl.textContent = c.g;
-      if (ob) gl.setAttribute('data-ob', c.g); else gl.removeAttribute('data-ob');
+      gl.removeAttribute('data-ob');
+      U.clearNode(gl);
+      var done = false;
+      if (ob) {
+        /* 合体字：用真甲骨构件拼出来（构件组合示意） */
+        var comp = composeOracle(c);
+        if (comp) { gl.appendChild(comp); done = true; }
+        /* 单构件字（如「卜」）直接出整字字形 */
+        if (!done) {
+          var one = obSvg(c.g, null, 'glyphone');
+          if (one) { gl.appendChild(one); done = true; }
+        }
+      }
+      if (!done) { gl.textContent = c.g; }
+      /* 出甲骨形时另给一行今字，避免认不出要拼哪个字 */
+      var cap = $('mpGlyphCap');
+      if (cap) {
+        cap.textContent = (ob && done) ? c.g : '';
+        cap.style.display = (ob && done) ? '' : 'none';
+      }
       $('mpStars').textContent = '★'.repeat(starsOf(c));
       var lim = limitOf(c, R());
       $('mpMean').textContent = '限时 ' + lim + ' 秒　｜　用时不超 ' +
@@ -484,11 +558,13 @@
       var el = $('mpSlots');
       U.clearNode(el);
       var need = String(S.cur.w || '').split('+').filter(Boolean).length;
+      var modern = (S.pieceForm === 'modern');
       for (var i = 0; i < Math.max(need, S.filled.length, 1); i++) {
         var d = U.el('div', 'slot');
         if (S.filled[i]) {
-          d.textContent = glyphOf(S.filled[i]);
           d.classList.add('filled');
+          var s = modern ? null : obSvg(S.filled[i], 30, 'slotsvg');
+          if (s) { d.appendChild(s); } else { d.textContent = glyphOf(S.filled[i]); }
           (function (idx) {
             d.onclick = function () { S.filled.splice(idx, 1); renderSlots(); renderPieces(); };
           })(i);
@@ -511,10 +587,16 @@
         var d = U.el('div', 'piece cat-' + (p.c || 'natural'));
         if (S.filled.indexOf(p.n) >= 0) d.classList.add('used');
         var g = U.el('span', 'g' + (modern ? '' : ' ob'));
-        g.textContent = modern ? p.n : (p.s || p.n);
+        if (modern) {
+          g.textContent = p.n;
+        } else {
+          /* 真甲骨字形（37 个构件全都有）；万一缺字形就退回今字 */
+          var s = obSvg(p.n, 34, 'pieceob');
+          if (s) { g.appendChild(s); } else { g.textContent = p.n; }
+        }
         d.appendChild(g);
-        var gt = (p.s || p.n);
-        if (label && gt !== p.n) d.appendChild(U.el('span', 'n', p.n));
+        /* 出甲骨形时把今字挂下面当角标，否则认不出是哪个构件 */
+        if (label && !modern) d.appendChild(U.el('span', 'n', p.n));
         d.onclick = function () { addPiece(p.n); };
         box.appendChild(d);
       });
@@ -592,6 +674,7 @@
           '拼成' + (fast ? '（快答 ＋1）' : ''));
         setVerdict('ok', '✔ 拼成！正解 <b>' + need.join('＋') + '</b>　' +
           (fast ? '快答奖励 ＋1，' : '') + '共 ＋' + gain + ' 分');
+        revealComposed(c);
         afterCorrect();
       } else {
         P().wrong += 1; P().timeMs += used;
@@ -628,6 +711,22 @@
       var v = $('mpVerdict');
       v.className = 'verdict ' + kind;
       v.innerHTML = html;
+    }
+
+    /* 答对（或复盘给出正解）后，把【玩家自己组出来的甲骨形】亮出来。
+       题面不预先显示它——那是答案；这里才是"组成了"的收获时刻。 */
+    function revealComposed(card) {
+      var v = $('mpVerdict');
+      if (!v || !card) return;
+      var box = composeOracle(card);
+      if (!box) return;
+      var wrap = U.el('div', 'reveal');
+      var t = U.el('div', 'reveal-t', '你组出的甲骨形 · 组合示意');
+      wrap.appendChild(t);
+      wrap.appendChild(box);
+      var cap = U.el('div', 'reveal-cap', card.g);
+      wrap.appendChild(cap);
+      v.appendChild(wrap);
     }
 
     /* ---------- 质问 ---------- */
@@ -829,12 +928,25 @@
       S.timeline.forEach(function (r, i) {
         var tr = U.el('tr');
         tr.appendChild(U.el('td', null, String(i + 1)));
+        /* 「字」列出今字（说明这一手拼的是哪个字）；
+           「正解」列才揭晓 —— 用真甲骨构件把该字组出来。 */
         tr.appendChild(U.el('td', null, r.g));
         tr.appendChild(U.el('td', null, r.actor));
         var lab = { ok:'✔ 拼成', wrong:'✘ 错答', timeout:'⏱ 超时', hint:'卜辞提示',
           ch_ok:'⚔ 质问成功', ch_lost:'⚔ 被抢答', ch_no:'⚔ 质问失败' }[r.result] || r.result;
         tr.appendChild(U.el('td', null, lab));
-        tr.appendChild(U.el('td', null, r.w.split('+').join('＋')));
+        var tdW = U.el('td', null, '');
+        var comp = S.pieceForm === 'modern' ? null : composeOracle({ g: r.g, w: r.w });
+        if (comp) {
+          tdW.appendChild(comp);
+        } else {
+          var names0 = r.w.split('+').filter(Boolean);
+          names0.forEach(function (n, k) {
+            if (k) { tdW.appendChild(U.el('span', 'obcomp-op', '＋')); }
+            tdW.appendChild(U.el('span', null, n));
+          });
+        }
+        tr.appendChild(tdW);
         tr.appendChild(U.el('td', null, r.sec + 's'));
         tr.appendChild(U.el('td', null, U.signed(r.delta)));
         tr.appendChild(U.el('td', null, r.note));

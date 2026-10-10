@@ -100,14 +100,27 @@
     click(byText('.info .bar .btn', /重摆|清空/));
     log('重摆 → 已填 ' + qa('#mpSlots .slot.filled').length);
 
+    /* 真甲骨字形的断言 —— 这个玩法叫「甲骨构字」，早先却把今字换个
+       等宽字体冒充甲骨文（.g.ob 只写了 font-family:"Courier New"）。
+       现在构件台与字卡都出内联 SVG 真字形，这里盯着别退化。 */
+    log('');
+    log('=== 真甲骨字形 ===');
+    log('构件台里带甲骨 SVG 的件数: ' + qa('#mpPieces .piece svg').length +
+        ' / ' + qa('#mpPieces .piece').length + ' 件');
+    var compSvgs = qa('#mpGlyph .obcomp svg').length;
+    log('字卡上的构件组合件数: ' + compSvgs +
+        '（合体字应为 2；单构件字走 .glyphone）');
+    log('字卡单字形 .glyphone: ' + qa('#mpGlyph .glyphone').length);
+    log('字卡今字角标 mpGlyphCap: 「' + trim((q('#mpGlyphCap') || {}).textContent, 6) + '」');
+
     /* 按当前字卡的构件组成去点，才能拼对拿到正的甲骨片得分。
-       注意：构件台里不一定有可见名——bone-build 只在「甲骨字形 ≠ 现代字」
-       时才渲染 .n 角标。所以按【显示的字形】反查：先由构件数据把
-       构件名映射成字形，再用字形匹配 DOM 文本。 */
+       字卡现在出的是甲骨形（无文字），今字在 #mpGlyphCap；
+       构件台每件下方必有 .n 今字角标，所以按角标匹配最稳。 */
     var need = [], allPieces = [];
     (function () {
-      var gl = q('#mpGlyph');
-      var g = gl ? String(gl.textContent).trim() : '';
+      var capEl = q('#mpGlyphCap');
+      var g = capEl ? String(capEl.textContent).trim() : '';
+      if (!g) { g = String((q('#mpGlyph') || {}).textContent || '').trim(); }
       var cards = [];
       try {
         if (window.App && App.packs && App.packs.byType) {
@@ -122,22 +135,17 @@
       if (c) need = String(c.w || '').split('+').filter(Boolean);
       log('字卡=' + g + ' 所需构件=[' + need.join('＋') + ']');
     })();
-    /* 构件名 → 该件在台上显示的字形（甲骨体 s，退回现代体 n） */
-    function formsOf(name) {
-      var p = allPieces.filter(function (x) { return x && x.n === name; })[0];
-      if (!p) return [name];
-      return [p.s || p.n, p.n].filter(Boolean);
-    }
+    /* 找台上那一件：优先用 .n 今字角标，退回整块文本 */
     var pcAll = qa('#mpPieces .piece');
     var picked = [];
     need.forEach(function (nm) {
-      var forms = formsOf(nm);
       var hit = pcAll.filter(function (p) {
-        var txt = String(p.textContent || '').replace(/\s+/g, '');
-        var ok = forms.some(function (f) { return txt.indexOf(f) >= 0; });
-        return ok && picked.indexOf(p) < 0;
+        var nEl = p.querySelector('.n');
+        var txt = nEl ? String(nEl.textContent).trim()
+                      : String(p.textContent || '').replace(/\s+/g, '');
+        return txt === nm && picked.indexOf(p) < 0;
       })[0];
-      if (hit) picked.push(hit);
+      if (hit) { picked.push(hit); }
     });
     if (picked.length !== need.length) {
       log('（未配全构件，退回点前两件）');
@@ -150,6 +158,11 @@
     click(byText('.info .bar .btn', /契刻|呈上/));
     log('');
     log('提交判定: ' + trim((q('#mpVerdict') || {}).textContent, 60));
+    /* 答对后应当揭晓「玩家自己组出的甲骨形」——
+       这是"给构件、让玩家自己组、组成了才亮出来"的关键一步。
+       题面（字卡）不预先显示它，否则等于给答案。 */
+    log('揭晓区 .reveal: ' + qa('#mpVerdict .reveal').length +
+        ' 个　其中的甲骨构件: ' + qa('#mpVerdict .reveal .obcomp svg').length + ' 件');
     /* 拼对后界面会立刻转入下一张字卡并重建比分板，抢读分数时序不稳
        （会读到空值或旧值），故不在此断言得分。甲骨片得分的渲染
        由 dev/_preview_bone.html 单独验证。 */
