@@ -63,20 +63,25 @@ if ($changes) {
 
 # ---------- 2. 推送 ----------
 Step '推送到 GitHub'
-$push = & $git -C $repo push origin main 2>&1
-$code = $LASTEXITCODE
+# 本机走 Steam++ 本地转发，链路会偶发 408/502（连接被中途掐断），
+# 这类错误重试即可，不是配置或权限问题。故带退避重试多次。
+$push = $null
+$code = 1
+$max = 6
+for ($i = 1; $i -le $max; $i++) {
+    $push = & $git -C $repo push origin main 2>&1
+    $code = $LASTEXITCODE
+    if ($code -eq 0) { break }
 
-# 远端有本地没有的提交（历史上分叉过）→ 覆盖
-if ($code -ne 0) {
-    $text = ($push | Out-String)
-    $diverged = $text -match 'rejected|non-fast-forward|fetch first|behind|Updates were rejected'
-    if ($diverged) {
+    $t = ($push | Out-String)
+
+    # 历史分叉：远端有本地没有的提交 → 需要用户确认后覆盖
+    if ($t -match 'rejected|non-fast-forward|fetch first|behind|Updates were rejected') {
         Warn '远端有本地没有的提交（两边历史分叉）'
         Write-Host '    这通常是因为以前用网页上传过文件。' -ForegroundColor Gray
         Write-Host '    覆盖后，线上内容将完全等于你本地这份完整版本。' -ForegroundColor Gray
         $ans = Read-Host '    强制覆盖远端？(y/N)'
         if ($ans -eq 'y' -or $ans -eq 'Y') {
-            # 先抓远端，让 --force-with-lease 的比对基准是最新的
             & $git -C $repo fetch origin 2>&1 | Out-Null
             $push = & $git -C $repo push --force-with-lease origin main 2>&1
             $code = $LASTEXITCODE
@@ -89,6 +94,18 @@ if ($code -ne 0) {
             Warn '已取消'
             Read-Host '按回车退出'; exit 1
         }
+        if ($code -eq 0) { break }
+    }
+
+    # 网络抖动：退避后重试
+    if ($i -lt $max) {
+        $why = if ($t -match '408') { '请求超时(408)' }
+               elseif ($t -match '502|503|504') { '网关错误' }
+               elseif ($t -match 'unexpected disconnect|hung up') { '连接被中断' }
+               else { '网络错误' }
+        $wait = 4 * $i
+        Warn ("第 $i/$max 次失败（$why），等 $wait 秒重试…")
+        Start-Sleep -Seconds $wait
     }
 }
 
