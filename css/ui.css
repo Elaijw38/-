@@ -354,6 +354,31 @@ body[data-nav="side"] .footer {
   }
 }
 
+
+/* ============================================================================
+   宽屏玩法（模式声明 layout:'wide'）
+   侧栏让位、内容列占满整个界面。
+   起因：.app-main 被限宽 900px 且落在 grid 第二列，王邑图卷作为主打玩法
+   却缩在右侧一块，右边空一大片——整幅画铺不开。
+   ============================================================================ */
+body[data-nav="side"] .app-shell.layout-wide .app-main { max-width: none; }
+/* 只放开 .app-main 还不够：#sceneRoot 本身就是 <main class="wrap">，
+   而 .wrap 有 max-width:860px —— 它才是真正卡住整幅画的那个。
+   （逐层量过祖先才看出来：app-main 已是 1406，wrap 仍停在 860。） */
+body[data-nav="side"] .app-shell.layout-wide .wrap { max-width: none; }
+
+@media (min-width: 721px) {
+  body[data-nav="side"] .app-shell.layout-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body[data-nav="side"] .app-shell.layout-wide .app-nav { display: none; }
+  body[data-nav="side"] .app-shell.layout-wide .app-main {
+    grid-column: 1;
+    max-width: none;
+    padding: 0 12px 16px;
+  }
+}
+
 /* ============================================================================
    首页：整块内容水平居中
    导语与卡片共用同一限宽，保证两者左边界对齐、作为一整块居中

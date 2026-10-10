@@ -335,6 +335,15 @@
       return e;
     }
     var wrap = App.el('div', 'scene play-scene');
+    /* 宽屏玩法：模式在描述里声明 layout:'wide'，内容就占满整个界面——
+       侧栏让位、去掉 .app-main 的 900px 限宽。
+       （王邑图卷是主打玩法，整幅画要铺满，不能缩在右半边的角落里。）
+       类加在 .app-shell 上；下一次 render 会在设 className 时自动清掉。 */
+    if (mode.layout === 'wide') {
+      wrap.classList.add('scene-wide');
+      var sh = App.$('appShell');
+      if (sh) { sh.classList.add('layout-wide'); }
+    }
     var bar = App.el('div', 'play-bar');
     var back = App.el('button', 'btn sm', '← 返回');
     back.onclick = function () {

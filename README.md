@@ -285,6 +285,7 @@ App.modes.register({
   tags: ['单人', '计时'],
   minPlayers: 1, maxPlayers: 2,
   status: 'ready',            // ready（可玩）| wip（开发中）| planning（筹备中）
+  layout: 'wide',             // ''（默认，内容列限宽 860/900px）| 'wide'（占满整个界面）
 
   data: {                     // 需要哪些数据，平台会准备好
     packs: [{ type: 'cards', role: 'main', label: '字包' }],
@@ -311,6 +312,15 @@ App.modes.register({
 - 模式之间互不干扰（各自 `mount`/`unmount`，不共享全局状态）
 - 离开对局时自动调用 `unmount`
 - 内容包按模式声明的类型自动解析，模式不必了解存储细节
+- `layout:'wide'` 时：侧栏让位（`display:none`）、内容列改单列并放开限宽，
+  整块内容占满界面。下一次 `render` 会自动清掉这个类，模式不必自己收拾
+
+> **实现提示（踩过的坑）**：宽屏要放开的不止 `.app-main`（`max-width:900px`），
+> **还有 `.wrap`（`max-width:860px`）——`#sceneRoot` 本身就是 `<main class="wrap">`**。
+> 只放开前者的话地图仍然只有 832px 宽；逐层量祖先的宽度才找得出来。
+> 另外 `App.modes.register()` **只复制它列出的字段**，新增描述字段（如 `layout`）
+> 必须同时加进 `modes.js` 的白名单，否则 `scenePlay` 里读到的是 `undefined`，
+> 规则静默失效。
 
 ---
 

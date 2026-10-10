@@ -199,6 +199,49 @@
 }
 .wy-tray-empty { font-size: 12px; color: var(--green-tint); padding: 18px 0; }
 
+/* ---------- 宽屏布局：地图铺满 + 构字页居中 ----------
+   原先内容被 .app-main 的 900px 限宽卡住、又贴左，右侧空一大片；
+   构字页的各块也都堆在左边。这里统一处理。 */
+.scene-wide .wy-map { margin: 8px 0 4px; }
+.scene-wide .wy-omap { width: 100%; height: auto; }
+
+/* 地图页与构字页的各个块统一限宽居中 */
+.scene.wangyi .wy-head,
+.scene.wangyi .wy-learnbar,
+.scene.wangyi .wy-mapfoot,
+.scene.wangyi .wy-side,
+.scene.wangyi .wy-q-label,
+.scene.wangyi .wy-ref,
+.scene.wangyi .wy-tray,
+.scene.wangyi .verdict {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.scene.wangyi .wy-head { justify-content: center; text-align: center; }
+.scene.wangyi .wy-learnbar { justify-content: center; }
+.scene.wangyi .wy-q-label { text-align: center; margin: 4px auto 10px; }
+.scene.wangyi .wy-mapfoot { justify-content: center; }
+.scene.wangyi .wy-side { justify-content: center; }
+.scene.wangyi .verdict { text-align: center; }
+.scene.wangyi .wy-tray-items { justify-content: center; }
+.scene.wangyi .wy-tray-label { justify-content: center; text-align: center; border-left: 0; padding-left: 0; }
+/* 窄屏时那张图会缩得较小，组装区与部件池也居中排 */
+.scene.wangyi .wy-stagewrap { margin: 8px auto 12px; }
+.scene.wangyi .wy-ref-label { text-align: center; }
+.scene.wangyi .wy-card { max-width: 820px; margin-left: auto; margin-right: auto; }
+/* 原字框内的「字形 + 释义」整组居中，否则贴框左边 */
+.scene.wangyi .wy-ref { justify-content: center; }
+.scene.wangyi .wy-ref-info { text-align: center; }
+
+/* 宽屏下把构字区放大——主打玩法，别让人眯着眼拖 */
+.scene-wide .wy-stage-svg { width: 252px; height: 252px; }
+.scene-wide .wy-ref-glyph { width: 122px; height: 122px; }
+.scene-wide .wy-ref-desc { font-size: 17px; }
+.scene-wide .wy-piece { width: 80px; height: 80px; }
+.scene-wide .wy-piece-svg { width: 64px; height: 64px; }
+.scene-wide .wy-tray-items { gap: 10px; }
+
 /* ---------- 实物详情（学习卡） ---------- */
 .wy-card {
   display: flex; gap: 20px; align-items: center; flex-wrap: wrap;

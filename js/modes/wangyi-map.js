@@ -561,6 +561,8 @@
     icon: '邑',
     accent: 'var(--bronze)',
     tags: ['拖拽构字', '61 个实物', '点亮地图'],
+    /* 主打玩法：占满整个界面（侧栏让位、去掉内容列 900px 限宽） */
+    layout: 'wide',
     minPlayers: 1, maxPlayers: 1,
     status: 'ready',
     data: { packs: [], assets: [] },

@@ -39,6 +39,11 @@
       minPlayers: spec.minPlayers == null ? 1 : spec.minPlayers,
       maxPlayers: spec.maxPlayers == null ? 1 : spec.maxPlayers,
       status: spec.status || 'ready',        /* ready | wip | planning */
+      /* 布局：'' 默认（内容列限宽 900px）| 'wide' 占满整个界面。
+         整幅图卷这类主打玩法要 wide，否则会被 900px 卡在右侧一角。
+         必须在这里显式列出：register 只复制列出的字段，
+         漏掉的键在 scenePlay 里读不到（曾因此宽屏规则毫无效果）。 */
+      layout: spec.layout || '',
       data: spec.data || {},
       settings: spec.settings || [],
       mount: spec.mount || null,
