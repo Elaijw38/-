@@ -118,7 +118,7 @@
       { id: 'home',     icon: '首', label: '首　页' },
       { id: 'modes',    icon: '戏', label: '开始玩' },
       { id: 'plan',     icon: '续', label: '后续玩法' },
-      { id: 'settings', icon: '包', label: '内容与设置' }
+      { id: 'settings', icon: '设', label: '设置与备份' }
     ].forEach(function (it) { host.appendChild(navItem(it)); });
 
     /* 底部：试玩版印章 + 版本号 */
@@ -141,22 +141,23 @@
     var c1 = App.el('div', 'home-card primary');
     c1.appendChild(App.el('span', 'hc-icon', '戏'));
     c1.appendChild(App.el('h3', null, '开始玩'));
-    c1.appendChild(App.el('p', null, '选择玩法与难度，立刻开局。现有「甲骨构字」的几种模式都在里面。'));
+    c1.appendChild(App.el('p', null, '选择玩法与难度，立刻开局。'));
     var wantPlay = App.el('span', 'hc-note', '');
     c1.appendChild(wantPlay);
     c1.onclick = function () { go('modes'); };
     cards.appendChild(c1);
 
-    /* 内容管理 */
+    /* 说明与备份
+       原先这里还有一张「内容包」卡，只显示「字包 1 · 题库 0 · 图鉴 0 · 章节 0」
+       —— 三个 0 看着像没做完（那三类只有类型定义、既无内容也无添加入口）。
+       App.packs 数据层仍在（甲骨构字靠它拿字卡），只是不再拿它当首页卖点。 */
     var c2 = App.el('div', 'home-card');
-    c2.appendChild(App.el('span', 'hc-icon', '包'));
-    c2.appendChild(App.el('h3', null, '内容包'));
-    c2.appendChild(App.el('p', null, '管理供各玩法使用的数据：字包、题库、图鉴等。'));
-    var stat = App.el('span', 'hc-note', '');
-    stat.textContent = App.packs.types().map(function (t) {
-      return App.packs.typeMeta(t).label + ' ' + App.packs.byType(t).length;
-    }).join('　·　');
-    c2.appendChild(stat);
+    c2.appendChild(App.el('span', 'hc-icon', '备'));
+    c2.appendChild(App.el('h3', null, '数据备份'));
+    c2.appendChild(App.el('p', null, '进度与设置都存在本机浏览器里。换设备或清理浏览器数据前，先导出备份。'));
+    var note2 = App.el('span', 'hc-note', '');
+    note2.textContent = '已用 ' + (App.store.bytes() / 1024).toFixed(0) + ' KB';
+    c2.appendChild(note2);
     c2.onclick = function () { go('settings'); };
     cards.appendChild(c2);
 
@@ -205,8 +206,12 @@
         card.appendChild(tg);
       }
       var players = m.maxPlayers > 1 ? (m.minPlayers + '—' + m.maxPlayers + ' 人') : '单人';
-      card.appendChild(App.el('div', 'mc-foot', players + '　·　' +
-        (m.data.packs && m.data.packs.length ? m.data.packs[0].label || '内容包' : '无特殊数据')));
+      /* 声明了内容包才显示它的名字；没声明的就不显示，
+         不要写「无特殊数据」——那是把内部概念漏到界面上。 */
+      var packLabel = (m.data.packs && m.data.packs.length)
+        ? (m.data.packs[0].label || '') : '';
+      card.appendChild(App.el('div', 'mc-foot',
+        players + (packLabel ? '　·　' + packLabel : '')));
 
       if (m.status === 'ready') {
         card.onclick = function () { App.store.set('lastMode', m.id); go('play', { id: m.id }); };
@@ -250,41 +255,36 @@
     var wrap = App.el('div', 'scene');
     wrap.appendChild(App.el('p', 'lead', '这里的设置对所有玩法生效。玩法自己的选项在开局前设置。'));
 
-    /* 内容包 */
+    /* 数据备份
+       原先这里是「内容包」区块：一张只有一行的表（内置字包）+ 导出/导入。
+       表已删（用户既改不了也加不了内容），导出/导入移到这里——
+       它是唯一的备份途径，不能跟着界面一起删掉。 */
     var s2 = App.el('div', 'sect');
-    s2.appendChild(App.el('h4', null, '内容包'));
+    s2.appendChild(App.el('h4', null, '数据备份'));
     s2.appendChild(App.el('div', 'hint',
-      '内容包是供各玩法使用的内容数据。目前支持 ' +
-      App.packs.types().map(function (t) { return App.packs.typeMeta(t).label; }).join('、') +
-      '；后续玩法引入新类型时会在此出现。'));
-    var tb = App.el('table', 'tl-table');
-    tb.innerHTML = '<tr><th>类型</th><th>名称</th><th>内容</th><th>来源</th></tr>';
-    App.packs.types().forEach(function (t) {
-      App.packs.byType(t).forEach(function (p) {
-        var tr = App.el('tr');
-        tr.appendChild(App.el('td', null, App.packs.typeMeta(t).label));
-        tr.appendChild(App.el('td', null, p.name));
-        tr.appendChild(App.el('td', null, App.packs.summary(p)));
-        tr.appendChild(App.el('td', null, p.builtin ? '内置' : '自建'));
-        tb.appendChild(tr);
-      });
-    });
-    s2.appendChild(tb);
+      '进度、设置与自建内容都保存在本机浏览器里，不会上传到任何服务器。' +
+      '换设备或清理浏览器数据前，先导出备份。'));
+    var s2b = App.el('div', 'tune');
+    s2b.appendChild(App.el('label', null, '已用空间'));
+    s2b.appendChild(App.el('span', 'chip', (App.store.bytes() / 1024).toFixed(0) + ' KB'));
+    s2b.appendChild(App.el('span', 'chip', App.store.ok() ? '本地存储可用' : '本地存储不可用（无痕模式？）'));
+    s2.appendChild(s2b);
+
     var ioBar = App.el('div', 'bar');
-    var be = App.el('button', 'btn sm', '导出全部内容包');
+    var be = App.el('button', 'btn sm', '导出备份');
     be.onclick = function () {
       var t = App.packs.exportAll();
       try {
         var blob = new Blob([t], { type: 'application/json' });
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = '字趣-内容包.json';
+        a.download = '字趣-备份.json';
         document.body.appendChild(a); a.click(); a.remove();
         App.toast('已导出');
       } catch (e) { App.toast('本环境不支持下载'); }
     };
     ioBar.appendChild(be);
-    var bi = App.el('button', 'btn sm', '导入内容包');
+    var bi = App.el('button', 'btn sm', '导入备份');
     bi.onclick = function () {
       var inp = document.createElement('input');
       inp.type = 'file'; inp.accept = '.json,application/json';
@@ -295,7 +295,7 @@
         r.onload = function () {
           try {
             var res = App.packs.importText(String(r.result));
-            App.toast('导入 ' + res.added + ' 个包' + (res.skipped ? '，跳过 ' + res.skipped + ' 个' : ''));
+            App.toast('已导入 ' + res.added + ' 项' + (res.skipped ? '，跳过 ' + res.skipped + ' 个' : ''));
             render();
           } catch (e) { App.toast('导入失败：' + e.message); }
         };
@@ -305,20 +305,8 @@
     };
     ioBar.appendChild(bi);
     s2.appendChild(ioBar);
-    wrap.appendChild(s2);          /* 之前漏了这一步，内容包区从未进入页面 */
+    wrap.appendChild(s2);
 
-    /* 存储 */
-    var s3 = App.el('div', 'sect');
-    s3.appendChild(App.el('h4', null, '数据与存储'));
-    s3.appendChild(App.el('div', 'hint',
-      '所有数据保存在本机浏览器中，不会上传到任何服务器。' +
-      '换设备或清理浏览器数据后，自建内容会丢失，请用「导出」备份。'));
-    var s3b = App.el('div', 'tune');
-    s3b.appendChild(App.el('label', null, '已用空间'));
-    s3b.appendChild(App.el('span', 'chip', (App.store.bytes() / 1024).toFixed(0) + ' KB'));
-    s3b.appendChild(App.el('span', 'chip', App.store.ok() ? '本地存储可用' : '本地存储不可用（无痕模式？）'));
-    s3.appendChild(s3b);
-    wrap.appendChild(s3);
 
     return wrap;
   }
