@@ -1,0 +1,100 @@
+{
+  "_note": "王邑地图 · 关卡数据。结构与内容分离：改这里即可增删区块/关卡，无需改代码。",
+  "_version": "1.0",
+  "map": {
+    "id": "wangyi-map",
+    "name": "殷商王邑",
+    "subtitle": "择一区块入关",
+    "intro": "三千年前的王邑：城郭之外是山川草木，邑中是人烟生计。三处地界各藏契文，破之可续。",
+    "cols": 3,
+    "rows": 3,
+    "zones": [
+      {
+        "id": "landscape",
+        "name": "自然风光",
+        "rank": "初级",
+        "icon": "山",
+        "mechanic": "boss",
+        "hint": "拆字：认出这是哪一个构件",
+        "cell": "1,1",
+        "color": "var(--blue-tint)",
+        "unlocked": true,
+        "desc": "王邑郊野。日月山川皆有其形，先从这里认起。",
+        "levels": [
+          { "id": "ls-1", "char": "日", "hint": "一轮圆日，中间加一点" },
+          { "id": "ls-2", "char": "月", "hint": "一弯弦月，中有一竖" },
+          { "id": "ls-3", "char": "山", "hint": "三峰并立" },
+          { "id": "ls-4", "char": "水", "hint": "流水蜿蜒，两侧有滴" },
+          { "id": "ls-5", "char": "雨", "hint": "云下有水点落下" },
+          { "id": "ls-6", "char": "火", "hint": "火焰升腾之形" }
+        ]
+      },
+      {
+        "id": "creature",
+        "name": "动植物",
+        "rank": "中级",
+        "icon": "木",
+        "mechanic": "pair",
+        "hint": "配对：把构件的甲骨形与今字连起来",
+        "cell": "1,3",
+        "color": "var(--green-tint)",
+        "unlocked": false,
+        "desc": "林麓之间。草木鸟兽各有其形，两两相配方得其名。",
+        "unlock": { "after": "landscape", "need": 4 },
+        "levels": [
+          { "id": "cr-1", "pairs": ["木", "禾", "竹", "屮"] },
+          { "id": "cr-2", "pairs": ["牛", "羊", "犬", "豕"] },
+          { "id": "cr-3", "pairs": ["隹", "鱼", "虎", "鹿"] },
+          { "id": "cr-4", "pairs": ["林", "米", "虫", "贝"] }
+        ]
+      },
+      {
+        "id": "life",
+        "name": "生产生活",
+        "rank": "高级",
+        "icon": "宀",
+        "mechanic": "oracle",
+        "hint": "卜辞：依辞而拼",
+        "cell": "2,2",
+        "color": "var(--cinnabar-tint)",
+        "unlocked": false,
+        "comingSoon": true,
+        "desc": "邑中聚居之处。据卜辞所问，拼出对应的契文（坼卜辞素材待补）。",
+        "unlock": { "after": "creature", "need": 3 },
+        "levels": []
+      },
+      {
+        "id": "center",
+        "name": "中央占卜坑",
+        "rank": "终极",
+        "icon": "卜",
+        "mechanic": "pair",
+        "hint": "综合：构件与今字互认",
+        "cell": "3,2",
+        "color": "var(--bronze-tint)",
+        "unlocked": false,
+        "desc": "王邑正中，灼骨问天之处。此处考的是全部所学。",
+        "unlock": { "after": "creature", "need": 4 },
+        "levels": [
+          { "id": "ct-1", "pairs": ["卜", "力", "又", "止"] },
+          { "id": "ct-2", "pairs": ["目", "耳", "口", "子"] },
+          { "id": "ct-3", "pairs": ["刀", "斤", "戈", "矢"] },
+          { "id": "ct-4", "pairs": ["舟", "鼎", "缶", "邑"] }
+        ]
+      },
+      {
+        "id": "practice",
+        "name": "单字选构练习",
+        "rank": "侧边",
+        "icon": "戏",
+        "mechanic": "practice",
+        "hint": "原有的甲骨构字练习",
+        "cell": "3,1",
+        "color": "var(--ink-soft)",
+        "unlocked": true,
+        "desc": "原样的单字选构练习：翻出契文，从构件台凑齐它的构件。",
+        "levels": []
+      }
+    ]
+  }
+}

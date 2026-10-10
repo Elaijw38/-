@@ -3,9 +3,9 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const files = [
-  'js/core/data.js', 'js/core/util.js', 'js/core/packs.js',
-  'js/core/modes.js', 'js/core/shell.js',
-  'js/modes/bone-build.js', 'js/core/build.js',
+  'js/core/data.js', 'js/core/_data.js', 'js/core/leveldata.js', 'js/core/util.js',
+  'js/core/packs.js', 'js/core/modes.js', 'js/core/shell.js',
+  'js/modes/bone-build.js', 'js/modes/wangyi-map.js', 'js/core/build.js',
 ];
 
 let bad = 0;

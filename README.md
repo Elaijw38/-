@@ -30,23 +30,59 @@
 ├─ index.html              壳层（站点头 / 场景挂载点 / 页脚署名 / 脚本加载顺序）
 ├─ css/
 │  ├─ app.css              原型的原有样式（保留）
-│  ├─ theme.css            设计令牌与三套主题（灼骨 / 骨白 / 素色）
+│  ├─ theme.css            设计令牌（外观固定骨白；zhuogu/plain 变量保留备查）
 │  ├─ ui.css               壳层组件：站点头、首页卡、模式卡、响应式
 │  └─ modes.css            玩法层：对局界面、构件台、放置槽、复盘
 ├─ js/
 │  ├─ core/
 │  │  ├─ data.js           内置数据（构件、字卡、卜问）
-│  │  ├─ util.js           DOM 简写、存储封装、主题、图片缩放、事件总线
+│  │  ├─ levels.json       ★ 王邑地图关卡数据（区块 / 关卡 / 解锁规则）
+│  │  ├─ glyph-parts.json  ★ 甲骨字形映射（dev/_gen_glyph_parts.py 生成）
+│  │  ├─ _data.js          ★ 上面两个 JSON 的内联版（dev/_build_leveldata.py 生成）
+│  │  ├─ leveldata.js      暴露为 App.levels / App.glyphs
+│  │  ├─ util.js           DOM 简写、存储封装、图片缩放、事件总线
 │  │  ├─ packs.js          通用内容包（多类型：字包 / 题库 / 图鉴 / 章节）
-│  │  ├─ modes.js          ★ 模式注册表 —— 可插拔点
+│  │  ├─ modes.js          模式注册表 —— 可插拔点
 │  │  ├─ shell.js          路由与壳层（首页 / 玩法列表 / 设置 / 筹备中）
-│  │  └─ build.js          启动：注入品牌字形、套用主题、启动路由
+│  │  └─ build.js          启动：注入品牌字形、套用外观、启动路由
 │  └─ modes/
-│     └─ bone-build.js     玩法：甲骨构字
+│     ├─ bone-build.js     玩法：甲骨构字（单字选构）
+│     └─ wangyi-map.js     玩法：殷商王邑（关卡地图）
 ├─ dev/                    开发自查脚本（不进部署）
 ├─ README.md
 └─ LICENSE
 ```
+
+> ★ 标记者为「王邑闯关」新增。**改关卡内容只需改 `levels.json`**，
+> 改完务必跑 `python dev/_build_leveldata.py` 重新内联，否则页面读到的还是旧数据。
+
+---
+
+## 玩法二：殷商王邑（关卡地图）
+
+一张地图分区块，逐块收复。规则与内容全在 `js/core/levels.json`，代码不写死关卡。
+
+| 区块 | 难度 | 机制 | 说明 |
+|---|---|---|---|
+| 自然风光 | 初级 | `boss` 拆字 | 给甲骨字形，四选一认出是哪个构件 |
+| 动植物 | 中级 | `pair` 配对 | 甲骨形 ←→ 今字，左右点选配对 |
+| 中央占卜坑 | 终极 | `pair` 综合 | 全字域配对 |
+| 生产生活 | 高级 | `oracle` 卜辞 | **素材待补**，暂不开放 |
+| 单字选构练习 | 侧边 | `practice` | 跳回原有玩法，保留原入口 |
+
+**解锁规则**：区块声明 `unlocked:true`（默认开放）或 `unlock:{after,need}`
+（通关某区块 N 关后解锁）；`comingSoon:true` 一律不开放。
+进度存 `ziqu.wangyi`，地图底部可重置。
+
+**点亮**：已解锁区块高亮（`.wy-cell.on`），未解锁压暗去饱和（`.wy-cell.off`）。
+按需求**先只做静态高亮，动效延后**。
+
+### 卜辞素材的缺口（待补）
+
+生产生活区块的高级玩法需要**甲骨卜辞文本**，但现有素材里没有：
+`_provenance.jsonl` 只有字形元数据，`data.js` 的 `src` 仅 7 条零散卜辞。
+**不编造卜辞**（学术项目），故该区块结构已建好、内容空缺，标 `comingSoon`。
+取得素材后填入该区块的 `levels` 数组即可，代码无需改动。
 
 ---
 
@@ -209,10 +245,11 @@ App.modes.register({
 
 ### 构件字形：`js/core/glyph-parts.json`
 
-37 个构件的甲骨字形（拼字/拆字玩法用），同样出自上面这份数据集，
+**61 个甲骨字形**，供拼字/拆字/配对三个玩法使用，同样出自上面这份数据集，
 **CC BY 4.0，须署同一作者**。
 
-- 内容：构件名 → `{glyphId, svg, bbox, sourceChar, unicode}`，SVG 内联（避免额外请求与 file:// 跨域）
+- 内容：字 → `{glyphId, svg, bbox, sourceChar, unicode, zones}`，SVG 内联（避免额外请求与 file:// 跨域）
+- 分区索引：`zones` 字段按 `parts` / `landscape` / `creature` / `life` / `center` 分组，前端不必自己筛
 - 画布：统一归一化到 100×100，按每个字形的实际路径坐标等比缩放并居中
 - 署名与来源写在 JSON 的 `attribution` 字段里，随数据一起带走
 - **重新生成**：`python dev/_gen_glyph_parts.py <上游稀疏检出目录>`

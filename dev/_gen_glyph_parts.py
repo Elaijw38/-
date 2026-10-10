@@ -25,6 +25,12 @@ REPO = os.path.dirname(os.path.abspath(__file__))
 OUT_JSON = os.path.join(REPO, "..", "js", "core", "glyph-parts.json")
 
 # 构件名 -> glyph_id（由 Unicode 匹配得到；门/贝 数据集以繁体收录）
+# 收录的字，按用途分组：
+#   parts    —— 拼字玩法所需的 37 个构件（键名即构件名）
+#   landscape—— 自然风光区块（初级拆字）
+#   creature —— 动植物区块（中级配对）
+#   life     —— 生产生活区块（高级，卜辞素材待补，字形先备齐）
+#   center   —— 中央占卜坑（终极综合）
 PIECES = {
     "日": 495, "月": 515, "雨": 829, "水": 772, "火": 732, "山": 678,
     "田": 979, "木": 428, "人": 585, "大": 747, "女": 867, "子": 1037,
@@ -32,6 +38,22 @@ PIECES = {
     "羊": 287, "犬": 720, "豕": 691, "隹": 273, "鱼": 1097, "禾": 536,
     "屮": 36, "宀": 549, "门": 849, "酉": 1051, "斤": 994, "戈": 908,
     "矢": 402, "糸": 941, "力": 986, "贝": 481, "舟": 636, "卜": 250,
+}
+
+EXTRA = {
+    "landscape": {   # 自然风光
+        "土": 970, "石": 684, "川": 819, "泉": 824, "丘": 621, "谷": 826,
+    },
+    "creature": {    # 动植物
+        "林": 458, "竹": 336, "米": 545, "虎": 368, "鹿": 710, "虫": 955,
+    },
+    "life": {        # 生产生活
+        "足": 137, "刀": 320, "斧": 995, "弓": 934, "衣": 627,
+        "皿": 370, "鼎": 533, "缶": 401, "玉": 32, "井": 384, "邑": 490, "郭": 408,
+    },
+    "center": {      # 中央占卜坑
+        "大": 747, "又": 196, "止": 97, "子": 1037, "口": 75, "目": 259,
+    },
 }
 # 数据集未收录「囗」，但它不参与任何字卡，用「口」的字形作方框代用
 FALLBACK = {"囗": {"glyph_id": 75, "note": "数据集未收录「囗」；借用「口」的方框形，不参与任何字卡"}}
@@ -116,8 +138,23 @@ def main():
     labels = json.loads(io.open(LABELS, "rb").read().decode("utf-8"))
     byid = {r["glyph_id"]: r for r in labels}
 
+    # 汇总所有要收录的字，并记下它属于哪些区块
+    wanted = {}          # name -> glyph_id
+    zones = {}           # name -> [zone, ...]
+    for name, gid in PIECES.items():
+        wanted[name] = gid
+        zones.setdefault(name, []).append("parts")
+    for zone, table in EXTRA.items():
+        for name, gid in table.items():
+            if name not in wanted:
+                wanted[name] = gid
+            if zone not in zones.setdefault(name, []):
+                zones[name].append(zone)
+    for name, info in FALLBACK.items():
+        wanted[name] = info["glyph_id"]
+
     items, missing = {}, []
-    for name, gid in list(PIECES.items()) + [(k, v["glyph_id"]) for k, v in FALLBACK.items()]:
+    for name, gid in wanted.items():
         f = os.path.join(SVG_DIR, "%04d.svg" % gid)
         if not os.path.exists(f):
             missing.append((name, gid, "文件不存在"))
@@ -134,10 +171,19 @@ def main():
             "sourceChar": rec.get("modern_char"),
             "unicode": rec.get("unicode"),
             "charForm": rec.get("char_form"),
+            "zones": zones.get(name, []),
         }
         if name in FALLBACK:
             items[name]["fallbackNote"] = FALLBACK[name]["note"]
             items[name]["isFallback"] = True
+
+    # 按区块提供索引，前端不必自己筛
+    zoneIndex = {}
+    for name, zs in zones.items():
+        for z in zs:
+            zoneIndex.setdefault(z, []).append(name)
+    for z in zoneIndex:
+        zoneIndex[z].sort(key=lambda n: wanted.get(n, 9999))
 
     doc = {
         "_generated": "由 dev/_gen_glyph_parts.py 生成，请勿手改",
@@ -158,12 +204,15 @@ def main():
                               "描边改为 currentColor 以便跟随主题色；字形本身未改动"),
         },
         "parts": items,
+        "zones": zoneIndex,
     }
     out = json.dumps(doc, ensure_ascii=False, separators=(",", ":"))
     io.open(OUT_JSON, "w", encoding="utf-8").write(out)
 
     print("已写出:", os.path.normpath(OUT_JSON))
-    print("构件数:", len(items), " 体积: %.1f KB" % (os.path.getsize(OUT_JSON) / 1024))
+    print("字形总数: %d  体积: %.1f KB" % (len(items), os.path.getsize(OUT_JSON) / 1024))
+    for z in sorted(zoneIndex):
+        print("  区块 %-10s %d 个字形" % (z, len(zoneIndex[z])))
     if missing:
         print("!! 缺失:")
         for n, g, why in missing:
