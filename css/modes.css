@@ -13,66 +13,75 @@
 .wy-title { margin: 0; font-size: 19px; letter-spacing: 1px; }
 .wy-sub { font-size: 12px; color: var(--ink-2); }
 
-/* ---------- 拼图地图 ---------- */
-.wy-map {
-  display: grid; gap: 9px; margin: 14px 0 16px;
-  max-width: 660px;
+/* ---------- 拼图地图 ----------
+   区块是 SVG 多边形，四块按象限无缝拼合、中央菱形叠在拼缝上。
+   点亮＝填充+描边+朱砂亮线；未解锁＝去饱和压暗。
+   顶点在 levels.json 里对齐（如左半右边界 520 同时是右半左边界），
+   否则相邻块之间会露出底色，看着像地裂。 */
+.wy-map { margin: 12px 0 10px; max-width: 720px; }
+.wy-svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+.wy-zone { --wy-accent: var(--bronze-tint); cursor: pointer; }
+.wy-zone:focus-visible { outline: none; }
+.wy-zone:focus-visible .wy-zone-poly { stroke-width: 4; }
+
+.wy-zone-poly {
+  fill: var(--bone-hi);
+  stroke: var(--edge);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transition: fill .18s, stroke .18s, filter .18s;
 }
-.wy-cell {
-  position: relative; min-height: 118px;
-  padding: 10px 11px 9px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--edge);
-  --wy-accent: var(--bronze-tint);
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--bone-hi) 96%, var(--bone)) 0%,
-      var(--bone-hi) 50%,
-      color-mix(in srgb, var(--bone-hi) 90%, var(--bone-lo)) 100%);
-  box-shadow: inset 0 0 0 1px var(--edge-in);
-  cursor: pointer;
-  transition: transform .12s, border-color .18s, box-shadow .18s, filter .18s;
+/* 已解锁：区块色按固定比例调进骨面，做出浅色地界。
+   注意色值必须是【不透明】的（levels.json 里用 hex）——
+   若给带 alpha 的 rgba，与不透明底色 color-mix 后 alpha 会被稀释
+   （曾用 .3 的 rgba 配 13% 混合，实际只剩 ~7%，三块看着都是灰白）。 */
+.wy-zone.on .wy-zone-poly {
+  fill: color-mix(in srgb, var(--wy-accent) 26%, var(--bone-hi));
+  stroke: color-mix(in srgb, var(--wy-accent) 66%, var(--edge));
 }
-/* 拼图块的不规则轮廓：与构件格/编号牌同一手法 */
-.wy-cell.on { border-color: color-mix(in srgb, var(--wy-accent) 62%, var(--edge)); }
-.wy-cell.on:hover { transform: translateY(-2px); box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in); }
-/* 未解锁：压暗 + 去饱和，读起来像还没点亮的地界 */
-.wy-cell.off { filter: grayscale(.55) brightness(.94); opacity: .62; cursor: not-allowed; }
-.wy-cell.off:hover { transform: none; }
-.wy-cell.soon { opacity: .78; }
-.wy-cell::before {
-  content: ''; position: absolute; inset: 4px; pointer-events: none; border-radius: inherit;
-  background:
-    radial-gradient(circle at 0 0,     var(--edge) 1.4px, transparent 1.6px),
-    radial-gradient(circle at 100% 0,  var(--edge) 1.4px, transparent 1.6px),
-    radial-gradient(circle at 0 100%,  var(--edge) 1.4px, transparent 1.6px),
-    radial-gradient(circle at 100% 100%, var(--edge) 1.4px, transparent 1.6px);
-  opacity: .65;
+.wy-zone.on:hover .wy-zone-poly {
+  fill: color-mix(in srgb, var(--wy-accent) 38%, var(--bone-hi));
+  stroke-width: 3;
 }
-/* 点亮时的暖光，暗示"已收复" */
-.wy-cell.on::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 0%,
-    color-mix(in srgb, var(--wy-accent) 20%, transparent), transparent 68%);
+/* 未解锁：压暗去饱和，像还没点亮的地界 */
+.wy-zone.off .wy-zone-poly { fill: color-mix(in srgb, var(--bone-lo) 70%, var(--bone)); }
+.wy-zone.off { filter: grayscale(.5) brightness(.96); opacity: .6; cursor: not-allowed; }
+.wy-zone.off:hover .wy-zone-poly { fill: color-mix(in srgb, var(--bone-lo) 80%, var(--bone)); }
+.wy-zone.soon { opacity: .72; }
+.wy-zone.soon:hover .wy-zone-poly { fill: color-mix(in srgb, var(--bone-lo) 60%, var(--bone)); }
+
+/* 点亮时内圈再压一条亮线，做出"已收复"的静态高亮 */
+.wy-zone-ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--wy-accent) 55%, transparent);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(.965);
+  pointer-events: none;
 }
-.wy-cell-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
-.wy-cell-ico {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 30px; flex: 0 0 auto;
-  background: linear-gradient(180deg, var(--bone2), var(--bone-lo));
-  border: 1px solid var(--edge); border-radius: 5px;
-  box-shadow: inset 0 0 0 1px var(--edge-in);
-  color: var(--wy-accent); font-size: 14px; font-weight: 700;
-  clip-path: polygon(26% 0%, 74% 5%, 100% 26%, 94% 80%, 60% 100%, 20% 94%, 0% 64%, 8% 20%);
+
+.wy-z-name {
+  font-family: inherit; font-size: 26px; font-weight: 700;
+  fill: var(--ink); pointer-events: none; letter-spacing: 1px;
 }
-.wy-cell-rank {
-  font-size: 10.5px; padding: 1px 7px; border-radius: var(--r-pill);
-  border: 1px solid var(--edge); color: var(--wy-accent);
-  background: color-mix(in srgb, var(--wy-accent) 12%, transparent);
+.wy-zone.off .wy-z-name { fill: var(--ink-soft); }
+.wy-z-sub {
+  font-family: inherit; font-size: 13px;
+  fill: var(--ink-2); pointer-events: none;
 }
-.wy-cell-name { margin: 0 0 3px; font-size: 15px; letter-spacing: .5px; }
-.wy-cell-hint { font-size: 11px; color: var(--ink-2); line-height: 1.55; min-height: 2.6em; }
-.wy-cell-foot { margin-top: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wy-zone.on .wy-z-sub { fill: color-mix(in srgb, var(--wy-accent) 72%, var(--ink-2)); }
+.wy-zone-mark { color: var(--wy-accent); opacity: .55; pointer-events: none; }
+
+/* 图例 */
+.wy-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-2); margin-bottom: 4px; }
+.wy-lg { display: inline-flex; align-items: center; gap: 5px; }
+.wy-lg-dot { width: 13px; height: 13px; display: inline-block; border-radius: 3px; border: 1px solid var(--edge); }
+.wy-lg-on .wy-lg-dot { background: color-mix(in srgb, var(--bronze-tint) 22%, var(--bone-hi)); border-color: var(--bronze-tint); }
+.wy-lg-off .wy-lg-dot { background: color-mix(in srgb, var(--bone-lo) 80%, var(--bone)); opacity: .6; }
+.wy-lg-soon .wy-lg-dot { background: var(--bone-lo); opacity: .75; }
+
 .wy-prog { font-size: 11px; color: var(--wy-accent); font-variant-numeric: tabular-nums; }
 .wy-done {
   font-size: 10px; padding: 1px 6px; border-radius: var(--r-pill);

@@ -145,59 +145,106 @@
       el.appendChild(head);
       el.appendChild(App.el('p', 'lead', MAP.intro || ''));
 
-      /* 拼图块网格：位置由 levels.json 的 cell:"行,列" 决定 */
-      var grid = App.el('div', 'wy-map');
-      grid.style.gridTemplateColumns = 'repeat(' + (MAP.cols || 3) + ', 1fr)';
+      /* 单张大拼图：区块是 levels.json 里的多边形，咬合成一张地图。
+         用内联 SVG 而非图片——无需生成素材、任意缩放不糊、
+         描边与填充都能随主题变色（与平台既有做法一致）。 */
+      var SVGNS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(SVGNS, 'svg');
+      svg.setAttribute('class', 'wy-svg');
+      svg.setAttribute('viewBox', MAP.viewBox || '0 0 1000 720');
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-label', MAP.name + ' 地图');
 
-      var placed = {};
-      MAP.zones.forEach(function (z) {
-        var r = 1, c = 1;
-        if (z.cell) {
-          var m = String(z.cell).split(',');
-          r = parseInt(m[0], 10) || 1;
-          c = parseInt(m[1], 10) || 1;
-        }
-        /* 同格冲突时顺延，避免互相盖住 */
-        while (placed[r + ':' + c]) { c++; if (c > (MAP.cols || 3)) { c = 1; r++; } }
-        placed[r + ':' + c] = true;
+      /* 先画所有区块，再把中央占卜坑压在最上层（它是叠在拼缝上的菱形） */
+      var ordered = MAP.zones.slice().sort(function (a, b) {
+        return (a.id === 'center' ? 1 : 0) - (b.id === 'center' ? 1 : 0);
+      });
 
+      ordered.forEach(function (z) {
+        if (!z.poly) { return; }
         var unlocked = isZoneUnlocked(z, p);
         var done = zoneCleared(p, z.id);
         var total = (z.levels || []).length;
+        var accent = z.color || 'var(--bronze-tint)';
 
-        var cell = App.el('div', 'wy-cell' + (unlocked ? ' on' : ' off') +
+        var g = document.createElementNS(SVGNS, 'g');
+        g.setAttribute('class', 'wy-zone' + (unlocked ? ' on' : ' off') +
           (z.comingSoon ? ' soon' : ''));
-        cell.style.gridArea = r + ' / ' + c;
-        if (z.color) cell.style.setProperty('--wy-accent', z.color);
+        g.setAttribute('tabindex', '0');
+        if (z.color) { g.style.setProperty('--wy-accent', accent); }
 
-        var top = App.el('div', 'wy-cell-top');
-        top.appendChild(App.el('span', 'wy-cell-ico', z.icon));
-        top.appendChild(App.el('span', 'wy-cell-rank', z.rank));
-        cell.appendChild(top);
+        var poly = document.createElementNS(SVGNS, 'polygon');
+        poly.setAttribute('points', z.poly);
+        poly.setAttribute('class', 'wy-zone-poly');
+        g.appendChild(poly);
 
-        cell.appendChild(App.el('h4', 'wy-cell-name', z.name));
-        cell.appendChild(App.el('div', 'wy-cell-hint', z.hint || ''));
+        var lab = z.label || [500, 360];
+        var t = document.createElementNS(SVGNS, 'text');
+        t.setAttribute('x', lab[0]);
+        t.setAttribute('y', lab[1]);
+        t.setAttribute('class', 'wy-z-name');
+        t.setAttribute('text-anchor', 'middle');
+        t.textContent = z.name;
+        g.appendChild(t);
 
-        var foot = App.el('div', 'wy-cell-foot');
-        if (z.comingSoon) {
-          foot.appendChild(App.el('span', 'mc-badge', '筹备中'));
-        } else if (unlocked) {
-          foot.appendChild(App.el('span', 'wy-prog', total ? (done + ' / ' + total) : '待定'));
-          if (total && done >= total) foot.appendChild(App.el('span', 'wy-done', '已通'));
-        } else {
-          foot.appendChild(App.el('span', 'wy-lock', '🔒 ' + unlockText(z)));
+        var sub = document.createElementNS(SVGNS, 'text');
+        sub.setAttribute('x', lab[0]);
+        sub.setAttribute('y', lab[1] + 26);
+        sub.setAttribute('class', 'wy-z-sub');
+        sub.setAttribute('text-anchor', 'middle');
+        var state;
+        if (z.comingSoon) { state = '筹备中'; }
+        else if (!unlocked) { state = '未解锁'; }
+        else if (total && done >= total) { state = '已通 ' + done + '/' + total; }
+        else if (total) { state = done + ' / ' + total; }
+        else { state = '原有玩法'; }
+        sub.textContent = z.rank + ' · ' + state;
+        g.appendChild(sub);
+
+        /* 已解锁的区块给一条朱砂括号线，做出"点亮"的静态高亮 */
+        if (unlocked) {
+          var ring = document.createElementNS(SVGNS, 'polygon');
+          ring.setAttribute('points', z.poly);
+          ring.setAttribute('class', 'wy-zone-ring');
+          g.appendChild(ring);
         }
-        cell.appendChild(foot);
+        /* 已全部通关：在角落盖一枚甲骨字形做印记 */
+        if (total && done >= total && App.glyphSvg('卜')) {
+          var mark = document.createElementNS(SVGNS, 'g');
+          mark.setAttribute('class', 'wy-zone-mark');
+          var s = 0.5, cx = lab[0] - 4, cy = lab[1] + 60;
+          mark.setAttribute('transform',
+            'translate(' + cx + ',' + cy + ') scale(' + s + ') translate(-50,-50)');
+          mark.innerHTML = App.glyphSvg('卜', 'currentColor');
+          g.appendChild(mark);
+        }
 
-        cell.onclick = function () {
+        g.onclick = function () {
           var pp = progress();
           if (z.comingSoon) { App.toast('「' + z.name + '」的卜辞素材待补，先去看看别处。'); return; }
           if (!isZoneUnlocked(z, pp)) { App.toast('尚未解锁：' + unlockText(z)); return; }
           S.view = 'zone'; S.zone = z; render();
         };
-        grid.appendChild(cell);
+        g.onkeydown = function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); g.onclick(); }
+        };
+        if (!unlocked) { g.setAttribute('aria-disabled', 'true'); }
+        svg.appendChild(g);
       });
-      el.appendChild(grid);
+
+      var mapWrap = App.el('div', 'wy-map');
+      mapWrap.appendChild(svg);
+      el.appendChild(mapWrap);
+
+      /* 图例：说明点亮/锁定/筹备中的差别，避免玩家猜 */
+      var legend = App.el('div', 'wy-legend');
+      [['点亮·可入', 'on'], ['未解锁', 'off'], ['筹备中', 'soon']].forEach(function (it) {
+        var sp = App.el('span', 'wy-lg wy-lg-' + it[1]);
+        sp.appendChild(App.el('i', 'wy-lg-dot'));
+        sp.appendChild(document.createTextNode(it[0]));
+        legend.appendChild(sp);
+      });
+      el.appendChild(legend);
 
       /* 侧边入口：原有练习 + 进度重置 */
       var side = App.el('div', 'wy-side');

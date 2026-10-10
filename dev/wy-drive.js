@@ -26,6 +26,22 @@
   function has(e, c) { return !!(e && e.classList && e.classList.contains(c)); }
   function flag(b) { return b ? '是' : '否'; }
 
+  /* SVG 元素没有 HTMLElement.click()，必须派发真实事件。
+     这也是地图从 div 改成 SVG 后驱动需要同步改的点。 */
+  function tap(el) {
+    if (!el) { return false; }
+    if (typeof el.click === 'function') { el.click(); return true; }
+    var ev;
+    try {
+      ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+    } catch (e) {
+      ev = document.createEvent('MouseEvents');
+      ev.initEvent('click', true, true);
+    }
+    el.dispatchEvent(ev);
+    return true;
+  }
+
   var HOST_ID = 'wyProbeHost';
 
   function mountAt(progress) {
@@ -42,12 +58,19 @@
     return host;
   }
 
-  function cells() { return qa('#' + HOST_ID + ' .wy-cell'); }
+  /* 地图区块现在是 SVG 多边形（<g class="wy-zone">），
+     区块名是组内的第一个 <text>（.wy-z-name），不是 HTML 元素。 */
+  function cells() { return qa('#' + HOST_ID + ' .wy-zone'); }
+
+  function zoneName(g) {
+    var t = g ? g.querySelector('.wy-z-name') : null;
+    return t ? String(t.textContent).trim() : '';
+  }
 
   function zoneCell(name) {
     var list = cells();
     for (var i = 0; i < list.length; i++) {
-      if (txt(list[i].querySelector('.wy-cell-name')) === name) { return list[i]; }
+      if (zoneName(list[i]) === name) { return list[i]; }
     }
     return null;
   }
@@ -91,13 +114,13 @@
           desc.push(nm + (on ? '亮' : '暗'));
         }
         log((allOk ? '✓ ' : '✗ ') + cs[0] + ' → ' + desc.join(' '));
-        var locked = cells().filter(function (c) { return txt(c.querySelector('.wy-lock')); });
-        locked.forEach(function (c) {
-          log('     锁定：' + txt(c.querySelector('.wy-cell-name')) + ' — ' + txt(c.querySelector('.wy-lock')));
-        });
-        var soon = cells().filter(function (c) { return has(c, 'soon'); });
-        soon.forEach(function (c) {
-          log('     筹备中（不开放）：' + txt(c.querySelector('.wy-cell-name')));
+        /* SVG 地图里不再逐块印锁定文案，改为在区块名下显示「未解锁」，
+           这里就报告每个区块的副标题行（含难度与状态）。 */
+        cells().forEach(function (c) {
+          var sub = c.querySelector('.wy-z-sub');
+          if (sub && /未解锁|筹备中/.test(String(sub.textContent))) {
+            log('     ' + zoneName(c) + '：' + String(sub.textContent).trim());
+          }
         });
       }
 
@@ -105,7 +128,7 @@
       log('=== 二、拆字机制（自然风光逐关）===');
       mountAt(null);
       var land = zoneCell('自然风光');
-      land.click();
+      tap(land);
       log('关卡数=' + qa('#' + HOST_ID + ' .wy-level').length);
       var cardNames = qa('#' + HOST_ID + ' .wy-level-name').map(txt);
       log('关卡名=' + cardNames.join('、'));
@@ -159,10 +182,10 @@
       log('宿主节点数=' + (document.getElementById(HOST_ID) ? document.getElementById(HOST_ID).childNodes.length : -1));
       log('地图视图=' + flag(!!q('#' + HOST_ID + ' .wy-map')));
       log('区块格数=' + cells().length);
-      log('区块名=' + cells().map(function (c) { return txt(c.querySelector('.wy-cell-name')); }).join('、'));
+      log('区块名=' + cells().map(zoneName).join('、'));
       var cr = zoneCell('动植物');
       log('动植物=' + cellState(cr) + '（应点亮）');
-      cr.click();
+      tap(cr);
       log('关卡数=' + qa('#' + HOST_ID + ' .wy-level').length);
       qa('#' + HOST_ID + ' .wy-level')[0].click();
 
@@ -218,9 +241,9 @@
       var center = zoneCell('中央占卜坑');
       log('生产生活=' + cellState(life) + '（应未点亮·筹备中）');
       log('中央占卜坑=' + cellState(center) + '（应未点亮）');
-      life.click();
+      tap(life);
       log('点生产生活后仍在地图=' + flag(!!q('#' + HOST_ID + ' .wy-map')));
-      center.click();
+      tap(center);
       log('点中央占卜坑后仍在地图=' + flag(!!q('#' + HOST_ID + ' .wy-map')));
 
       log('');
@@ -231,9 +254,12 @@
       var hm = document.getElementById(HOST_ID);
       mode.unmount(hm);
       log('unmount 未抛异常=是');
-      if (hm && hm.parentNode) { hm.parentNode.removeChild(hm); }
-      App.store.del('wangyi');
-      log('探针已清理，进度已重置');
+      /* 留一张进度较全的地图在页面上，供截图人工核对观感。
+         这只是探针状态，不影响真实存储。 */
+      mountAt({ cleared: { landscape: ['ls-1', 'ls-2', 'ls-3', 'ls-4'],
+                           creature: ['cr-1', 'cr-2', 'cr-3', 'cr-4'] } });
+      log('已留一张「通自然风光4关+动植物4关」的地图供截图核对');
+      log('（探针状态，不改动真实存储）');
     } catch (e) {
       log('!! 异常: ' + (e && e.message ? e.message : e));
       if (e && e.stack) {
