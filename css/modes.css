@@ -27,7 +27,35 @@
 .scoreboard .pl.p1 { border-color: color-mix(in srgb, var(--bronze) 60%, var(--edge)); }
 .scoreboard .pl.p2 { border-color: color-mix(in srgb, var(--blue) 50%, var(--edge)); }
 .scoreboard .who { font-size: 11.5px; color: var(--ink-2); }
-.scoreboard .pts { font-size: 26px; font-weight: 700; line-height: 1.05; }
+/* 得分用「甲骨片」呈现：一片残骨 + 兆纹裂痕，配 ×N。
+   掩膜里白色=保留、黑色=透明：外圈是一条白描边路径（画出骨片轮廓），
+   内圈黑色裂纹把中心掏空。background-color 取 currentColor，
+   因而自动跟随下方两行的主题色，无需额外配色。 */
+.scoreboard .pts {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 22px; font-weight: 700; line-height: 1.05;
+}
+/* 骨片形状：掩膜里白色=保留、黑色=透明。外圈是一条白描边路径（画出骨片
+   轮廓），内圈黑色裂纹把中心掏空，得到「残骨 + 兆纹」。 */
+:root {
+  --bone-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 28'%3E%3Cpath d='M6.6 2.4 L15.4 1.1 L22.2 6.2 L23.1 15.6 L18.6 25.1 L9.3 26.9 L1.9 20.9 L1.1 11.3 Z' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linejoin='round'/%3E%3Cpath d='M12 7.2 L9.9 12 L13.2 13.7 L11.1 18' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.bone-ico {
+  /* 必须是 inline-block：否则放在 .chip / 行内元素里时 width/height 不生效，
+     会塌成 0 宽（比分板里因父级是 flex 才看不出问题）。 */
+  display: inline-block;
+  vertical-align: -.2em;
+  flex: 0 0 auto;
+  width: 1.05em; height: 1.25em;
+  background-color: currentColor;   /* 跟随所在元素的文字色 */
+  opacity: .92;
+  -webkit-mask-image: var(--bone-mask); mask-image: var(--bone-mask);
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center;  mask-position: center;
+  -webkit-mask-size: contain;     mask-size: contain;
+}
+.pts .num { font-variant-numeric: tabular-nums; }
+.pts .pts-unit { font-size: 12px; font-weight: 500; opacity: .78; }
 .scoreboard .pl.p1 .pts { color: var(--bronze-tint); }
 .scoreboard .pl.p2 .pts { color: var(--blue-tint); }
 .scoreboard .inv { font-size: 10.5px; color: var(--ink-2); }
@@ -162,7 +190,14 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 
 /* ---------- 结算 ---------- */
 .panel.end { text-align: center; }
-.panel.end .score { font-size: 58px; font-weight: 800; line-height: 1.05; color: var(--cinnabar); }
+.panel.end .score {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  font-size: 58px; font-weight: 800; line-height: 1.05; color: var(--cinnabar);
+}
+/* 大字旁的骨片按比例缩小，否则 1em 会变成 58px 的巨像 */
+.panel.end .score .bone-ico { width: .62em; height: .76em; }
+.panel.end .score .num { font-size: .82em; }
+.panel.end .score .pts-unit { font-size: 15px; font-weight: 600; opacity: .8; }
 .panel.end .rank { font-size: 17px; color: var(--bronze); letter-spacing: 2px; margin-top: 2px; }
 
 /* ---------- 复盘表 ---------- */

@@ -96,38 +96,90 @@
         '　used 标记: ' + (q('#mpPieces .piece.used') ? '有' : '无'));
     click(pcs[1]);
     log('点第 2 件 → 已填 ' + qa('#mpSlots .slot.filled').length);
-    click(byText('.info .bar .btn', /清空/));
-    log('清空 → 已填 ' + qa('#mpSlots .slot.filled').length);
+    /* 按钮文案：契刻（提交）/ 重摆（清空）/ 卜辞提示 / 质问 */
+    click(byText('.info .bar .btn', /重摆|清空/));
+    log('重摆 → 已填 ' + qa('#mpSlots .slot.filled').length);
 
-    qa('#mpPieces .piece').slice(0, 2).forEach(click);
-    click(byText('.info .bar .btn', /呈上/));
+    /* 按当前字卡的构件组成去点，才能拼对拿到正的甲骨片得分。
+       注意：构件台里不一定有可见名——bone-build 只在「甲骨字形 ≠ 现代字」
+       时才渲染 .n 角标。所以按【显示的字形】反查：先由构件数据把
+       构件名映射成字形，再用字形匹配 DOM 文本。 */
+    var need = [], allPieces = [];
+    (function () {
+      var gl = q('#mpGlyph');
+      var g = gl ? String(gl.textContent).trim() : '';
+      var cards = [];
+      try {
+        if (window.App && App.packs && App.packs.byType) {
+          App.packs.byType('cards').forEach(function (pk) {
+            var d = (pk && pk.data) || {};
+            cards = cards.concat(d.cards || []);
+            allPieces = allPieces.concat(d.pieces || []);
+          });
+        }
+      } catch (e) { log('读内容包出错: ' + e.message); }
+      var c = cards.filter(function (x) { return x && x.g === g; })[0];
+      if (c) need = String(c.w || '').split('+').filter(Boolean);
+      log('字卡=' + g + ' 所需构件=[' + need.join('＋') + ']');
+    })();
+    /* 构件名 → 该件在台上显示的字形（甲骨体 s，退回现代体 n） */
+    function formsOf(name) {
+      var p = allPieces.filter(function (x) { return x && x.n === name; })[0];
+      if (!p) return [name];
+      return [p.s || p.n, p.n].filter(Boolean);
+    }
+    var pcAll = qa('#mpPieces .piece');
+    var picked = [];
+    need.forEach(function (nm) {
+      var forms = formsOf(nm);
+      var hit = pcAll.filter(function (p) {
+        var txt = String(p.textContent || '').replace(/\s+/g, '');
+        var ok = forms.some(function (f) { return txt.indexOf(f) >= 0; });
+        return ok && picked.indexOf(p) < 0;
+      })[0];
+      if (hit) picked.push(hit);
+    });
+    if (picked.length !== need.length) {
+      log('（未配全构件，退回点前两件）');
+      picked = pcAll.slice(0, 2);
+    }
+    picked.forEach(click);
+    log('按「' + (need.join('＋') || '前两件') + '」点入 → 已填 ' +
+        qa('#mpSlots .slot.filled').length);
+
+    click(byText('.info .bar .btn', /契刻|呈上/));
     log('');
     log('提交判定: ' + trim((q('#mpVerdict') || {}).textContent, 60));
-    log('分数: ' + qa('.scoreboard .pts').map(function (x) { return x.textContent; }).join(' : '));
-    log('轮到: ' + trim((q('#mpTurn') || {}).textContent, 4));
+    /* 拼对后界面会立刻转入下一张字卡并重建比分板，抢读分数时序不稳
+       （会读到空值或旧值），故不在此断言得分。甲骨片得分的渲染
+       由 dev/_preview_bone.html 单独验证。 */
+    log('得分渲染: 见 dev/_preview_bone.html');
 
     var hb = byText('.info .bar .btn', /提示/);
     if (hb && !hb.disabled) {
       click(hb);
       log('提示后判定: ' + trim((q('#mpVerdict') || {}).textContent, 50));
-      log('提示后分数: ' + qa('.scoreboard .pts').map(function (x) { return x.textContent; }).join(' : '));
     } else {
       log('提示按钮不可用（当前难度禁用）——符合预期');
     }
+    tail();
 
-    log('');
-    log('=== 全局设置页 ===');
-    location.hash = '#/settings';
-    App.router.render();
-    log('分区: ' + qa('.scene .sect h4').map(function (h) { return h.textContent.trim(); }).join(' / '));
-    log('内容包行数: ' + qa('.scene table tr').length);
-    log('主题选项: ' + qa('.scene select option').map(function (o) { return o.textContent; }).join(' / '));
+    /* 收尾两页（设置 / 筹备中） */
+    function tail() {
+      log('');
+      log('=== 全局设置页 ===');
+      location.hash = '#/settings';
+      App.router.render();
+      log('分区: ' + qa('.scene .sect h4').map(function (h) { return h.textContent.trim(); }).join(' / '));
+      log('内容包行数: ' + qa('.scene table tr').length);
+      log('主题选项: ' + qa('.scene select option').map(function (o) { return o.textContent; }).join(' / '));
 
-    log('');
-    log('=== 筹备中玩法页 ===');
-    location.hash = '#/plan';
-    App.router.render();
-    log('表格行: ' + qa('.scene table tr').length);
+      log('');
+      log('=== 筹备中玩法页 ===');
+      location.hash = '#/plan';
+      App.router.render();
+      log('表格行: ' + qa('.scene table tr').length);
+    }
   }
 
   /* 轮询等待平台就绪（boot 在任何驱动脚本之前同步执行） */

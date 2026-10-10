@@ -21,8 +21,11 @@ tmp_path = os.path.join(NEW, "_drive.html")
 io.open(tmp_path, "w", encoding="utf-8").write(tmp)
 
 url = "file:///" + tmp_path.replace("\\", "/")
+shot = os.path.join(OUT, "drive_play.png")
 r = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
                     "--user-data-dir=" + os.path.join(OUT, "edgeprofile"),
+                    "--window-size=480,1100",
+                    "--screenshot=" + shot,
                     "--virtual-time-budget=12000", "--dump-dom", url],
                    capture_output=True, text=True, encoding="utf-8",
                    errors="replace", timeout=240)

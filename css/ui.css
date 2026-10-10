@@ -46,6 +46,46 @@ img { max-width: 100%; }
   font-size: 30px; line-height: 1; letter-spacing: 0;
 }
 .brand-glyph { height: 30px; width: auto; display: block; flex: 0 0 auto; transform: translateY(2px); }
+
+/* 首页站点头的动画：让「契刻」的感觉动起来
+   —— 「构字记」艺术字上有一道朱砂光带缓缓扫过（呼应甲骨卜辞的「填朱」），
+      前面的甲骨字形同时轻轻浮动。
+   实现要点：底色必须是「横向可区分」的渐变，否则 background-position
+   平移时取到的颜色不变，扫过就会毫无视觉效果（竖直渐变且两端同色时尤其如此）。 */
+@keyframes brandSweep {
+  0%   { background-position: -30% 0; }
+  100% { background-position: 130% 0; }
+}
+@keyframes brandFloat {
+  0%, 100% { transform: translateY(2px); }
+  50%      { transform: translateY(0); }
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  /* 几何：background-size=S%，position=p% 把背景左缘放在 p·(S−1)/100·W。
+     取 S=300、p 由 0%→100%，可见窗口在渐变坐标里从 [0,1/3] 走到 [2/3,1]。
+     于是：墨色铺满 [0,1/3] 与 [2/3,1]（保证全程文字不露白），
+     朱砂光带放正中间 0.47~0.53 —— 宽 0.06×3W＝0.18W。
+     注意这里 W 是【整个艺术字元素】的宽度（background 按元素框铺开），
+     该元素含「构字记」三字，故 0.18W≈半个字宽，扫过时只点亮一个字。 */
+  body[data-nav="single"] .top .brand-art .ch {
+    background-image: linear-gradient(100deg,
+      var(--ink) 0%, var(--ink) 33%,
+      var(--cinnabar) 47%, var(--cinnabar-hi) 50%, var(--cinnabar) 53%,
+      var(--ink) 67%, var(--ink) 100%);
+    background-size: 300% 100%;
+    background-repeat: no-repeat;
+    animation: brandSweep 7s ease-in-out infinite;
+  }
+}
+body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out infinite; }
+
+/* 尊重系统的「减少动态效果」设置：只停动画，绝不能去掉背景渐变——
+   艺术字是「透明文字色 + 背景裁切成字」实现的，背景一旦移除，
+   文字会整个消失（曾在强制 reduce 下实测为不可见）。 */
+@media (prefers-reduced-motion: reduce) {
+  body[data-nav="single"] .top .brand-art .ch { animation: none; }
+  body[data-nav="single"] .top .brand-glyph { animation: none; }
+}
 .brand-art { display: inline-flex; align-items: flex-end; }
 .brand-art .ch {
   display: inline-block;

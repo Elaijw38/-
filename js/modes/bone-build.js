@@ -63,7 +63,7 @@
     id: 'bone-build',
     name: '甲骨构字',
     tagline: '用甲骨文构件拼出汉字',
-    desc: '翻出契文，判断它由哪几个构件拼成。拼对入库得分；双人模式下对手可在倒计时里抢答质问。',
+    desc: '翻出契文，判断它由哪几个构件拼成。拼对即入库、得甲骨片；双人模式下对手可在倒计时里抢答质问。',
     icon: '构',
     accent: 'var(--gold)',
     tags: ['单人', '双人', '计时', '考验构形'],
@@ -143,7 +143,7 @@
 
     /* ---------- 壳 ---------- */
     host.appendChild(U.el('p', 'lead',
-      '翻出一张契文，从构件台凑齐它的构件。拼对入库得分' +
+      '翻出一张契文，从构件台凑齐它的构件。拼对即入库、得甲骨片' +
       '；双人模式下对手还能在你犹豫时抢答。'));
 
     var setup = U.el('div', 'setup');
@@ -229,7 +229,7 @@
         s5.appendChild(sect('5', '对战选项'));
         s5.appendChild(checkRow('遮挡字卡（互相看不清对方在拼什么）', S.mask, function (v) { S.mask = v; }));
         s5.appendChild(checkRow('卜问推注', S.divineOn, function (v) { S.divineOn = v; }));
-        s5.appendChild(checkRow('卜辞提示（−1 分）', S.hintOn, function (v) { S.hintOn = v; }));
+        s5.appendChild(checkRow('卜辞提示（−1 甲片）', S.hintOn, function (v) { S.hintOn = v; }));
         setup.appendChild(s5);
       }
 
@@ -367,11 +367,11 @@
       var slots = U.el('div', 'slots'); slots.id = 'mpSlots';
       info.appendChild(slots);
       var pbar = U.el('div', 'bar');
-      var bs = U.el('button', 'btn primary', '呈上'); bs.onclick = submit;
+      var bs = U.el('button', 'btn primary', '契刻'); bs.onclick = submit;
       pbar.appendChild(bs);
-      var bc = U.el('button', 'btn', '清空'); bc.onclick = clearFill;
+      var bc = U.el('button', 'btn', '重摆'); bc.onclick = clearFill;
       pbar.appendChild(bc);
-      var bh = U.el('button', 'btn sm', '卜辞提示（−1分）'); bh.onclick = hint;
+      var bh = U.el('button', 'btn sm', '卜辞提示（−1 甲片）'); bh.onclick = hint;
       pbar.appendChild(bh);
       var bch = U.el('button', 'btn danger hidden', '质问！'); bch.onclick = openChallenge;
       pbar.appendChild(bch);
@@ -390,9 +390,9 @@
       var cbar = U.el('div', 'bar');
       var cb1 = U.el('button', 'btn primary', '抢答：这就是正解'); cb1.onclick = resolveChallenge;
       cbar.appendChild(cb1);
-      var cb2 = U.el('button', 'btn sm', '清空'); cb2.onclick = clearChallenge;
+      var cb2 = U.el('button', 'btn sm', '全部移除'); cb2.onclick = clearChallenge;
       cbar.appendChild(cb2);
-      var cb3 = U.el('button', 'btn', '放弃质问'); cb3.onclick = giveUpChallenge;
+      var cb3 = U.el('button', 'btn', '收回质问'); cb3.onclick = giveUpChallenge;
       cbar.appendChild(cb3);
       cp.appendChild(cbar);
       board.appendChild(cp);
@@ -421,6 +421,24 @@
       }
     }
 
+    /* ---------- 得分呈现：一律「甲骨片 ×N」 ---------- */
+    /* 得分不再是一个裸数字，而是一枚甲骨片徽记加数量。
+       负数保留正负号（被抢答会扣成负分）。 */
+    function scoreIcon() {
+      return '<span class="bone-ico" aria-hidden="true"></span>';
+    }
+    function ptsHTML(n) {
+      var v = (n < 0 ? '−' : '') + Math.abs(n);
+      return scoreIcon() + '<span class="num">' + v + '</span>' +
+        '<span class="pts-unit">甲片</span>';
+    }
+    function ptsEl(n) {
+      var d = U.el('div', 'pts');
+      d.innerHTML = ptsHTML(n);
+      d.title = '已得 ' + n + ' 枚甲骨片';
+      return d;
+    }
+
     /* ---------- 渲染小件 ---------- */
     function renderScore() {
       var sb = $('mpScore');
@@ -431,7 +449,7 @@
         var d = U.el('div', 'pl ' + (i === 0 ? 'p1' : 'p2'));
         if (S.turn === i && S.running) d.appendChild(U.el('span', 'tag', '轮到你了'));
         d.appendChild(U.el('div', 'who', p.name + ' · 贞人'));
-        d.appendChild(U.el('div', 'pts', String(p.score)));
+        d.appendChild(ptsEl(p.score));
         var inv = U.el('div', 'inv');
         inv.innerHTML = '字库 <b>' + p.inv + '</b>/' + WIN_NEED +
           '　｜　对 <b>' + p.right + '</b>　错 <b>' + p.wrong + '</b>';
@@ -766,7 +784,9 @@
         else if (a.score >= 10) rank = '史官 · 博闻';
         else if (a.score >= 5) rank = '学子 · 入门';
         panel.appendChild(U.el('div', 'rank', '你的契文修养'));
-        panel.appendChild(U.el('div', 'score', String(a.score)));
+        var big = U.el('div', 'score');
+        big.innerHTML = ptsHTML(a.score);
+        panel.appendChild(big);
         panel.appendChild(U.el('div', 'rank', rank));
         panel.appendChild(U.el('div', 'hint',
           '入库 ' + a.inv + ' 字　｜　正确 ' + a.right + '　错误 ' + a.wrong +
@@ -775,12 +795,16 @@
         var win = a.score === b.score ? '平局' : (a.score > b.score ? '甲 · 贞人 胜' : '乙 · 贞人 胜');
         panel.appendChild(U.el('div', 'rank', win));
         var row = U.el('div', 'bar');
-        row.appendChild(U.el('span', 'chip', '甲 ' + a.score + '（入库 ' + a.inv + '）'));
-        row.appendChild(U.el('span', 'chip', '乙 ' + b.score + '（入库 ' + b.inv + '）'));
+        var c1 = U.el('span', 'chip');
+        c1.innerHTML = '甲 ' + scoreIcon() + ' ' + a.score + '（入库 ' + a.inv + '）';
+        row.appendChild(c1);
+        var c2 = U.el('span', 'chip');
+        c2.innerHTML = '乙 ' + scoreIcon() + ' ' + b.score + '（入库 ' + b.inv + '）';
+        row.appendChild(c2);
         panel.appendChild(row);
       }
       var pbar = U.el('div', 'bar');
-      var again = U.el('button', 'btn primary', '再来一局');
+      var again = U.el('button', 'btn primary', '再契一局');
       again.onclick = function () {
         board.className = 'hidden';
         boardBuilt = false;
@@ -801,7 +825,7 @@
         '现在才是对答案的时候。看三件事：哪些字答错了、哪些字超时了、哪些分是被时间吃掉的。'));
       var tb = U.el('table', 'tl-table');
       tb.innerHTML = '<tr><th>#</th><th>字</th><th>谁</th><th>结果</th><th>正解</th>' +
-        '<th>用时</th><th>得分</th><th>说明</th></tr>';
+        '<th>用时</th><th>得失</th><th>说明</th></tr>';
       S.timeline.forEach(function (r, i) {
         var tr = U.el('tr');
         tr.appendChild(U.el('td', null, String(i + 1)));

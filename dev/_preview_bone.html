@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>甲骨片得分 · 渲染预览（开发自查用）</title>
+<!-- 用途：单独验证「得分 = 甲骨片 ×N」的渲染。
+     对局里拼对后会立刻换卡并重建比分板，读数时序不稳，
+     不适合在 _run_drive 里断言；故用本页以真实样式表 + 真实 DOM 结构对照。 -->
+<link rel="stylesheet" href="../css/app.css">
+<link rel="stylesheet" href="../css/theme.css">
+<link rel="stylesheet" href="../css/ui.css">
+<link rel="stylesheet" href="../css/modes.css">
+<style> body { padding: 18px; } .demo { max-width: 620px; margin: 0 auto 22px; } </style>
+</head>
+<body data-nav="single">
+
+<div class="demo">
+  <h4>对局中的比分板</h4>
+  <div class="scoreboard">
+    <div class="pl p1">
+      <span class="tag">轮到你了</span>
+      <div class="who">甲 · 贞人</div>
+      <div class="pts"><span class="bone-ico" aria-hidden="true"></span><span class="num">7</span><span class="pts-unit">甲片</span></div>
+      <div class="inv">字库 <b>2</b>/5　｜　对 <b>3</b>　错 <b>1</b></div>
+    </div>
+    <div class="vs">对<br>局</div>
+    <div class="pl p2">
+      <div class="who">乙 · 贞人</div>
+      <div class="pts"><span class="bone-ico" aria-hidden="true"></span><span class="num">−1</span><span class="pts-unit">甲片</span></div>
+      <div class="inv">字库 <b>0</b>/5　｜　对 <b>0</b>　错 <b>2</b></div>
+    </div>
+  </div>
+</div>
+
+<div class="demo">
+  <h4>结算（大字）</h4>
+  <div class="panel end">
+    <div class="rank">你的契文修养</div>
+    <div class="score" id="big"><span class="bone-ico" aria-hidden="true"></span><span class="num">12</span><span class="pts-unit">甲片</span></div>
+    <div class="rank">史官 · 博闻</div>
+    <div class="hint">入库 4 字　｜　正确 5　错误 1　超时 0</div>
+  </div>
+</div>
+
+<div class="demo">
+  <h4>结算徽记（小尺寸）</h4>
+  <div class="bar" style="gap:9px">
+    <span class="chip"><span class="bone-ico" aria-hidden="true"></span> 甲 12（入库 4）</span>
+    <span class="chip"><span class="bone-ico" aria-hidden="true"></span> 乙 9（入库 3）</span>
+  </div>
+</div>
+
+<div class="demo">
+  <h4>放大观察轮廓与兆纹</h4>
+  <div style="font-size:36px; display:flex; align-items:center; gap:20px; color:var(--bronze-tint)">
+    <span class="bone-ico" aria-hidden="true"></span>
+    <span class="bone-ico" style="width:2em;height:2.4em" aria-hidden="true"></span>
+  </div>
+</div>
+
+<script>
+/* 顺手把关键计算值写进 data-check，便于 headless 断言：
+   尺寸是否非 0（行内元素曾塌成 0 宽）、颜色是否继承、掩膜是否生效。 */
+setTimeout(function () {
+  function info(sel) {
+    var e = document.querySelector(sel);
+    if (!e) return sel + ' 缺失';
+    var cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    var mi = cs.webkitMaskImage || cs.maskImage;
+    return sel + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) +
+           ' color=' + cs.backgroundColor +
+           ' mask=' + (mi && mi.indexOf('url') === 0 ? 'ok' : 'none');
+  }
+  document.documentElement.setAttribute('data-check', [
+    info('.pl.p1 .pts .bone-ico'),
+    info('#big .bone-ico'),
+    info('.chip .bone-ico')
+  ].join(' ;; '));
+}, 800);
+</script>
+</body>
+</html>
