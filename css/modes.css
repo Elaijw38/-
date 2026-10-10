@@ -75,12 +75,6 @@
 }
 
 /* 已认：很小的绿点 */
-.wy-seen-dot {
-  fill: var(--green-tint);
-  stroke: color-mix(in srgb, var(--bone-hi) 88%, transparent);
-  stroke-width: 1.5;
-  pointer-events: none;
-}
 .wy-spot:focus-visible { outline: none; }
 .wy-spot:focus-visible .wy-ring { opacity: 1; stroke-dasharray: none; }
 
@@ -118,6 +112,93 @@
 .wy-hint { color: var(--bronze-tint); }
 .wy-credit { color: var(--ink-soft); font-size: 10.5px; margin-left: auto; }
 
+/* ---------- 点亮遮罩 ----------
+   同一张图放两层：底层灰度化，上层原图用 <mask> 只露出已完成的圆形区域。
+   完成一个字＝往 mask 里加一个白圆，所以「亮的地方」就是「点的地方」。
+   不用切图、不用预做遮罩。 */
+.wy-bg-dim { filter: grayscale(1) brightness(.72) contrast(.92); }
+.wy-bg-lit { pointer-events: none; }
+
+/* ---------- 构字界面 ---------- */
+/* 上：甲骨文原字（参照） */
+.wy-ref {
+  display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  margin: 10px 0 4px; padding: 13px 18px;
+  border: 1px solid color-mix(in srgb, var(--bronze-tint) 38%, var(--edge));
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bone-hi) 96%, var(--bone)), var(--bone-hi));
+}
+.wy-ref-label {
+  flex: 0 0 100%; font-size: 10.5px; letter-spacing: 3px;
+  color: var(--bronze-tint); margin-bottom: 2px;
+}
+.wy-ref-glyph { width: 104px; height: 104px; color: var(--ink); display: block; flex: 0 0 auto; }
+.wy-ref-info { flex: 1 1 220px; }
+.wy-ref-mean { font-size: 12px; color: var(--bronze-tint); letter-spacing: 1px; }
+.wy-ref-desc { font-size: 16px; color: var(--ink); margin-top: 6px; letter-spacing: 1px; }
+.wy-ref-done { font-size: 12px; color: var(--green-tint); margin-top: 8px; }
+
+/* 中：组装区 */
+
+/* 小徽标：构字页显示「N 笔」 */
+.wy-cell-rank {
+  font-size: 10.5px; padding: 1px 7px; border-radius: var(--r-pill);
+  border: 1px solid var(--edge); color: var(--bronze-tint);
+  background: color-mix(in srgb, var(--bronze-tint) 12%, transparent);
+  white-space: nowrap;
+}
+/* 构字页的操作提示行 */
+.wy-q-label {
+  font-size: 12.5px; color: var(--ink-2);
+  margin: 2px 0 8px; letter-spacing: .5px;
+}
+
+.wy-stagewrap { display: flex; justify-content: center; margin: 8px 0 12px; }
+.wy-stage-svg {
+  width: 214px; height: 214px; display: block;
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  background: linear-gradient(160deg, var(--bone-hi), var(--bone-lo));
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
+  touch-action: none;   /* 触屏拖拽必需，否则会带着页面一起滚 */
+}
+/* 原字的淡淡影子：提示每笔该在哪，但不至于把答案直接给足 */
+.wy-guide { color: var(--ink); opacity: .15; }
+.wy-placed .wy-stroke { color: var(--bronze); }
+
+/* 下：部件池 */
+.wy-tray { margin: 2px 0 10px; }
+.wy-tray-label {
+  font-size: 11.5px; color: var(--ink-2); margin-bottom: 7px;
+  padding-left: 8px; border-left: 3px solid var(--edge);
+}
+.wy-tray-items { display: flex; gap: 8px; flex-wrap: wrap; }
+.wy-piece {
+  width: 70px; height: 70px; padding: 4px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--bone-hi) 94%, var(--bone));
+  border: 1px solid var(--edge); border-radius: 8px;
+  cursor: grab; touch-action: none;
+  transition: border-color .15s, background .15s;
+}
+.wy-piece:hover {
+  border-color: var(--bronze-tint);
+  background: color-mix(in srgb, var(--bronze-tint) 10%, var(--bone-hi));
+}
+.wy-piece-svg { width: 56px; height: 56px; color: var(--ink); display: block; pointer-events: none; }
+.wy-piece.dragging { cursor: grabbing; position: relative; z-index: 9; opacity: .92; }
+.wy-piece.miss {
+  border-color: var(--cinnabar-tint);
+  background: color-mix(in srgb, var(--cinnabar-tint) 13%, transparent);
+  animation: wyShake .3s;
+}
+@keyframes wyShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.wy-tray-empty { font-size: 12px; color: var(--green-tint); padding: 18px 0; }
+
 /* ---------- 实物详情（学习卡） ---------- */
 .wy-card {
   display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
@@ -150,28 +231,6 @@
 .wy-card-note { font-size: 11px; color: var(--ink-soft); margin-top: 8px; line-height: 1.6; }
 
 /* 同区其它实物：顺着看下去 */
-.wy-more { margin: 6px 0 12px; }
-.wy-more-title {
-  font-size: 11.5px; color: var(--ink-2); margin-bottom: 7px;
-  padding-left: 8px; border-left: 3px solid var(--edge);
-}
-.wy-more-strip { display: flex; gap: 7px; flex-wrap: wrap; }
-.wy-mini {
-  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 5px 6px 3px; cursor: pointer;
-  background: color-mix(in srgb, var(--bone-hi) 92%, var(--bone));
-  border: 1px solid var(--edge); border-radius: 6px;
-  transition: border-color .15s, background .15s, transform .12s;
-}
-.wy-mini:hover {
-  border-color: var(--bronze-tint);
-  background: color-mix(in srgb, var(--bronze-tint) 12%, var(--bone-hi));
-  transform: translateY(-2px);
-}
-.wy-mini-glyph { color: var(--ink); display: block; }
-.wy-mini:hover .wy-mini-glyph { color: var(--bronze-tint); }
-.wy-mini-name { font-size: 12px; color: var(--ink-2); }
-.wy-mini.seen { border-color: color-mix(in srgb, var(--green-tint) 55%, var(--edge)); }
 
 /* 答题练习入口（保留原有玩法） */
 .wy-zlist { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 10px; }
@@ -196,14 +255,6 @@
 /* ---------- 关卡舞台 ---------- */
 
 /* 甲骨字形展示 */
-.wy-glyph { display: inline-block; color: var(--ink); }
-.wy-glyph svg { display: block; width: 100%; height: 100%; }
-.wy-glyph.lg { width: 140px; height: 140px; color: var(--bronze-tint); }
-.wy-glyph.sm { width: 46px; height: 46px; }
-.wy-glyph-none {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 100%; height: 100%; font-size: 22px; color: var(--ink-2);
-}
 
 /* ---------- 拆字：四选一 ---------- */
 /* 卜辞拼字里「已选」的构件 */
@@ -221,7 +272,6 @@
   .wy-card-form .wy-big { width: 132px; height: 132px; }
   .wy-card-char { font-size: 38px; }
   .wy-card-mean { font-size: 15px; }
-  .wy-glyph.lg { width: 112px; height: 112px; }
   .wy-credit { margin-left: 0; }
 }
 

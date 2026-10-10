@@ -4,7 +4,9 @@
 与 openmaic 卡片不同，这里直接读项目里的 glyph-parts.json，
 把【真实甲骨字形】内联进来，所以看到的是最终会出现在地图上的效果。
 """
-import io, json, os, subprocess, tempfile
+import io, json, os, subprocess, tempfile, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _glyphdata import build_svg
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
@@ -23,7 +25,7 @@ def glyph_inner(ch):
     if not p:
         return None
     # {C} 是描边占位；这里整张 SVG 用 currentColor，直接去掉占位
-    return p["svg"].replace("{C}", "currentColor")
+    return build_svg(p, "currentColor")
 
 
 def glyph_svg(ch, cls):

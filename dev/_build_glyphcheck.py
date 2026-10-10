@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """生成 _glyphcheck.html —— 全部收录字形对照 + 越界检查。"""
-import json, io, os
+import json, io, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _glyphdata import build_svg
 
 ROOT = r"C:\DSH\字趣"
 d = json.loads(io.open(os.path.join(ROOT, "js", "core", "glyph-parts.json"), encoding="utf-8").read())
@@ -10,7 +12,7 @@ parts = d["parts"]
 cells = []
 for name in sorted(parts.keys()):
     p = parts[name]
-    svg = p["svg"].replace("{C}", "currentColor")
+    svg = build_svg(p, "currentColor")
     star = ' <em>*</em>' if p.get("isFallback") else ''
     cells.append('<div class="cell"><svg viewBox="0 0 @C@ @C@">@S@</svg>'
                  '<span class="nm">@N@@ST@</span><span class="id">@ID@</span></div>'

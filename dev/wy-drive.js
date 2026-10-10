@@ -1,71 +1,88 @@
-/* 字趣 · 王邑实物地图（热区版）的浏览器内验证 —— 开发自查用，不参与部署
+/* 字趣 · 王邑图卷（点亮 + 构字）的浏览器内验证 —— 开发自查，不参与部署
    由 dev/_run_wy.py 注入 index.html 末尾运行，结果写入 <html> 的 data-report。
 
-   验的是「点画上的实物 → 学那个甲骨文」这条主线，且**画上不出现任何标记**。
+   验两条主线：
+     1) 点亮：地图初始是灰的（底层灰度 + 上层彩色被 mask 遮住），
+        每拼成一个字，mask 里多一个白圆 → 那一块变彩色。
+     2) 构字：点实物 → 上给甲骨文原字、下给笔画 → 拖到正确位置 → 拼成。
 
-   三条硬约束（都是踩过的坑）：
-     1) SVG 元素没有 HTMLElement.click()，必须派发事件（tap）。
-     2) 每次渲染都会 clearNode 重建 DOM，每个动作前必须【重新查询】节点。
-     3) 全程【同步】，不用 setTimeout 排队：Edge 的 --virtual-time-budget
-        会把虚拟时间快进，与 setTimeout 链相遇会互相触发、进程不退出。
+   硬约束（都踩过）：
+     · SVG 无 .click()，要派发事件。
+     · 每次 render 会 clearNode 重建 DOM，动作前必须重新查询节点。
+     · 全程同步，不用 setTimeout 排队（会与 --virtual-time-budget 互触发而挂死）。
+     · 拖拽要派发 pointerdown/move/up，且事件要打在挂监听的那个元素上。
 */
 (function () {
   'use strict';
-  var L = [];
-  var errs = [];
+  var L = [], errs = [];
   window.addEventListener('error', function (e) {
     errs.push('ERROR: ' + e.message + ' @' + String(e.filename || '').split('/').pop() + ':' + e.lineno);
   });
-
   function log(s) { L.push(String(s)); }
   function q(s) { return document.querySelector(s); }
   function qa(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
   function txt(e) { return e ? String(e.textContent).trim() : ''; }
   function flag(b) { return b ? '是' : '否'; }
-  function cs(e, prop) { return e ? window.getComputedStyle(e).getPropertyValue(prop) : ''; }
-
   var HOST_ID = 'wyProbeHost';
   function H(s) { return '#' + HOST_ID + ' ' + s; }
 
   function tap(el) {
-    if (!el) { return false; }
+    if (!el) return false;
     if (typeof el.click === 'function') { el.click(); return true; }
-    var ev;
-    try {
-      ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-    } catch (e) {
-      ev = document.createEvent('MouseEvents');
-      ev.initEvent('click', true, true);
-    }
+    var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
     el.dispatchEvent(ev);
     return true;
   }
-
-  function spots() { return qa(H('.wy-spot')); }
-  function spotByChar(ch) {
-    var list = spots();
-    for (var i = 0; i < list.length; i++) {
-      var al = list[i].getAttribute('aria-label') || '';
-      if (al.indexOf(ch + '，') === 0) { return list[i]; }
-    }
+  function btnByText(re) {
+    var l = qa(H('button'));
+    for (var i = 0; i < l.length; i++) { if (re.test(txt(l[i]))) return l[i]; }
     return null;
   }
-  function btnByText(re) {
-    var list = qa(H('button'));
-    for (var i = 0; i < list.length; i++) {
-      if (re.test(txt(list[i]))) { return list[i]; }
+  function spots() { return qa(H('.wy-spot')); }
+  function spotByChar(ch) {
+    var l = spots();
+    for (var i = 0; i < l.length; i++) {
+      var al = l[i].getAttribute('aria-label') || '';
+      if (al.indexOf(ch + '，') === 0) return l[i];
     }
     return null;
   }
   function mountFresh() {
     var App = window.App;
     var old = document.getElementById(HOST_ID);
-    if (old && old.parentNode) { old.parentNode.removeChild(old); }
+    if (old && old.parentNode) old.parentNode.removeChild(old);
     var host = document.createElement('div');
     host.id = HOST_ID;
     document.body.appendChild(host);
-    var mode = App.modes.get('wangyi-map');
-    mode.mount(host, App.modes.buildContext(mode));
+    var m = App.modes.get('wangyi-map');
+    m.mount(host, App.modes.buildContext(m));
+  }
+
+  /* 把画布坐标(0~100)换成屏幕坐标，再往部件上派发拖拽事件 */
+  function dragTo(box, canvasPt) {
+    var stage = q(H('.wy-stage-svg'));
+    if (!stage || !box) return false;
+    var sr = stage.getBoundingClientRect();
+    var br = box.getBoundingClientRect();
+    var sx = br.left + br.width / 2;
+    var sy = br.top + br.height / 2;
+    var tx = sr.left + canvasPt[0] / 100 * sr.width;
+    var ty = sr.top + canvasPt[1] / 100 * sr.height;
+    function pe(type, cx, cy) {
+      var ev;
+      try {
+        ev = new PointerEvent(type, { bubbles: true, cancelable: true,
+          pointerId: 1, clientX: cx, clientY: cy, pointerType: 'mouse' });
+      } catch (e) {
+        ev = new MouseEvent(type, { bubbles: true, cancelable: true,
+          clientX: cx, clientY: cy });
+      }
+      box.dispatchEvent(ev);
+    }
+    pe('pointerdown', sx, sy);
+    pe('pointermove', tx, ty);
+    pe('pointerup', tx, ty);
+    return true;
   }
 
   function run() {
@@ -77,145 +94,147 @@
     try {
       App.store.del('wangyi');
 
-      log('=== 一、底图与数据 ===');
-      log('底图配置=' + (MAP.bgImage || '(无)'));
-      log('viewBox=' + MAP.viewBox);
-      log('实物点应为 ' + want + ' 个（' + MAP.zones.length + ' 个分区：' +
-        MAP.zones.map(function (z) { return z.name; }).join('、') + '）');
+      log('=== 一、数据与字形拆分 ===');
+      log('底图=' + (MAP.bgImage || '(无)') + '　viewBox=' + MAP.viewBox);
+      log('实物点=' + want + ' 个（' + MAP.zones.length + ' 个分区）');
+      var totalPieces = 0, onePiece = [];
+      Object.keys(App.glyphs.parts).forEach(function (c) {
+        var n = App.glyphStrokeCount(c);
+        totalPieces += n;
+        if (n <= 1) onePiece.push(c);
+      });
+      log('字形可拆部件总数=' + totalPieces + '（61 个字）');
+      log('只有 1 笔的字=' + (onePiece.join('、') || '无') + '（这些字的构字没有挑战）');
 
       log('');
-      log('=== 二、画上是否真的没有标记 ===');
+      log('=== 二、地图初始状态：应该是灰的 ===');
       mountFresh();
-      var img = q(H('.wy-omap image'));
-      log('图卷 image 元素=' + flag(!!img) + '  href=' + (img ? img.getAttribute('href') : '-'));
-      log('热区数=' + spots().length + '（应 ' + want + '）' +
-        (spots().length === want ? ' ✓' : ' ✗'));
-      /* 注意：opacity 不会以「计算值」继承，父组不透明度为 0 时
-         子元素的 own opacity 仍是 1。所以要判「看得见」必须看承载组本身，
-         不能逐个读内部 text 的 opacity（早先这么写过，误报 61）。 */
-      var visPop = qa(H('.wy-omap .wy-pop')).filter(function (g) {
-        return window.getComputedStyle(g).opacity !== '0';
-      }).length;
-      log('可见的悬停字形牌=' + visPop + '（应为 0——字形只在悬停时浮出）');
-      log('热区轮廓默认不透明度=' + cs(q(H('.wy-spot .wy-ring')), 'opacity') + '（应为 0）');
-      log('悬停字形牌默认不透明度=' + cs(q(H('.wy-spot .wy-pop')), 'opacity') + '（应为 0）');
+      log('底层灰度图 wy-bg-dim=' + flag(!!q(H('.wy-bg-dim'))));
+      log('上层彩色图 wy-bg-lit=' + flag(!!q(H('.wy-bg-lit'))));
+      var lit = q(H('.wy-bg-lit'));
+      log('上层挂了 mask=' + flag(!!(lit && lit.getAttribute('mask'))));
+      var maskId = lit ? String(lit.getAttribute('mask')).replace(/^url\(#/, '').replace(/\)$/, '') : '';
+      var maskEl = maskId ? document.getElementById(maskId) : null;
+      log('mask 元素存在=' + flag(!!maskEl) +
+          '　mask 里的白圆=' + (maskEl ? maskEl.querySelectorAll('circle').length : -1) +
+          '（初始应为 0）');
+      log('灰度滤镜=' + (q(H('.wy-bg-dim')) ? window.getComputedStyle(q(H('.wy-bg-dim'))).filter : '-'));
+      log('热区数=' + spots().length + '（应 ' + want + '）');
       log('初始进度=' + txt(q(H('.wy-learnnum'))));
 
       log('');
-      log('=== 三、逐个点热区（点它 → 学它）===');
-      var failed = 0;
-      ['山', '水', '木', '牛', '鼎', '门', '弓', '贝', '日', '目'].forEach(function (ch) {
-        var g = spotByChar(ch);
-        if (!g) { log('  ✗ 找不到「' + ch + '」的热区'); failed++; return; }
-        tap(g);
-        var shown = txt(q(H('.wy-card-char')));
-        var mean = txt(q(H('.wy-card-mean')));
-        var zone = txt(q(H('.wy-card-zone')));
-        var big = qa(H('.wy-card-form svg')).length;
-        var data = null;
-        MAP.zones.forEach(function (z) {
-          (z.objects || []).forEach(function (o) { if (o.char === ch) { data = o; } });
-        });
-        var ok = (shown === ch) && !!data && (mean === data.meaning) && big === 1;
-        if (!ok) { failed++; }
-        log('  ' + (ok ? '✓' : '✗') + ' 「' + ch + '」大字=' + shown +
-          ' 大图=' + big + ' 分区=' + zone + ' 释义=' + mean);
-        tap(btnByText(/回到地图/));
-        if (!q(H('.wy-omap'))) { log('      !! 回地图失败'); failed++; }
-      });
-      log('失败项=' + failed + (failed ? ' ✗' : ' ✓'));
+      log('=== 三、点实物 → 进构字界面 ===');
+      var ch = '鼎';
+      var sp = spotByChar(ch);
+      tap(sp);
+      log('点了「' + ch + '」→ 构字界面=' + flag(!!q(H('.wy-stage-svg'))));
+      log('上：甲骨文原字 wy-ref-glyph=' + flag(!!q(H('svg.wy-ref-glyph'))) +
+          '　标签=「' + txt(q(H('.wy-ref-label'))) + '」');
+      log('标题=「' + txt(q(H('.wy-title'))) + '」　' + txt(q(H('.wy-cell-rank'))));
+      log('中：组装区=是　淡淡原字提示 wy-guide=' + flag(!!q(H('.wy-guide path'))));
+      log('下：部件池=' + qa(H('.wy-tray-items .wy-piece')).length + ' 块（鼎应拆成 11 笔）');
 
       log('');
-      log('=== 四、学习进度 ===');
+      log('=== 四、拖拽构字（模拟真实指针事件）===');
+      var strokes = App.glyphStrokes(ch);
+      var n = strokes.length;
+      /* 先故意拖错一处，验证会拒绝 */
+      var pieces0 = qa(H('.wy-tray-items .wy-piece'));
+      dragTo(pieces0[0], [4, 96]);   /* 拖到角落，肯定不对 */
+      log('故意拖到角落 → 判定=' + txt(q(H('.wy-verdict, .verdict'))));
+      log('已摆数=' + qa(H('.wy-placed .wy-stroke')).length + '（应仍为 0）');
+
+      /* 再逐笔拖到正确位置 */
+      var fail = 0;
+      for (var k = 0; k < n; k++) {
+        var box = null;
+        var cand = qa(H('.wy-tray-items .wy-piece'));
+        for (var j = 0; j < cand.length; j++) {
+          if (cand[j].getAttribute('data-i') === String(k)) { box = cand[j]; break; }
+        }
+        if (!box) { log('  ✗ 找不到第 ' + (k + 1) + ' 笔的部件'); fail++; continue; }
+        var c = strokes[k].c;
+        dragTo(box, [(c[0] + c[2]) / 2, (c[1] + c[3]) / 2]);
+        var placedNow = qa(H('.wy-placed .wy-stroke')).length;
+        if (placedNow !== k + 1) { log('  ✗ 第 ' + (k + 1) + ' 笔未就位（已摆 ' + placedNow + '）'); fail++; }
+      }
+      log('逐笔拖入：失败 ' + fail + ' / ' + n + (fail ? ' ✗' : ' ✓'));
+      log('组装区笔画数=' + qa(H('.wy-placed .wy-stroke')).length + '（应 ' + n + '）');
+      log('部件池剩余=' + qa(H('.wy-tray-items .wy-piece')).length + '（应 0）');
+      log('判定=' + txt(q(H('.wy-verdict, .verdict'))));
+
+      log('');
+      log('=== 五、拼成 → 看释义 ===');
+      var nx = btnByText(/^看看释义/);
+      if (nx) tap(nx);
+      log('卡片大字=' + txt(q(H('.wy-card-char'))) +
+          '　大图=' + flag(!!q(H('.wy-card-form svg'))) +
+          '　释义=' + txt(q(H('.wy-card-mean'))));
       log('存储=' + JSON.stringify(App.store.get('wangyi', null)));
-      log('已认绿点=' + qa(H('.wy-seen-dot')).length + '（应 10）');
-      log('进度显示=' + txt(q(H('.wy-learnnum'))) +
-        '　进度条=' + (q(H('.wy-meter-fill')) ? q(H('.wy-meter-fill')).style.width : '(无)'));
 
       log('');
-      log('=== 五、「显示可点处」开关（触屏的可发现性手段）===');
-      var tb = btnByText(/显示可点处/);
-      log('按钮文案=「' + txt(tb) + '」');
-      tap(tb);
-      log('打开后轮廓不透明度=' + cs(q(H('.wy-spot .wy-ring')), 'opacity') + '（应 > 0）');
-      log('包装类含 show-hots=' + flag(!!q(H('.wy-map.show-hots'))));
-      tap(btnByText(/隐藏可点处/));
-      log('再关闭后不透明度=' + cs(q(H('.wy-spot .wy-ring')), 'opacity') + '（应回到 0）');
-
-      log('');
-      log('=== 六、接着认 / 上一个下一个 ===');
-      tap(spotByChar('鼎'));
-      var minis = qa(H('.wy-more .wy-mini'));
-      var names = minis.map(function (b) { return txt(b.querySelector('.wy-mini-name')); });
-      log('接着认=' + minis.length + ' 个：' + names.join('、'));
-      if (minis.length) {
-        var t0 = names[0];
-        tap(minis[0]);
-        log('点「' + t0 + '」→ 得「' + txt(q(H('.wy-card-char'))) + '」' +
-          (txt(q(H('.wy-card-char'))) === t0 ? ' ✓' : ' ✗'));
-      }
-      var before = txt(q(H('.wy-card-char')));
-      tap(btnByText(/下一个/));
-      var mid = txt(q(H('.wy-card-char')));
-      tap(btnByText(/上一个/));
-      var back = txt(q(H('.wy-card-char')));
-      log('「' + before + '」→ 下「' + mid + '」→ 上「' + back + '」' +
-        ((mid !== before && back === before) ? ' ✓' : ' ✗'));
-
-      log('');
-      log('=== 七、键盘可用 ===');
+      log('=== 六、回地图：那一块应该亮了 ===');
       tap(btnByText(/回到地图/));
-      var g2 = spotByChar('鹿');
-      if (g2) {
-        var kev = null;
-        try { kev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }); } catch (e) { kev = null; }
-        if (kev) {
-          g2.dispatchEvent(kev);
-          var got = txt(q(H('.wy-card-char')));
-          log('在「鹿」上按回车 → 得「' + got + '」' + (got === '鹿' ? ' ✓' : ' ✗'));
-        } else { log('（本环境不支持构造键盘事件，跳过）'); }
-      } else { log('✗ 找不到「鹿」'); }
-
-      log('');
-      log('=== 八、答题练习入口仍在 ===');
-      tap(btnByText(/回到地图/));
-      var qb = btnByText(/答题练习/);
-      if (qb) {
-        log('入口=「' + txt(qb) + '」');
-        tap(qb);
-        log('练习分组=' + qa(H('.wy-zb-name')).map(txt).join('、'));
-        tap(btnByText(/回到地图/));
-        log('已回地图=' + flag(!!q(H('.wy-omap'))));
-      } else {
-        log('✗ 入口缺失（地图上按钮：' + qa(H('button')).map(txt).join(' | ') + '）');
+      log('在地图=' + flag(!!q(H('.wy-omap'))));
+      var lit2 = q(H('.wy-bg-lit'));
+      var mid2 = lit2 ? String(lit2.getAttribute('mask')).replace(/^url\(#/, '').replace(/\)$/, '') : '';
+      var m2 = mid2 ? document.getElementById(mid2) : null;
+      log('mask 里的白圆=' + (m2 ? m2.querySelectorAll('circle').length : -1) + '（应为 1）');
+      if (m2 && m2.querySelector('circle')) {
+        var cc = m2.querySelector('circle');
+        log('  亮区圆心=(' + cc.getAttribute('cx') + ',' + cc.getAttribute('cy') +
+            ') 半径=' + cc.getAttribute('r'));
+        var o0 = null;
+        MAP.zones.forEach(function (z) {
+          (z.objects || []).forEach(function (o) { if (o.char === ch) o0 = o; });
+        });
+        log('  「' + ch + '」热区=(' + o0.x + ',' + o0.y + ' r' + o0.r + ')' +
+            '　圆心对齐=' + flag(String(o0.x) === cc.getAttribute('cx')));
       }
+      log('进度=' + txt(q(H('.wy-learnnum'))));
+      log('已认标记 wy-spot.seen=' + qa(H('.wy-spot.seen')).length);
 
       log('');
-      log('=== 九、卸载后重挂载应回到地图 ===');
-      tap(spotByChar('鱼'));
-      var inDetail = !!q(H('.wy-card'));
-      App.modes.get('wangyi-map').unmount(document.getElementById(HOST_ID));
-      mountFresh();
-      log('卸载前在详情=' + flag(inDetail) +
-        '　重挂载后地图在=' + flag(!!q(H('.wy-omap'))) +
-        '　详情残留=' + flag(!!q(H('.wy-card'))) +
-        '　开关已复位=' + flag(!q(H('.wy-map.show-hots'))));
+      log('=== 七、再拼一个（水，看笔画少的字）===');
+      tap(spotByChar('水'));
+      var ns = App.glyphStrokeCount('水');
+      log('「水」' + ns + ' 笔　部件池=' + qa(H('.wy-tray-items .wy-piece')).length);
+      var s2 = App.glyphStrokes('水');
+      var f2 = 0;
+      for (var k2 = 0; k2 < ns; k2++) {
+        var bx = null;
+        var cd = qa(H('.wy-tray-items .wy-piece'));
+        for (var j2 = 0; j2 < cd.length; j2++) {
+          if (cd[j2].getAttribute('data-i') === String(k2)) { bx = cd[j2]; break; }
+        }
+        if (!bx) { f2++; continue; }
+        var c2 = s2[k2].c;
+        dragTo(bx, [(c2[0] + c2[2]) / 2, (c2[1] + c2[3]) / 2]);
+      }
+      log('拖入失败=' + f2 + '　组装区=' + qa(H('.wy-placed .wy-stroke')).length + '/' + ns);
+      log('判定=' + txt(q(H('.wy-verdict, .verdict'))));
+      tap(btnByText(/^看看释义/));
+      tap(btnByText(/回到地图/));
+      var m3 = q('.wy-bg-lit');
+      var mid3 = m3 ? String(m3.getAttribute('mask')).replace(/^url\(#/, '').replace(/\)$/, '') : '';
+      log('回地图后 mask 白圆=' + (document.getElementById(mid3) ?
+        document.getElementById(mid3).querySelectorAll('circle').length : -1) + '（应为 2）');
+      log('进度=' + txt(q(H('.wy-learnnum'))));
 
       log('');
-      log('=== 十、重置 ===');
-      log('重置按钮在=' + flag(!!btnByText(/重置学习记录/)));
+      log('=== 八、重置 → 整幅画重新变灰 ===');
+      log('重置按钮在=' + flag(!!btnByText(/重置点亮记录/)));
       App.store.del('wangyi');
       mountFresh();
-      log('清空后进度=' + txt(q(H('.wy-learnnum'))) +
-        '　绿点=' + qa(H('.wy-seen-dot')).length);
+      var m4 = q('.wy-bg-lit');
+      var mid4 = m4 ? String(m4.getAttribute('mask')).replace(/^url\(#/, '').replace(/\)$/, '') : '';
+      log('清空后 mask 白圆=' + (document.getElementById(mid4) ?
+        document.getElementById(mid4).querySelectorAll('circle').length : -1) + '（应为 0）');
+      log('进度=' + txt(q(H('.wy-learnnum'))));
 
-      /* 留一张热区显形的地图供截图核对 */
-      tap(btnByText(/显示可点处/));
     } catch (e) {
       log('!! 异常: ' + (e && e.message ? e.message : e));
-      if (e && e.stack) {
-        String(e.stack).split('\n').slice(0, 4).forEach(function (s) { log('   ' + s); });
-      }
+      if (e && e.stack) { String(e.stack).split('\n').slice(0, 4).forEach(function (s) { log('   ' + s); }); }
     }
     log('');
     log('=== 控制台错误 ===');

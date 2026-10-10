@@ -110,28 +110,69 @@ def path_bbox(d):
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def split_strokes(d):
+    """把 path 数据按 M 起点切成独立笔画。
+
+    数据集里 61/61 全部只用绝对 M/L 命令，所以按 'M' 切是安全的：
+    每段就是一条折线，正好对应书写的一笔。
+    """
+    segs = []
+    for seg in re.split(r"(?=\bM\s)", d.strip()):
+        seg = seg.strip()
+        if seg.startswith("M") and len(seg) > 8:
+            segs.append(seg)
+    return segs or ([d.strip()] if d.strip() else [])
+
+
 def normalize(svg_text, name):
-    """取出 path 数据，按真实包围盒等比缩放并居中到 CANVAS 画布。"""
+    """取出 path 数据，按真实包围盒等比缩放并居中到 CANVAS 画布。
+
+    同时把该字拆成笔画（pieces），每笔带上【画布坐标系】里的包围盒，
+    供「拖拽构字」用：部件在池子里按自身包围盒单独显示，
+    落回目标时用同一个画布坐标系就位。
+    """
     vb = re.search(r'viewBox="([^"]+)"', svg_text)
     paths = re.findall(r"<path\s+d=\"([^\"]+)\"", svg_text)
     if not paths:
-        return None, None
+        return None, None, None
     d = " ".join(paths)
     bb = path_bbox(d)
     if not bb:
-        return None, None
+        return None, None, None
     x0, y0, x1, y1 = bb
     w, h = max(x1 - x0, 1e-6), max(y1 - y0, 1e-6)
     inner = CANVAS - PAD * 2
     k = inner / max(w, h)                     # 等比缩放：长边撑满
     tx = PAD + (inner - w * k) / 2 - x0 * k   # 居中
     ty = PAD + (inner - h * k) / 2 - y0 * k
+    sw = 0.9 / k
     # 用 g 承载变换，保留原始 path 数据，便于日后改渲染方式
     body = ('<g transform="translate({:.3f},{:.3f}) scale({:.5f})">'
             '<path d="{}" fill="none" stroke="{{C}}" stroke-width="{:.3f}" '
             'stroke-linecap="round" stroke-linejoin="round"/></g>'
-            ).format(tx, ty, k, d, 0.9 / k)
-    return body, (x0, y0, x1, y1)
+            ).format(tx, ty, k, d, sw)
+
+    # ---- 拆笔画：每笔给出画布坐标系的包围盒 ----
+    pieces = []
+    for seg in split_strokes(d):
+        sb = path_bbox(seg)
+        if not sb:
+            continue
+        cx0 = tx + sb[0] * k
+        cy0 = ty + sb[1] * k
+        cx1 = tx + sb[2] * k
+        cy1 = ty + sb[3] * k
+        pieces.append({
+            "d": seg,
+            "c": [round(cx0, 2), round(cy0, 2), round(cx1, 2), round(cy1, 2)],
+        })
+    meta = {
+        "transform": "translate({:.3f},{:.3f}) scale({:.5f})".format(tx, ty, k),
+        "strokeWidth": round(sw, 4),
+        "pieceCount": len(pieces),
+        "pieces": pieces,
+    }
+    return body, (x0, y0, x1, y1), meta
 
 
 def main():
@@ -159,18 +200,25 @@ def main():
         if not os.path.exists(f):
             missing.append((name, gid, "文件不存在"))
             continue
-        body, bb = normalize(read(f), name)
+        body, bb, meta = normalize(read(f), name)
         if body is None:
             missing.append((name, gid, "无法解析 path"))
             continue
         rec = byid.get(gid, {})
         items[name] = {
             "glyphId": gid,
-            "svg": body,
+            # 不存整段 svg：它等于 "transform + 各笔画 d"，存两份会让
+            # 文件体积翻倍（实测 157KB → 315KB）。前端按
+            # transform/strokeWidth/pieces 重建，见 leveldata.js 的 glyphSvg。
             "bbox": [round(v, 3) for v in bb],
             "sourceChar": rec.get("modern_char"),
             "unicode": rec.get("unicode"),
             "charForm": rec.get("char_form"),
+            # 笔画拆分：供「拖拽构字」把字打散成可拖的部件
+            "transform": meta["transform"],
+            "strokeWidth": meta["strokeWidth"],
+            "pieceCount": meta["pieceCount"],
+            "pieces": meta["pieces"],
         }
         if name in FALLBACK:
             items[name]["fallbackNote"] = FALLBACK[name]["note"]
