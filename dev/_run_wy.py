@@ -67,18 +67,26 @@ io.open(os.path.join(OUT, "wy_report.txt"), "w", encoding="utf-8").write(rep)
 # 主报告取回后，再单独跑一次「只截地图」：
 # 探针容器挂在 #sceneRoot 之后，窗口高度不够时会落到视野之外，
 # 所以截图页把首页场景隐藏、只留探针，才能拍到地图本身。
+# 又因为驱动是逐步执行的，结束时可能停在某个详情页——
+# 这里在截图前清掉学习记录并重挂载一版干净的地图，保证拍的是地图。
 shot_page = os.path.join(NEW, "_wy_shot.html")
 io.open(shot_page, "w", encoding="utf-8").write(
     src.replace("</body>",
                 "<script>\n" + code + "\n"
-                "/* 截图专用：驱动跑完后隐藏首页场景，把探针地图挪到最前 */\n"
+                "/* 截图专用：隐藏首页场景，并重挂载一版干净地图 */\n"
                 "setTimeout(function(){\n"
                 "  var sc = document.getElementById('sceneRoot');\n"
                 "  if (sc) { sc.style.display = 'none'; }\n"
-                "  var h = document.getElementById('wyProbeHost');\n"
-                "  if (h && h.parentNode) { h.parentNode.insertBefore(h, document.body.firstChild); }\n"
+                "  var App = window.App;\n"
+                "  App.store.del('wangyi');\n"
+                "  var old = document.getElementById('wyProbeHost');\n"
+                "  if (old && old.parentNode) { old.parentNode.removeChild(old); }\n"
+                "  var host = document.createElement('div');\n"
+                "  host.id = 'wyProbeHost';\n"
+                "  document.body.insertBefore(host, document.body.firstChild);\n"
+                "  App.modes.get('wangyi-map').mount(host, App.modes.buildContext(App.modes.get('wangyi-map')));\n"
                 "  window.scrollTo(0, 0);\n"
-                "}, 2600);\n"
+                "}, 3000);\n"
                 "</script>\n</body>", 1))
 r2 = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
                      "--user-data-dir=" + PROFILE,

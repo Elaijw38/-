@@ -13,88 +13,158 @@
 .wy-title { margin: 0; font-size: 19px; letter-spacing: 1px; }
 .wy-sub { font-size: 12px; color: var(--ink-2); }
 
-/* ---------- 拼图地图 ----------
-   区块是 SVG 多边形，四块按象限无缝拼合、中央菱形叠在拼缝上。
-   点亮＝填充+描边+朱砂亮线；未解锁＝去饱和压暗。
-   顶点在 levels.json 里对齐（如左半右边界 520 同时是右半左边界），
-   否则相邻块之间会露出底色，看着像地裂。 */
-.wy-map { margin: 12px 0 10px; max-width: 720px; }
-.wy-svg { width: 100%; height: auto; display: block; overflow: visible; }
-
-.wy-zone { --wy-accent: var(--bronze-tint); cursor: pointer; }
-.wy-zone:focus-visible { outline: none; }
-.wy-zone:focus-visible .wy-zone-poly { stroke-width: 4; }
-
-.wy-zone-poly {
-  fill: var(--bone-hi);
-  stroke: var(--edge);
-  stroke-width: 2;
-  stroke-linejoin: round;
-  transition: fill .18s, stroke .18s, filter .18s;
-}
-/* 已解锁：区块色按固定比例调进骨面，做出浅色地界。
-   注意色值必须是【不透明】的（levels.json 里用 hex）——
-   若给带 alpha 的 rgba，与不透明底色 color-mix 后 alpha 会被稀释
-   （曾用 .3 的 rgba 配 13% 混合，实际只剩 ~7%，三块看着都是灰白）。 */
-.wy-zone.on .wy-zone-poly {
-  fill: color-mix(in srgb, var(--wy-accent) 26%, var(--bone-hi));
-  stroke: color-mix(in srgb, var(--wy-accent) 66%, var(--edge));
-}
-.wy-zone.on:hover .wy-zone-poly {
-  fill: color-mix(in srgb, var(--wy-accent) 38%, var(--bone-hi));
-  stroke-width: 3;
-}
-/* 未解锁：压暗去饱和，像还没点亮的地界 */
-.wy-zone.off .wy-zone-poly { fill: color-mix(in srgb, var(--bone-lo) 70%, var(--bone)); }
-.wy-zone.off { filter: grayscale(.5) brightness(.96); opacity: .6; cursor: not-allowed; }
-.wy-zone.off:hover .wy-zone-poly { fill: color-mix(in srgb, var(--bone-lo) 80%, var(--bone)); }
-.wy-zone.soon { opacity: .72; }
-.wy-zone.soon:hover .wy-zone-poly { fill: color-mix(in srgb, var(--bone-lo) 60%, var(--bone)); }
-
-/* 点亮时内圈再压一条亮线，做出"已收复"的静态高亮 */
-.wy-zone-ring {
-  fill: none;
-  stroke: color-mix(in srgb, var(--wy-accent) 55%, transparent);
-  stroke-width: 1.5;
-  transform-box: fill-box;
-  transform-origin: center;
-  transform: scale(.965);
-  pointer-events: none;
+/* ---------- 实物地图（点击即学） ----------
+   地图上一枚枚实物，图标直接用甲骨字形本身——甲骨文本就是象形的，
+   山像山、木像木，拿它当实物图标最贴切，也省掉另造插画素材。
+   画布坐标系见 levels.json 的 viewBox（1240×880）。 */
+.wy-omap {
+  width: 100%; height: auto; display: block;
+  margin: 10px 0 6px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bone-hi) 60%, var(--bone)) 0%,
+    var(--bone) 46%,
+    color-mix(in srgb, var(--bone-lo) 26%, var(--bone)) 100%);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
 }
 
-.wy-z-name {
-  font-family: inherit; font-size: 26px; font-weight: 700;
-  fill: var(--ink); pointer-events: none; letter-spacing: 1px;
+/* 淡墨实景：只让实物“落在地上”，不抢主角 */
+.wy-backdrop { pointer-events: none; }
+.wy-bd-hill { fill: color-mix(in srgb, var(--bone-lo) 34%, transparent); }
+.wy-bd-river { fill: none; stroke: color-mix(in srgb, var(--blue-tint) 26%, transparent); stroke-width: 9; }
+.wy-bd-field path { fill: none; stroke: color-mix(in srgb, var(--bronze-tint) 20%, transparent); stroke-width: 2; }
+.wy-bd-tree path { fill: none; stroke: color-mix(in srgb, var(--green-tint) 24%, transparent); stroke-width: 4; }
+.wy-bd-ground { fill: none; stroke: color-mix(in srgb, var(--edge) 70%, transparent); stroke-width: 1.5; stroke-dasharray: 8 10; }
+
+.wy-zone-title {
+  font-family: inherit; font-size: 21px; font-weight: 700;
+  fill: color-mix(in srgb, var(--ink) 82%, transparent); letter-spacing: 2px;
 }
-.wy-zone.off .wy-z-name { fill: var(--ink-soft); }
-.wy-z-sub {
-  font-family: inherit; font-size: 13px;
-  fill: var(--ink-2); pointer-events: none;
+.wy-zone-note { font-family: inherit; font-size: 12.5px; fill: var(--ink-soft); }
+
+/* 一枚实物 */
+.wy-obj { cursor: pointer; }
+.wy-obj-hit { fill: transparent; }
+.wy-obj-box {
+  fill: color-mix(in srgb, var(--bone-hi) 92%, var(--bone));
+  stroke: var(--edge); stroke-width: 1.5;
+  transition: fill .16s, stroke .16s;
 }
-.wy-zone.on .wy-z-sub { fill: color-mix(in srgb, var(--wy-accent) 72%, var(--ink-2)); }
-.wy-zone-mark { color: var(--wy-accent); opacity: .55; pointer-events: none; }
+.wy-obj-form { color: var(--ink); }
+.wy-obj:hover .wy-obj-box {
+  fill: color-mix(in srgb, var(--bronze-tint) 16%, var(--bone-hi));
+  stroke: var(--bronze-tint);
+}
+.wy-obj:hover .wy-obj-form { color: var(--bronze-tint); }
+.wy-obj.sel .wy-obj-box { stroke: var(--cinnabar-tint); stroke-width: 2.5; }
+.wy-obj:focus-visible { outline: none; }
+.wy-obj:focus-visible .wy-obj-box { stroke: var(--cinnabar-tint); stroke-width: 3; }
+.wy-obj-label {
+  font-family: inherit; font-size: 17px; fill: var(--ink-2);
+  pointer-events: none; letter-spacing: 1px;
+}
+.wy-obj:hover .wy-obj-label { fill: var(--bronze-tint); }
+/* 认过之后盖一枚印记 */
+.wy-obj.seen .wy-obj-box { stroke: color-mix(in srgb, var(--green-tint) 55%, var(--edge)); }
+.wy-obj-tick { fill: var(--green-tint); opacity: .85; }
+
+/* 学习进度 */
+.wy-learnbar { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 2px 0 4px; }
+.wy-learnnum {
+  font-size: 15px; font-weight: 700; color: var(--bronze-tint);
+  font-variant-numeric: tabular-nums;
+}
+.wy-learnword { font-size: 11.5px; color: var(--ink-2); }
+.wy-meter {
+  flex: 1 1 140px; max-width: 260px; height: 7px; display: inline-block;
+  background: color-mix(in srgb, var(--bone-lo) 60%, var(--bone));
+  border: 1px solid var(--edge); border-radius: var(--r-pill); overflow: hidden;
+}
+.wy-meter-fill {
+  display: block; height: 100%;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--bronze-tint) 70%, transparent),
+    color-mix(in srgb, var(--green-tint) 70%, transparent));
+  transition: width .25s;
+}
 
 /* 图例 */
 .wy-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-2); margin-bottom: 4px; }
 .wy-lg { display: inline-flex; align-items: center; gap: 5px; }
-/* 图例：色点要跟着【各区块自己的颜色】走。
-   原先写死青铜色，与地图上的青灰蓝/苔绿/土黄对不上，等于说谎。 */
-.wy-lg-dot { width: 13px; height: 13px; display: inline-block; border-radius: 3px; border: 1px solid var(--edge); }
-.wy-lg-on .wy-lg-dot {
-  background: linear-gradient(135deg, #46688a 0 50%, #3e704a 50% 100%);
-  border-color: color-mix(in srgb, #46688a 70%, var(--edge));
+.wy-lg-dot {
+  width: 13px; height: 13px; display: inline-block; border-radius: 3px;
+  border: 1px solid var(--edge);
+  background: color-mix(in srgb, var(--bronze-tint) 22%, var(--bone-hi));
 }
-.wy-lg-off .wy-lg-dot { background: color-mix(in srgb, var(--bone-lo) 80%, var(--bone)); opacity: .6; }
-.wy-lg-soon .wy-lg-dot { background: var(--bone-lo); opacity: .75; }
+.wy-lg-dot.seen {
+  background: color-mix(in srgb, var(--green-tint) 45%, var(--bone-hi));
+  border-color: var(--green-tint);
+}
 
-.wy-prog { font-size: 11px; color: var(--wy-accent); font-variant-numeric: tabular-nums; }
-.wy-done {
-  font-size: 10px; padding: 1px 6px; border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--green-tint) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--green-tint) 45%, var(--edge));
-  color: var(--green-tint);
+/* ---------- 实物详情（学习卡） ---------- */
+.wy-card {
+  display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+  margin: 14px 0 10px; padding: 18px 20px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bone-hi) 96%, var(--bone)), var(--bone-hi));
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  box-shadow: inset 0 0 0 1px var(--edge-in);
+  clip-path: polygon(0 5%, 2.6% 0, 100% 0, 100% 95%, 97.4% 100%, 0 100%);
 }
-.wy-lock { font-size: 10.5px; color: var(--ink-soft); line-height: 1.5; }
+.wy-card-form { flex: 0 0 auto; color: var(--ink); }
+.wy-card-form .wy-big { display: block; }
+.wy-card-info { flex: 1 1 240px; }
+.wy-card-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wy-card-char {
+  font-size: 46px; font-weight: 700; color: var(--ink);
+  letter-spacing: 2px; line-height: 1.1;
+}
+.wy-card-zone {
+  font-size: 11px; padding: 2px 9px; border-radius: var(--r-pill);
+  border: 1px solid var(--edge); color: var(--bronze-tint);
+  background: color-mix(in srgb, var(--bronze-tint) 10%, transparent);
+}
+.wy-card-mean {
+  font-size: 17px; color: var(--ink); margin-top: 8px;
+  line-height: 1.7; letter-spacing: 1px;
+}
+.wy-card-note { font-size: 11px; color: var(--ink-soft); margin-top: 8px; line-height: 1.6; }
+
+/* 同区其它实物：顺着看下去 */
+.wy-more { margin: 6px 0 12px; }
+.wy-more-title {
+  font-size: 11.5px; color: var(--ink-2); margin-bottom: 7px;
+  padding-left: 8px; border-left: 3px solid var(--edge);
+}
+.wy-more-strip { display: flex; gap: 7px; flex-wrap: wrap; }
+.wy-mini {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 5px 6px 3px; cursor: pointer;
+  background: color-mix(in srgb, var(--bone-hi) 92%, var(--bone));
+  border: 1px solid var(--edge); border-radius: 6px;
+  transition: border-color .15s, background .15s, transform .12s;
+}
+.wy-mini:hover {
+  border-color: var(--bronze-tint);
+  background: color-mix(in srgb, var(--bronze-tint) 12%, var(--bone-hi));
+  transform: translateY(-2px);
+}
+.wy-mini-glyph { color: var(--ink); display: block; }
+.wy-mini:hover .wy-mini-glyph { color: var(--bronze-tint); }
+.wy-mini-name { font-size: 12px; color: var(--ink-2); }
+.wy-mini.seen { border-color: color-mix(in srgb, var(--green-tint) 55%, var(--edge)); }
+
+/* 答题练习入口（保留原有玩法） */
+.wy-zlist { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 10px; }
+.wy-zbtn {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  padding: 10px 14px; cursor: pointer; text-align: left;
+  background: color-mix(in srgb, var(--bone-hi) 92%, var(--bone));
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+}
+.wy-zbtn:hover { border-color: var(--bronze-tint); }
+.wy-zb-name { font-size: 15px; color: var(--ink); }
+.wy-zb-meta { font-size: 11px; color: var(--ink-soft); }
 
 /* 侧边入口 */
 .wy-side {
@@ -103,35 +173,8 @@
 }
 
 /* ---------- 关卡列表 ---------- */
-.wy-levels { display: grid; gap: 8px; max-width: 560px; margin-top: 12px; }
-.wy-level {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 11px; cursor: pointer;
-  border: 1px solid var(--edge); border-radius: var(--r-sm);
-  background: color-mix(in srgb, var(--bone-hi) 80%, transparent);
-  box-shadow: inset 0 0 0 1px var(--edge-in);
-  transition: transform .12s, border-color .18s;
-}
-.wy-level:hover { transform: translateX(2px); border-color: var(--bronze); }
-.wy-level.done { border-color: color-mix(in srgb, var(--green-tint) 45%, var(--edge)); }
-.wy-level.locked { opacity: .55; cursor: not-allowed; }
-.wy-level.locked:hover { transform: none; border-color: var(--edge); }
-.wy-level-no {
-  flex: 0 0 auto; width: 24px; height: 26px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: linear-gradient(180deg, var(--bone2), var(--bone-lo));
-  border: 1px solid var(--edge); border-radius: 5px;
-  font-size: 12px; font-weight: 700; color: var(--ink-2);
-  clip-path: polygon(24% 0%, 76% 4%, 100% 28%, 92% 82%, 58% 100%, 18% 92%, 0% 62%, 6% 18%);
-}
-.wy-level-t { flex: 1 1 auto; min-width: 0; }
-.wy-level-name { font-size: 13.5px; }
-.wy-level-hint { font-size: 11px; color: var(--ink-2); margin-top: 1px; }
 
 /* ---------- 关卡舞台 ---------- */
-.wy-stage { margin: 10px 0 12px; }
-.wy-question { text-align: center; }
-.wy-q-label { font-size: 12.5px; color: var(--ink-2); margin-bottom: 9px; letter-spacing: .5px; }
 
 /* 甲骨字形展示 */
 .wy-glyph { display: inline-block; color: var(--ink); }
@@ -144,86 +187,24 @@
 }
 
 /* ---------- 拆字：四选一 ---------- */
-.wy-opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 620px; }
-.wy-opt {
-  position: relative; cursor: pointer; text-align: center;
-  padding: 8px 6px 7px; border-radius: var(--r-sm);
-  border: 1px solid var(--edge);
-  background: color-mix(in srgb, var(--bone-hi) 82%, transparent);
-  box-shadow: inset 0 0 0 1px var(--edge-in);
-  transition: transform .12s, border-color .18s, background .18s;
-}
-.wy-opt:hover { transform: translateY(-2px); border-color: var(--bronze); }
-.wy-opt-name { display: block; font-size: 17px; font-weight: 700; margin-bottom: 4px; }
-.wy-opt-form { display: block; }
-.wy-opt-form svg { width: 44px; height: 44px; display: block; margin: 0 auto; color: var(--ink-2); }
-.wy-opt.ok {
-  border-color: var(--green-tint);
-  background: color-mix(in srgb, var(--green-tint) 13%, transparent);
-}
-.wy-opt.ok svg { color: var(--green-tint); }
 /* 卜辞拼字里「已选」的构件 */
-.wy-opt.on {
-  border-color: var(--bronze-tint);
-  background: color-mix(in srgb, var(--bronze-tint) 14%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bronze-tint) 45%, transparent);
-}
-.wy-opt.on svg { color: var(--bronze-tint); }
-.wy-opt.no {
-  border-color: var(--cinnabar-tint);
-  background: color-mix(in srgb, var(--cinnabar-tint) 12%, transparent);
-}
-.wy-opt.no svg { color: var(--cinnabar-tint); }
 
 /* ---------- 卜辞拼字 ---------- */
-.wy-ask {
-  position: relative; max-width: 520px; margin: 4px 0 12px;
-  padding: 12px 15px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--bone-hi) 96%, var(--bone)), var(--bone-hi));
-  border: 1px solid var(--edge);
-  /* 骨片感的切角，呼应地图中央的菱形占卜坑 */
-  clip-path: polygon(0 12%, 6% 0, 94% 0, 100% 12%, 100% 88%, 94% 100%, 6% 100%, 0 88%);
-  box-shadow: inset 0 0 0 1px var(--edge-in);
-}
-.wy-ask-label {
-  font-size: 10.5px; letter-spacing: 3px; color: var(--cinnabar-tint);
-  margin-bottom: 4px;
-}
-.wy-ask-text {
-  font-size: 21px; line-height: 1.5; letter-spacing: 2px; color: var(--ink);
-}
-.wy-ask-note { font-size: 10.5px; color: var(--ink-soft); margin-top: 6px; }
 /* ---------- 配对 ---------- */
-.wy-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 520px; margin-top: 4px; }
-.wy-pair-col { display: grid; gap: 7px; align-content: start; }
-.wy-pcard {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 58px; padding: 6px; cursor: pointer;
-  border: 1px solid var(--edge); border-radius: var(--r-sm);
-  background: color-mix(in srgb, var(--bone-hi) 82%, transparent);
-  box-shadow: inset 0 0 0 1px var(--edge-in);
-  transition: transform .12s, border-color .18s, background .18s;
-}
-.wy-pcard:hover { border-color: var(--bronze); }
-.wy-pcard.sel {
-  border-color: var(--cinnabar);
-  box-shadow: inset 0 0 0 1px var(--cinnabar), 0 0 0 3px color-mix(in srgb, var(--cinnabar) 15%, transparent);
-}
-.wy-pcard.done {
-  border-color: var(--green-tint);
-  background: color-mix(in srgb, var(--green-tint) 12%, transparent);
-  cursor: default; opacity: .78;
-}
-.wy-pcard.no { border-color: var(--cinnabar-tint); background: color-mix(in srgb, var(--cinnabar-tint) 12%, transparent); }
-.wy-pchar { font-size: 24px; font-weight: 700; }
 
 @media (max-width: 560px) {
-  .wy-map { max-width: none; gap: 7px; }
-  .wy-cell { min-height: 104px; padding: 8px 9px; }
-  .wy-opts { grid-template-columns: repeat(2, 1fr); }
+  /* 实物地图在窄屏上：整个 SVG 等比缩小已经够用，
+     这里只把文字类元素收小，避免标签比字形还抢眼。
+     注意不要给 .wy-obj-box 加 transform——它是 SVG 元素，
+     变换会叠加到已算好的布局变换上，位置会错。 */
+  .wy-obj-label { font-size: 15px; }
+  .wy-zone-title { font-size: 17px; }
+  .wy-zone-note { font-size: 10.5px; }
+  .wy-card { gap: 14px; padding: 14px; }
+  .wy-card-form .wy-big { width: 132px; height: 132px; }
+  .wy-card-char { font-size: 38px; }
+  .wy-card-mean { font-size: 15px; }
   .wy-glyph.lg { width: 112px; height: 112px; }
-  .wy-pair { max-width: none; }
 }
 
 
