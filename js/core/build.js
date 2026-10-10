@@ -61,31 +61,31 @@
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
-  /* 随主题给出合适的字形颜色（深色主题用骨白，浅色用墨） */
-  function glyphColorFor(theme) {
-    return (theme === 'zhuogu') ? '#f0e6d2' : '#221d15';
+  /* 品牌字形颜色：主题固定为骨白（浅底），取墨色 */
+  function glyphColorFor() {
+    return '#221d15';
   }
 
   /* ============================================================
-     主题：旧的三个名字（bone/ink/plain）迁移到新名字
+     主题：当前固定为「骨白」（浅色），不再向用户提供切换项。
+     传入什么名字都一律按骨白渲染，历史存储里的旧值（如 zhuogu）
+     不会再生效——否则老访客会继续看到深色。
+     css 里的 zhuogu / plain 两套变量仍然保留，日后若要重新开放
+     只需在此处改回读取存储即可。
      ============================================================ */
-  var THEME_ALIAS = { bone: 'bone', ink: 'zhuogu', plain: 'plain', zhuogu: 'zhuogu' };
+  var FIXED_THEME = 'bone';
   function currentTheme() {
-    var raw = App.store.get('theme', 'zhuogu');
-    return THEME_ALIAS[raw] || 'zhuogu';
+    return FIXED_THEME;
   }
-  function applyThemeAll(name) {
-    var t = THEME_ALIAS[name] || 'zhuogu';
+  function applyThemeAll() {
+    var t = FIXED_THEME;
     document.documentElement.setAttribute('data-theme', t);
     App.applyTheme(t, App.store.get('bgimg', ''));
     App.brandGlyphURI = buildBrandGlyphURI(glyphColorFor(t));
     /* 已渲染的站点头需要重画（字形颜色变了） */
     if (App.shell && App.shell.renderHeader) App.shell.renderHeader();
   }
-  App.theme = { get: currentTheme, apply: applyThemeAll, themes: function () {
-    return [{ id: 'zhuogu', label: '灼骨（深色）' }, { id: 'bone', label: '骨白（浅色）' },
-            { id: 'plain', label: '素色（无纹理）' }];
-  } };
+  App.theme = { get: currentTheme, apply: applyThemeAll };
 
   /* ---------- 页面底纹：真实甲骨文字形平铺（与主题无关，靠主题变量调和） ---------- */
   function injectPattern() {

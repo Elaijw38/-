@@ -253,27 +253,11 @@
     /* 外观 */
     var s1 = App.el('div', 'sect');
     s1.appendChild(App.el('h4', null, '外观'));
-    var row = App.el('div', 'tune');
-    row.appendChild(App.el('label', null, '配色'));
-    var sel = App.el('select', 'mini');
-    var themeList = (App.theme && App.theme.themes) ? App.theme.themes() : [
-      { id: 'zhuogu', label: '灼骨（深色）' },
-      { id: 'bone', label: '骨白（浅色）' },
-      { id: 'plain', label: '素色（无纹理）' }
-    ];
-    var curTheme = (App.theme && App.theme.get) ? App.theme.get() : App.store.get('theme', 'zhuogu');
-    themeList.forEach(function (t) {
-      var o = document.createElement('option');
-      o.value = t.id; o.textContent = t.label;
-      if (curTheme === t.id) o.selected = true;
-      sel.appendChild(o);
-    });
-    sel.onchange = function () {
-      if (App.theme && App.theme.apply) App.theme.apply(sel.value);
-      else { App.store.set('theme', sel.value); App.applyTheme(sel.value, App.store.get('bgimg', '')); }
-    };
-    row.appendChild(sel);
-    s1.appendChild(row);
+    /* 配色固定为骨白，不再提供切换项；此处只作说明，避免用户以为漏了设置 */
+    var rowT = App.el('div', 'tune');
+    rowT.appendChild(App.el('label', null, '配色'));
+    rowT.appendChild(App.el('span', 'chip', '骨白（固定）'));
+    s1.appendChild(rowT);
     var row2 = App.el('div', 'tune');
     row2.appendChild(App.el('label', null, '背景'));
     var bin = document.createElement('input');
@@ -284,7 +268,7 @@
       App.readScaled(f, 1600, function (url) {
         if (!url) { App.toast('背景图读取失败'); return; }
         App.store.set('bgimg', url);
-        App.applyTheme(App.store.get('theme', 'bone'), url);
+        App.applyTheme(App.theme.get(), url);
         App.toast('背景已更新');
       }, 'image/jpeg', 0.72);
     };
@@ -295,7 +279,7 @@
     var bc = App.el('button', 'btn sm', '清除');
     bc.onclick = function () {
       App.store.del('bgimg');
-      App.applyTheme(App.store.get('theme', 'bone'), '');
+      App.applyTheme(App.theme.get(), '');
       App.toast('已恢复默认背景');
     };
     row2.appendChild(bc);
