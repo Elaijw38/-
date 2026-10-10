@@ -319,6 +319,7 @@
       var mech = z.mechanic;
       if (mech === 'boss') renderBoss(el, z, lv);
       else if (mech === 'pair') renderPair(el, z, lv);
+      else if (mech === 'divine') renderDivine(el, z, lv);
       else renderPlaceholder(el, z, lv);
     }
 
@@ -413,6 +414,133 @@
         row.appendChild(b);
       });
       el.appendChild(row);
+    }
+
+    /* ---------- 机制三：卜辞拼字（读卜辞，选出所需构件） ----------
+       数据来自 levels.json，其内容源自项目内既有素材 data.js 的 DIVINE 数组
+       （5 条卜问，每条自带所问、所需构件与吉凶结果），未编造卜辞。 */
+    function renderDivine(el, z, lv) {
+      var idx = S.level.index;
+      var head = App.el('div', 'wy-head');
+      head.appendChild(App.el('h3', 'wy-title', '第 ' + (idx + 1) + ' 关 · ' + z.name));
+      head.appendChild(App.el('span', 'wy-cell-rank', lv.divine || ''));
+      el.appendChild(head);
+
+      /* 卜辞问句：做成一块"卜骨"卡片，与地图中央的菱形呼应 */
+      var ask = App.el('div', 'wy-ask');
+      ask.appendChild(App.el('div', 'wy-ask-label', '卜辞'));
+      ask.appendChild(App.el('div', 'wy-ask-text', lv.q || ''));
+      if (lv.note) ask.appendChild(App.el('div', 'wy-ask-note', '※ ' + lv.note));
+      el.appendChild(ask);
+
+      el.appendChild(App.el('div', 'wy-q-label',
+        '这条卜辞问的是什么事？选出它所需的 ' + (lv.parts || []).length + ' 个构件'));
+
+      /* 候选来自整个字库，含正解与干扰 */
+      var need = (lv.parts || []).slice();
+      var pool = Object.keys(App.glyphs.parts || {}).filter(function (n) {
+        return need.indexOf(n) < 0;
+      });
+      pool = App.shuffle ? App.shuffle(pool) : pool;
+      var distract = Math.max(4, 8 - need.length);
+      var opts = need.concat(pool.slice(0, distract));
+      opts = App.shuffle ? App.shuffle(opts) : opts;
+
+      var chosen = [];
+      var row = App.el('div', 'wy-opts');
+      var answered = false;
+      var bar = App.el('div', 'bar');
+      var confirmBtn = null;
+
+      function repaint() {
+        Array.prototype.forEach.call(row.children, function (c) {
+          var nm = c.getAttribute('data-nm');
+          var on = chosen.indexOf(nm) >= 0;
+          c.className = 'wy-opt' + (on ? ' on' : '');
+        });
+        if (confirmBtn) {
+          confirmBtn.textContent = chosen.length
+            ? ('契刻（已选 ' + chosen.length + '/' + need.length + '）')
+            : '契刻';
+          confirmBtn.disabled = chosen.length === 0;
+          /* 暴露状态给自查脚本，避免驱动靠时序猜测（曾因此误判） */
+          confirmBtn.setAttribute('data-chosen', chosen.join(''));
+          confirmBtn.setAttribute('data-answered', answered ? '1' : '0');
+        }
+      }
+
+      opts.forEach(function (name) {
+        var b = App.el('div', 'wy-opt');
+        b.setAttribute('data-nm', name);
+        b.appendChild(App.el('span', 'wy-opt-name', name));
+        var g = App.glyphSvg(name, 'currentColor');
+        if (g) {
+          var form = App.el('span', 'wy-opt-form');
+          form.innerHTML = '<svg viewBox="0 0 ' + (App.glyphs.canvas || 100) + ' ' +
+            (App.glyphs.canvas || 100) + '">' + g + '</svg>';
+          b.appendChild(form);
+        }
+        b.onclick = function () {
+          if (answered) { return; }
+          var i = chosen.indexOf(name);
+          if (i >= 0) { chosen.splice(i, 1); } else { chosen.push(name); }
+          repaint();
+        };
+        row.appendChild(b);
+      });
+      el.appendChild(row);
+
+      confirmBtn = App.el('button', 'btn primary', '契刻');
+      confirmBtn.disabled = true;
+      confirmBtn.onclick = function () {
+        if (answered) { return; }
+        answered = true;
+        /* 顺序不计：构件是集合 */
+        var sortedNeed = need.slice().sort().join('');
+        var sortedGot = chosen.slice().sort().join('');
+        var ok = sortedNeed === sortedGot;
+        var missing = need.filter(function (n) { return chosen.indexOf(n) < 0; });
+        var extra = chosen.filter(function (n) { return need.indexOf(n) < 0; });
+        repaint();   /* 让 data-answered 等状态同步给自查脚本 */
+
+        Array.prototype.forEach.call(row.children, function (c) {
+          var nm = c.getAttribute('data-nm');
+          var should = need.indexOf(nm) >= 0;
+          var has = chosen.indexOf(nm) >= 0;
+          if (should) { c.className = 'wy-opt ok'; }
+          else if (has) { c.className = 'wy-opt no'; }
+          else { c.className = 'wy-opt'; }
+        });
+
+        var v = App.el('div', 'verdict ' + (ok ? 'ok' : 'no'));
+        v.textContent = ok
+          ? ('✔ 正是此事的构件：' + need.join('＋') + '　—　' + (lv.ok || ''))
+          : '✘ ' + (missing.length ? ('少了 ' + missing.join('、') + '；') : '') +
+            (extra.length ? ('多了 ' + extra.join('、') + '；') : '') +
+            '应为 ' + need.join('＋');
+        el.appendChild(v);
+
+        if (ok) { pass(z, lv.id, '已通关'); }
+        var hasNext = ok && (S.level.index + 1) < (z.levels || []).length;
+        var nx = App.el('button', 'btn primary',
+          hasNext ? '下一关' : (ok ? '回到区块' : '回到关卡列表'));
+        nx.onclick = function () {
+          if (hasNext) {
+            S.level = { zone: z, index: S.level.index + 1, data: z.levels[S.level.index + 1] };
+          } else { S.view = 'zone'; S.level = null; }
+          render();
+        };
+        bar.appendChild(nx);
+        if (!ok) {
+          var again = App.el('button', 'btn', '再试一次');
+          again.onclick = function () { render(); };
+          bar.appendChild(again);
+        }
+        el.appendChild(bar);
+      };
+      bar.appendChild(confirmBtn);
+      el.appendChild(bar);
+      repaint();
     }
 
     /* ---------- 机制二：配对（甲骨形 ←→ 今字） ---------- */

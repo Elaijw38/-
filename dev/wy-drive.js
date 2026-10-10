@@ -235,12 +235,66 @@
       log('落盘=' + JSON.stringify(App.store.get('wangyi', null)));
 
       log('');
-      log('=== 四、未开放区块应拦下 ===');
+      log('=== 四、卜辞拼字（中央占卜坑）===');
+      /* 前置：通关自然风光 4 关 + 动植物 4 关，中央才解锁 */
+      mountAt({ cleared: { landscape: ['ls-1', 'ls-2', 'ls-3', 'ls-4'],
+                           creature: ['cr-1', 'cr-2', 'cr-3', 'cr-4'] } });
+      var ct0 = zoneCell('中央占卜坑');
+      log('中央占卜坑=' + cellState(ct0) + '（应点亮）');
+      tap(ct0);
+      var ctZone = App.levels.map.zones.filter(function (zz) { return zz.id === 'center'; })[0];
+      log('关卡数=' + qa('#' + HOST_ID + ' .wy-level').length +
+          '（数据定义 ' + ctZone.levels.length + ' 关）');
+      qa('#' + HOST_ID + ' .wy-level')[0].click();
+      var lv0 = ctZone.levels[0];
+      log('卜辞=' + txt(q('#' + HOST_ID + ' .wy-ask-text')));
+      log('提示=' + txt(q('#' + HOST_ID + ' .wy-q-label')));
+      var cand = qa('#' + HOST_ID + ' .wy-opt');
+      log('候选构件数=' + cand.length +
+          ' 含全部所需=' + flag(lv0.parts.every(function (n) {
+            return cand.some(function (c) { return c.getAttribute('data-nm') === n; });
+          })));
+
+      /* 先故意少选一个，验证判定指出缺失 */
+      var pickOf = function (nm) {
+        var list = qa('#' + HOST_ID + ' .wy-opt');
+        return list.filter(function (c) { return c.getAttribute('data-nm') === nm; })[0];
+      };
+      for (var qi = 0; qi < lv0.parts.length - 1; qi++) { tap(pickOf(lv0.parts[qi])); }
+      log('先只选 ' + (lv0.parts.length - 1) + ' 个 → 按钮=' + txt(q('#' + HOST_ID + ' .bar .btn')));
+      tap(q('#' + HOST_ID + ' .bar .btn'));
+      log('  判定=' + txt(q('#' + HOST_ID + ' .verdict')));
+
+      /* 保持已选，补上缺的那个再契刻（不点「再试一次」——
+         那会清空选择，反而验证不到补全路径） */
+      /* 判定后选项即锁定（产品行为：要改选必须先「再试一次」），
+         所以这里按真实交互来——点重试，再一次性选齐。 */
+      var retry = qa('#' + HOST_ID + ' .bar .btn').filter(function (b) {
+        return /再试一次/.test(txt(b));
+      })[0];
+      log('  有「再试一次」按钮=' + flag(!!retry));
+      tap(retry);
+      var cb0 = q('#' + HOST_ID + ' .bar .btn');
+      log('  重试后 data-chosen=「' + cb0.getAttribute('data-chosen') +
+          '」 按钮=' + txt(cb0) + '（应为空且不可用）');
+
+      for (var qj = 0; qj < lv0.parts.length; qj++) { tap(pickOf(lv0.parts[qj])); }
+      var cb = q('#' + HOST_ID + ' .bar .btn');
+      log('选齐 ' + lv0.parts.join('＋') + ' 后 data-chosen=' +
+          cb.getAttribute('data-chosen') + ' 按钮=' + txt(cb));
+      tap(cb);
+      log('  判定=' + txt(q('#' + HOST_ID + ' .verdict')));
+      log('  正确项标记数=' + qa('#' + HOST_ID + ' .wy-opt.ok').length +
+          '（应等于所需构件数 ' + lv0.parts.length + '）');
+      log('  落盘=' + JSON.stringify(App.store.get('wangyi', null)));
+
+      log('');
+      log('=== 五、未开放区块应拦下 ===');
       mountAt(null);
       var life = zoneCell('生产生活');
       var center = zoneCell('中央占卜坑');
       log('生产生活=' + cellState(life) + '（应未点亮·筹备中）');
-      log('中央占卜坑=' + cellState(center) + '（应未点亮）');
+      log('中央占卜坑（无进度时）=' + cellState(center) + '（应未点亮）');
       tap(life);
       log('点生产生活后仍在地图=' + flag(!!q('#' + HOST_ID + ' .wy-map')));
       tap(center);

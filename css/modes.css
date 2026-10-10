@@ -157,11 +157,38 @@
   background: color-mix(in srgb, var(--green-tint) 13%, transparent);
 }
 .wy-opt.ok svg { color: var(--green-tint); }
+/* 卜辞拼字里「已选」的构件 */
+.wy-opt.on {
+  border-color: var(--bronze-tint);
+  background: color-mix(in srgb, var(--bronze-tint) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bronze-tint) 45%, transparent);
+}
+.wy-opt.on svg { color: var(--bronze-tint); }
 .wy-opt.no {
   border-color: var(--cinnabar-tint);
   background: color-mix(in srgb, var(--cinnabar-tint) 12%, transparent);
 }
 .wy-opt.no svg { color: var(--cinnabar-tint); }
+
+/* ---------- 卜辞拼字 ---------- */
+.wy-ask {
+  position: relative; max-width: 520px; margin: 4px 0 12px;
+  padding: 12px 15px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bone-hi) 96%, var(--bone)), var(--bone-hi));
+  border: 1px solid var(--edge);
+  /* 骨片感的切角，呼应地图中央的菱形占卜坑 */
+  clip-path: polygon(0 12%, 6% 0, 94% 0, 100% 12%, 100% 88%, 94% 100%, 6% 100%, 0 88%);
+  box-shadow: inset 0 0 0 1px var(--edge-in);
+}
+.wy-ask-label {
+  font-size: 10.5px; letter-spacing: 3px; color: var(--cinnabar-tint);
+  margin-bottom: 4px;
+}
+.wy-ask-text {
+  font-size: 21px; line-height: 1.5; letter-spacing: 2px; color: var(--ink);
+}
+.wy-ask-note { font-size: 10.5px; color: var(--ink-soft); margin-top: 6px; }
 /* ---------- 配对 ---------- */
 .wy-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 520px; margin-top: 4px; }
 .wy-pair-col { display: grid; gap: 7px; align-content: start; }
