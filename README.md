@@ -52,25 +52,31 @@
 
 ## 部署
 
-**只需要上传整个目录**（不是单个文件——这次是多文件架构，便于后续扩展）。
+**只需要上传整个目录**（不是单个文件——这是多文件架构，便于后续扩展）。
 
-### GitHub Pages（推荐）
+### GitHub Pages（当前线上方式）
 
 ```bash
-git init
+git clone https://github.com/Elaijw38/jiagugouciji.git
+cd jiagugouciji
+# 把 index.html、css/、js/ 等放入后
 git add .
-git commit -m "字趣：平台化重构，首个玩法甲骨构字"
-git branch -M main
-git remote add origin https://github.com/elaijw38/-.git
-git push -u origin main
+git commit -m "更新说明"
+git push
 ```
 
-然后在仓库 **Settings → Pages** 里把 Source 设为 `main` 分支的根目录。
-几分钟后可访问 `https://elaijw38.github.io/-/`。
+站点地址：**https://elaijw38.github.io/jiagugouciji/**
 
-> ⚠️ **仓库名是 `-`（一个横杠）**，站点路径就是 `/-/`，不是 `/ziqu/`。
-> 上传时务必把 `index.html`、`css/`、`js/` **一起**放到仓库根目录；
-> 只传 `index.html` 会导致样式与脚本 404，页面白屏。
+> 仓库曾用名 `-`，2026-10 改名为 `jiagugouciji`。
+> 旧地址 `…github.io/-/` 由 GitHub 301 重定向到新地址，已发出的链接仍可打开。
+> 本地仓库若仍指向旧地址，执行一次
+> `git remote set-url origin https://github.com/Elaijw38/jiagugouciji.git` 即可。
+
+**更省事的日常更新**：直接运行仓库根目录的 `deploy.ps1`（右键 → 使用 PowerShell 运行），
+它会自动提交并推送，遇到历史分叉会询问是否覆盖。
+
+> ⚠️ 上传时务必把 `index.html`、`css/`、`js/` **一起**放到仓库根目录；
+> 只传 `index.html` 会导致样式与脚本 404，页面白屏（见文末排查）。
 
 ### 其他托管
 
@@ -86,9 +92,9 @@ git push -u origin main
 |---|---|
 | 首页能开 | 看到「字趣」站点头与三张功能卡 |
 | HTTPS 生效 | 地址栏有小锁（**非 HTTPS 时部分浏览器能力受限**） |
-| 走一局 | 开始玩 → 甲骨构字 → 选难度 → 开始 → 拼字提交 |
+| 走一局 | 开始玩 → 甲骨构字 → 选难度 → 开始 → 拼字提交（按钮是「契刻」） |
+| 看得分 | 比分板上是「甲骨片 ×N」，不是裸数字 |
 | 双人质问 | 模式选「双人对战」，拼对后会出现质问按钮 |
-| 换主题 | 全局设置 → 配色 → 灼骨 / 骨白 / 素色 |
 | 扫码打开 | 把链接生成二维码扫一下 |
 
 ### 白屏排查（线上打开是空白）
@@ -107,7 +113,7 @@ git push -u origin main
 | 顶层必须有三个 | `index.html` `css/` `js/` | 只有 `index.html` |
 | 目录名全小写 | `css` `js` | `CSS` `JS` `Js` |
 | 层级不能多一层 | 根目录直接是这三个 | 套了 `字趣/` 或 `src/` 一层 |
-| 站点路径 | `用户名.github.io/-/` | 误用 `用户名.github.io/ziqu/` |
+| 站点路径 | `elaijw38.github.io/jiagugouciji/` | 误用旧地址 `…github.io/-/`（会重定向，但别写进材料） |
 
 ---
 
@@ -200,6 +206,27 @@ App.modes.register({
 - 本项目所做的修改：缩放、配色、合成为平铺纹样、编排为标题字形
 
 署名已写入 `index.html` 页脚，**请勿删除**（这是授权条件）。
+
+### 构件字形：`js/core/glyph-parts.json`
+
+37 个构件的甲骨字形（拼字/拆字玩法用），同样出自上面这份数据集，
+**CC BY 4.0，须署同一作者**。
+
+- 内容：构件名 → `{glyphId, svg, bbox, sourceChar, unicode}`，SVG 内联（避免额外请求与 file:// 跨域）
+- 画布：统一归一化到 100×100，按每个字形的实际路径坐标等比缩放并居中
+- 署名与来源写在 JSON 的 `attribution` 字段里，随数据一起带走
+- **重新生成**：`python dev/_gen_glyph_parts.py <上游稀疏检出目录>`
+  上游仓库：`github.com/aylqs2025/oracle-bone-jgw-1203`（commit `5496ad5`）
+
+已核对的两个坑：
+
+| 构件 | 情况 |
+|---|---|
+| 门 / 贝 | 数据集以**繁体「門」「貝」**收录（glyphId 849 / 481），需按繁体查 |
+| 囗 | 数据集**未收录**，但**不参与任何字卡**；借用「口」的方框形，JSON 内标 `isFallback` |
+
+> 特别提醒：**不要手工编辑 `glyph-parts.json`**（文件首行已注明）。
+> 它由脚本生成，手改会在下次重新生成时被覆盖。
 
 ---
 

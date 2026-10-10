@@ -4,11 +4,12 @@
 #        或在本目录执行：  powershell -ExecutionPolicy Bypass -File deploy.ps1
 #
 #  它会：提交当前改动 → 推送到 GitHub。
-#  推送成功后等 1~2 分钟，刷新 https://elaijw38.github.io/-/
+#  推送成功后等 1~2 分钟，刷新 https://elaijw38.github.io/jiagugouciji/
 # ============================================================
 $ErrorActionPreference = 'Continue'
 $repo = $PSScriptRoot
-$remote = 'https://github.com/elaijw38/-.git'
+# 用仓库的规范大小写，避免每次推送都被 GitHub 提示 “repository moved”
+$remote = 'https://github.com/Elaijw38/jiagugouciji.git'
 
 # git 可能不在 PATH（安装后需要重开窗口），这里自己找
 $git = 'C:\Program Files\Git\cmd\git.exe'
@@ -115,10 +116,10 @@ if ($code -eq 0) {
     Ok '推送成功！'
     Write-Host ''
     Write-Host '  等 1~2 分钟，GitHub Pages 会自动重新构建，然后刷新：' -ForegroundColor White
-    Write-Host '    https://elaijw38.github.io/-/' -ForegroundColor White
+    Write-Host '    https://elaijw38.github.io/jiagugouciji/' -ForegroundColor White
     Write-Host ''
     Write-Host '  想确认资源都在，访问这个地址看有没有 CSS 文本：' -ForegroundColor Gray
-    Write-Host '    https://elaijw38.github.io/-/css/theme.css' -ForegroundColor Gray
+    Write-Host '    https://elaijw38.github.io/jiagugouciji/css/theme.css' -ForegroundColor Gray
 } else {
     Write-Host ''
     Write-Host '  推送失败，原始信息：' -ForegroundColor Red
