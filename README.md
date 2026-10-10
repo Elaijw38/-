@@ -248,12 +248,16 @@ App.modes.register({
 **61 个甲骨字形**，供拼字/拆字/配对三个玩法使用，同样出自上面这份数据集，
 **CC BY 4.0，须署同一作者**。
 
-- 内容：字 → `{glyphId, svg, bbox, sourceChar, unicode, zones}`，SVG 内联（避免额外请求与 file:// 跨域）
-- 分区索引：`zones` 字段按 `parts` / `landscape` / `creature` / `life` / `center` 分组，前端不必自己筛
+- 内容：字 → `{glyphId, svg, bbox, sourceChar, unicode}`，SVG 内联（避免额外请求与 file:// 跨域）
 - 画布：统一归一化到 100×100，按每个字形的实际路径坐标等比缩放并居中
 - 署名与来源写在 JSON 的 `attribution` 字段里，随数据一起带走
 - **重新生成**：`python dev/_gen_glyph_parts.py <上游稀疏检出目录>`
   上游仓库：`github.com/aylqs2025/oracle-bone-jgw-1203`（commit `5496ad5`）
+- **不做分区索引**：早先曾按区块给字分组（landscape/creature/life），
+  但那是按「单构件字」的思路建的；关卡改为「单字拆字」后，同一个字
+  （如 日、月）既属于自然风光又是拆字构件，分组与实际内容脱节，
+  还让拆字干扰项抽不到同域字。现只保留一张统一字表，
+  哪些字用于哪一关由 `levels.json` 决定（内容与代码分离）。
 
 已核对的两个坑：
 
@@ -273,12 +277,19 @@ App.modes.register({
 
 | 脚本 | 作用 |
 |---|---|
-| `_run_drive.py` + `_check/drive.js` | 在 headless Edge 里走一遍全流程，回报状态与控制台错误 |
-| `_shots.py` | 截图各页面，用于人工检查观感 |
-| `_bg_final.py` / `build_ob_bg.py` | 由真实字形合成背景纹样 |
+| `_run_drive.py` + `drive.js` | 原有玩法（甲骨构字）：在 headless Edge 里走一遍全流程，回报状态与控制台错误 |
+| `_run_wy.py` + `wy-drive.js` | 王邑闯关：验证解锁链、拆字与配对机制、未开放区块拦截 |
+| `_gen_glyph_parts.py` | 由上游数据集生成 `glyph-parts.json`（含归一化） |
+| `_build_leveldata.py` | 把两个 JSON 内联成 `_data.js`（file:// 下不能 fetch） |
+| `_build_glyphcheck.py` | 生成字形对照页，含越界/过小检查 |
+| `_syntax_probe.js` / `_verify_deploy.js` | 语法与部署资源大小写校验 |
+| `_contrast.js` | 各主题配色对比度审计（WCAG） |
 
 > 这些脚本依赖本机的 Microsoft Edge 与 bundled Python，**不属于部署内容**，
 > 上传时可整个排除。
+>
+> 驱动脚本请先过 `node --check` 再用：括号失衡时 Node 会把错误报在**下一行**，
+> 极易误判（本项目在此栽过跟头）。
 
 ---
 

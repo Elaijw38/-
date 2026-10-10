@@ -138,18 +138,18 @@ def main():
     labels = json.loads(io.open(LABELS, "rb").read().decode("utf-8"))
     byid = {r["glyph_id"]: r for r in labels}
 
-    # 汇总所有要收录的字，并记下它属于哪些区块
-    wanted = {}          # name -> glyph_id
-    zones = {}           # name -> [zone, ...]
+    # 汇总所有要收录的字。
+    # 注意：**不做分区索引**。早先曾按「区块」给字分组（landscape/creature/life），
+    # 但那是按「单构件字」的思路建的；后来关卡改为「单字拆字」，同一个字
+    # （如 日、月）既是自然风光的目标、又是拆字的构件，分组就与实际内容脱节，
+    # 还让拆字的干扰项抽不到同域的字。故只保留一张统一字表 parts，
+    # 具体哪些字用于哪一关，由 levels.json 决定（内容与代码分离）。
+    wanted = {}
     for name, gid in PIECES.items():
         wanted[name] = gid
-        zones.setdefault(name, []).append("parts")
-    for zone, table in EXTRA.items():
+    for table in EXTRA.values():
         for name, gid in table.items():
-            if name not in wanted:
-                wanted[name] = gid
-            if zone not in zones.setdefault(name, []):
-                zones[name].append(zone)
+            wanted.setdefault(name, gid)
     for name, info in FALLBACK.items():
         wanted[name] = info["glyph_id"]
 
@@ -171,19 +171,10 @@ def main():
             "sourceChar": rec.get("modern_char"),
             "unicode": rec.get("unicode"),
             "charForm": rec.get("char_form"),
-            "zones": zones.get(name, []),
         }
         if name in FALLBACK:
             items[name]["fallbackNote"] = FALLBACK[name]["note"]
             items[name]["isFallback"] = True
-
-    # 按区块提供索引，前端不必自己筛
-    zoneIndex = {}
-    for name, zs in zones.items():
-        for z in zs:
-            zoneIndex.setdefault(z, []).append(name)
-    for z in zoneIndex:
-        zoneIndex[z].sort(key=lambda n: wanted.get(n, 9999))
 
     doc = {
         "_generated": "由 dev/_gen_glyph_parts.py 生成，请勿手改",
@@ -204,15 +195,12 @@ def main():
                               "描边改为 currentColor 以便跟随主题色；字形本身未改动"),
         },
         "parts": items,
-        "zones": zoneIndex,
     }
     out = json.dumps(doc, ensure_ascii=False, separators=(",", ":"))
     io.open(OUT_JSON, "w", encoding="utf-8").write(out)
 
     print("已写出:", os.path.normpath(OUT_JSON))
     print("字形总数: %d  体积: %.1f KB" % (len(items), os.path.getsize(OUT_JSON) / 1024))
-    for z in sorted(zoneIndex):
-        print("  区块 %-10s %d 个字形" % (z, len(zoneIndex[z])))
     if missing:
         print("!! 缺失:")
         for n, g, why in missing:

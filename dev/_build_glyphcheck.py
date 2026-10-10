@@ -1,39 +1,27 @@
 # -*- coding: utf-8 -*-
-"""生成 _glyphcheck.html —— 全部收录字形按区块对照 + 越界检查。"""
+"""生成 _glyphcheck.html —— 全部收录字形对照 + 越界检查。"""
 import json, io, os
 
 ROOT = r"C:\DSH\字趣"
 d = json.loads(io.open(os.path.join(ROOT, "js", "core", "glyph-parts.json"), encoding="utf-8").read())
 canvas = d["canvas"]
 parts = d["parts"]
-zone_names = {"landscape": "自然风光", "creature": "动植物", "life": "生产生活",
-              "center": "中央占卜坑", "parts": "构件（拼字用）"}
 
-blocks = []
-for z in ["landscape", "creature", "life", "center", "parts"]:
-    names = d.get("zones", {}).get(z, [])
-    if not names:
-        continue
-    cells = []
-    for name in names:
-        p = parts.get(name)
-        if not p:
-            continue
-        svg = p["svg"].replace("{C}", "currentColor")
-        star = ' <em>*</em>' if p.get("isFallback") else ''
-        cells.append('<div class="cell"><svg viewBox="0 0 @C@ @C@">@S@</svg>'
-                     '<span class="nm">@N@@ST@</span><span class="id">@ID@</span></div>'
-                     .replace("@C@", str(canvas)).replace("@S@", svg)
-                     .replace("@N@", name).replace("@ST@", star)
-                     .replace("@ID@", str(p["glyphId"])))
-    blocks.append('<h3>@T@ <small>（@C@ 个）</small></h3><div class="grid">@G@</div>'
-                  .replace("@T@", zone_names.get(z, z))
-                  .replace("@C@", str(len(names))).replace("@G@", "".join(cells)))
+cells = []
+for name in sorted(parts.keys()):
+    p = parts[name]
+    svg = p["svg"].replace("{C}", "currentColor")
+    star = ' <em>*</em>' if p.get("isFallback") else ''
+    cells.append('<div class="cell"><svg viewBox="0 0 @C@ @C@">@S@</svg>'
+                 '<span class="nm">@N@@ST@</span><span class="id">@ID@</span></div>'
+                 .replace("@C@", str(canvas)).replace("@S@", svg)
+                 .replace("@N@", name).replace("@ST@", star)
+                 .replace("@ID@", str(p["glyphId"])))
 
 tpl = """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
 <title>甲骨字形对照</title><style>
 body{background:#f0e6d2;color:#221d15;font-family:serif;padding:16px;margin:0}
-h3{font-size:14px;margin:14px 0 8px;color:#6b5f4b;border-left:3px solid #a8321f;padding-left:8px}
+h3{font-size:14px;margin:10px 0 8px;color:#6b5f4b;border-left:3px solid #a8321f;padding-left:8px}
 h3 small{font-weight:400;color:#8a7a60;font-size:11px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:7px;max-width:1080px}
 .cell{background:#faf4e6;border:1px solid #b59a6e;border-radius:6px;padding:5px 3px 3px;text-align:center}
@@ -42,8 +30,8 @@ h3 small{font-weight:400;color:#8a7a60;font-size:11px}
 .id{display:block;font-size:8px;color:#8a7a60}
 em{color:#a8321f;font-style:normal}
 </style></head><body>
-<h3 style="border-color:#b59a6e">全部收录字形（<em>*</em> = 借用代用）</h3>
-@BLOCKS@
+<h3>全部收录字形 <small>（@COUNT@ 个；<em>*</em> = 借用代用）</small></h3>
+<div class="grid">@CELLS@</div>
 <script>
 setTimeout(function () {
   var CANVAS = @CANVAS@, bad = [], small = [], none = [];
@@ -72,6 +60,8 @@ setTimeout(function () {
 }, 800);
 </script></body></html>"""
 
-html = tpl.replace("@BLOCKS@", "".join(blocks)).replace("@CANVAS@", str(canvas))
+html = (tpl.replace("@CELLS@", "".join(cells))
+           .replace("@CANVAS@", str(canvas))
+           .replace("@COUNT@", str(len(parts))))
 io.open(os.path.join(ROOT, "_glyphcheck.html"), "w", encoding="utf-8").write(html)
-print("written:", os.path.getsize(os.path.join(ROOT, "_glyphcheck.html")), "bytes")
+print("written:", os.path.getsize(os.path.join(ROOT, "_glyphcheck.html")), "bytes,", len(parts), "glyphs")

@@ -109,6 +109,16 @@
      挂载
      ============================================================ */
   function mount(host, ctx) {
+    /* 每次挂载都从地图重新开始。
+       S 是模块级状态，若不在挂载时重置，离开再进入会停留在
+       上一次的区块/关卡视图（宿主里没有地图，看着像"什么都没加载"）。 */
+    S.view = 'map';
+    S.zone = null;
+    S.level = null;
+    S.picked = [];
+    S.matched = {};
+    stopTimer();
+
     var root = App.el('div', 'scene wangyi');
     host.appendChild(root);
 
@@ -295,8 +305,12 @@
       stage.appendChild(q);
       el.appendChild(stage);
 
-      /* 干扰项从同区块其它字里取（同域干扰才有难度） */
-      var pool = ((App.glyphs.zones || {})[z.id] || []).filter(function (n) { return n !== lv.char; });
+      /* 干扰项取自整个字库（同域干扰更有难度，但字库本身已是甲骨常用字）。
+         不用 levels.json 的分区索引——那个索引会与实际关卡内容脱节；
+         统一字库 + 排除正解，才能保证任何关卡都凑得齐选项。 */
+      var pool = Object.keys(App.glyphs.parts || {}).filter(function (n) {
+        return n !== lv.char;
+      });
       pool = App.shuffle ? App.shuffle(pool) : pool;
       var opts = [lv.char].concat(pool.slice(0, 3));
       opts = App.shuffle ? App.shuffle(opts) : opts;
