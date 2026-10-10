@@ -28,8 +28,8 @@
 .scoreboard .pl.p2 { border-color: color-mix(in srgb, var(--blue) 50%, var(--edge)); }
 .scoreboard .who { font-size: 11.5px; color: var(--ink-2); }
 .scoreboard .pts { font-size: 26px; font-weight: 700; line-height: 1.05; }
-.scoreboard .pl.p1 .pts { color: var(--bronze); }
-.scoreboard .pl.p2 .pts { color: var(--blue); }
+.scoreboard .pl.p1 .pts { color: var(--bronze-tint); }
+.scoreboard .pl.p2 .pts { color: var(--blue-tint); }
 .scoreboard .inv { font-size: 10.5px; color: var(--ink-2); }
 .scoreboard .tag {
   position: absolute; top: 6px; right: 7px;
@@ -167,9 +167,9 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 
 /* ---------- 复盘表 ---------- */
 .rvwrap { overflow-x: auto; }
-.rv .g-ok { color: var(--green); }
-.rv .g-no { color: var(--cinnabar); }
-.rv .g-ch { color: var(--bronze); }
+.rv .g-ok { color: var(--green-tint); }
+.rv .g-no { color: var(--cinnabar-tint); }
+.rv .g-ch { color: var(--bronze-tint); }
 .rv .cg { font-size: 15px; }
 
 /* ============================================================================
