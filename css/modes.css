@@ -1,0 +1,228 @@
+/* ============================================================================
+   字趣 · 玩法层样式
+   对局界面：比分板、字卡、放置槽、构件台、质问台、卜问、复盘
+   这些类名来自原单文件原型（app.css 中已有部分），此处按新主题补齐与统一。
+   ============================================================================ */
+
+/* ---------- 对局外壳 ---------- */
+.play-scene { padding-top: 10px; }
+.play-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding-bottom: 9px; margin-bottom: 10px;
+  border-bottom: 1px solid var(--edge);
+}
+.play-spacer { flex: 1 1 auto; }
+.mode-host { display: block; }
+.setup { display: block; }
+
+/* ---------- 比分板 ---------- */
+.scoreboard { display: flex; align-items: stretch; gap: 8px; margin: 8px 0 10px; }
+.scoreboard .pl {
+  flex: 1 1 0; min-width: 0; position: relative;
+  padding: 9px 11px; border-radius: var(--r-sm);
+  background: linear-gradient(180deg, var(--bone1), var(--bone2));
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 0 0 1px var(--edge-in);
+}
+.scoreboard .pl.p1 { border-color: color-mix(in srgb, var(--bronze) 60%, var(--edge)); }
+.scoreboard .pl.p2 { border-color: color-mix(in srgb, var(--blue) 50%, var(--edge)); }
+.scoreboard .who { font-size: 11.5px; color: var(--ink-2); }
+.scoreboard .pts { font-size: 26px; font-weight: 700; line-height: 1.05; }
+.scoreboard .pl.p1 .pts { color: var(--bronze); }
+.scoreboard .pl.p2 .pts { color: var(--blue); }
+.scoreboard .inv { font-size: 10.5px; color: var(--ink-2); }
+.scoreboard .tag {
+  position: absolute; top: 6px; right: 7px;
+  font-size: 10px; padding: 1px 6px; border-radius: var(--r-pill);
+  background: var(--cinnabar); color: #fdf3e6; border: 0;
+}
+.scoreboard .vs {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--ink-soft); padding: 0 2px; text-align: center;
+}
+
+/* ---------- 信息条 ---------- */
+.bar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+
+/* ---------- 计时 ---------- */
+.timer { margin: 2px 0 10px; }
+.timer .tl {
+  display: flex; justify-content: space-between;
+  font-size: 11.5px; color: var(--ink-2); margin-bottom: 4px;
+}
+.timer .track {
+  height: 7px; border-radius: 4px; overflow: hidden;
+  background: color-mix(in srgb, var(--bone-lo) 80%, transparent);
+  border: 1px solid var(--edge-in);
+}
+.timer .fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, var(--bronze-hi), var(--bronze));
+  transition: width .95s linear;
+}
+/* 时间紧时转朱砂，形成警示但不刺眼 */
+.timer.warn .fill { background: linear-gradient(90deg, var(--cinnabar-hi), var(--cinnabar)); }
+
+/* ---------- 字卡舞台 ---------- */
+.stage { display: block; text-align: center; margin: 4px 0 10px; }
+.glyphbox {
+  position: relative; width: 150px; height: 150px; margin: 4px auto 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--edge); border-radius: var(--r);
+  background: linear-gradient(160deg, var(--bone-hi), var(--bone-lo));
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
+}
+/* 骨片四角刻点 */
+.glyphbox::before {
+  content: ''; position: absolute; inset: 5px; pointer-events: none; border-radius: inherit;
+  background:
+    radial-gradient(circle at 0 0,       var(--edge) 1.5px, transparent 1.7px),
+    radial-gradient(circle at 100% 0,    var(--edge) 1.5px, transparent 1.7px),
+    radial-gradient(circle at 0 100%,    var(--edge) 1.5px, transparent 1.7px),
+    radial-gradient(circle at 100% 100%, var(--edge) 1.5px, transparent 1.7px);
+  opacity: .8;
+}
+.glyphbox .lab {
+  position: absolute; top: 6px; left: 8px; font-size: 10px; color: var(--ink-soft); letter-spacing: 1px;
+}
+.glyphbox .star { position: absolute; bottom: 6px; right: 9px; font-size: 15px; color: var(--bronze); }
+.glyph { font-size: 86px; line-height: 1; color: var(--ink); font-weight: 500; }
+.glyph.glyphob { color: var(--bronze); font-family: "Courier New", monospace; font-weight: 700; }
+.glyph.gimg { width: 108px; height: 108px; object-fit: contain; display: block; }
+.glyphbox.masked .glyph { filter: blur(9px); }
+
+.info { text-align: center; }
+.info .name { font-size: 14px; color: var(--ink); }
+.info .mean { font-size: 11.5px; color: var(--ink-2); margin-top: 3px; }
+
+/* ---------- 放置槽（甲片形） ---------- */
+.slots { display: flex; justify-content: center; gap: 9px; flex-wrap: wrap; margin: 12px 0 4px; }
+.slot {
+  display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 58px; font-size: 24px; color: var(--ink);
+  background: linear-gradient(180deg, var(--bone2), var(--bone-lo));
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 0 0 1px var(--edge-in);
+  /* 甲片轮廓：不规则八边，比矩形更"骨" */
+  clip-path: polygon(28% 2%, 72% 0%, 99% 22%, 94% 80%, 62% 100%, 22% 94%, 0% 66%, 6% 24%);
+}
+.slot.filled {
+  color: var(--cinnabar);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--cinnabar) 12%, var(--bone-hi)),
+    color-mix(in srgb, var(--cinnabar) 6%, var(--bone2)));
+}
+.slot.filled::after { content: ''; }
+
+/* ---------- 构件台 ---------- */
+h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
+.pieces { display: flex; flex-wrap: wrap; gap: 8px; padding: 3px 0; }
+.piece {
+  position: relative; width: 60px; min-height: 60px; padding: 6px 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  background: linear-gradient(180deg, var(--bone-hi), var(--bone-lo));
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 0 0 1px var(--edge-in), 0 1px 3px rgba(0, 0, 0, .22);
+  clip-path: polygon(26% 2%, 76% 0%, 100% 24%, 93% 82%, 60% 100%, 20% 93%, 0% 62%, 7% 20%);
+  transition: transform .08s, filter .12s;
+}
+.piece:active { transform: scale(.95); }
+.piece .g { font-size: 27px; line-height: 1.1; color: var(--ink); }
+.piece .g.ob { color: var(--bronze); font-family: "Courier New", monospace; font-weight: 700; }
+.piece .n { font-size: 10px; color: var(--ink-soft); margin-top: 1px; }
+.piece.used { filter: grayscale(.75) brightness(.72); cursor: default; }
+.piece.hasimg { border-color: var(--bronze); }
+.piece .g.gimg { width: 34px; height: 34px; object-fit: contain; }
+/* 分类微着色：只在描边上做区分，避免花 */
+.piece.cat-natural { border-color: color-mix(in srgb, var(--green) 45%, var(--edge)); }
+.piece.cat-body    { border-color: color-mix(in srgb, var(--cinnabar) 40%, var(--edge)); }
+.piece.cat-life    { border-color: color-mix(in srgb, var(--bronze) 55%, var(--edge)); }
+.piece.cat-object  { border-color: color-mix(in srgb, var(--blue) 45%, var(--edge)); }
+
+/* ---------- 判定与面板 ---------- */
+.verdict {
+  margin: 12px 0; padding: 11px 13px; border-radius: var(--r-sm);
+  font-size: 13.5px; line-height: 1.7; text-align: center; display: none;
+  border: 1px solid var(--edge); background: color-mix(in srgb, var(--bone-hi) 60%, transparent);
+}
+.verdict.ok, .verdict.no, .verdict.gold { display: block; }
+.verdict.ok  { border-color: color-mix(in srgb, var(--green) 60%, var(--edge));
+               background: color-mix(in srgb, var(--green) 12%, transparent); }
+.verdict.no  { border-color: color-mix(in srgb, var(--cinnabar) 60%, var(--edge));
+               background: color-mix(in srgb, var(--cinnabar) 12%, transparent); }
+.verdict.gold{ border-color: color-mix(in srgb, var(--bronze) 65%, var(--edge));
+               background: color-mix(in srgb, var(--bronze) 12%, transparent); }
+
+.console, .panel { margin: 12px 0; padding: 13px 14px; }
+.console h4, .panel h4 { margin: 0 0 8px; font-size: 14.5px; }
+
+/* ---------- 卜问面板 ---------- */
+.panel .opt-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+
+/* ---------- 结算 ---------- */
+.panel.end { text-align: center; }
+.panel.end .score { font-size: 58px; font-weight: 800; line-height: 1.05; color: var(--cinnabar); }
+.panel.end .rank { font-size: 17px; color: var(--bronze); letter-spacing: 2px; margin-top: 2px; }
+
+/* ---------- 复盘表 ---------- */
+.rvwrap { overflow-x: auto; }
+.rv .g-ok { color: var(--green); }
+.rv .g-no { color: var(--cinnabar); }
+.rv .g-ch { color: var(--bronze); }
+.rv .cg { font-size: 15px; }
+
+/* ============================================================================
+   手机端：构件台横向滚动、操作栏固定底部
+   ============================================================================ */
+@media (max-width: 560px) {
+  .scoreboard .pts { font-size: 22px; }
+  .glyphbox { width: 132px; height: 132px; }
+  .glyph { font-size: 76px; }
+  .glyph.gimg { width: 96px; height: 96px; }
+
+  /* 构件台一行横滑，格子够大好点 */
+  .pieces {
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; gap: 9px; padding: 5px 2px 10px;
+    scroll-snap-type: x proximity;
+  }
+  .pieces::-webkit-scrollbar { display: none; }
+  .piece { flex: 0 0 auto; min-width: 62px; min-height: 62px; scroll-snap-align: start; }
+  .piece .g { font-size: 26px; }
+
+  .slot { width: 48px; height: 54px; font-size: 22px; }
+  #mpSlots, .slots { gap: 8px; }
+
+  /* 操作栏固定底部：拇指可达 */
+  .info > .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    margin: 0; padding: 8px 11px calc(8px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bone) 96%, transparent);
+    border-top: 1px solid var(--edge); gap: 7px; flex-wrap: wrap;
+    backdrop-filter: saturate(1.1) blur(6px);
+  }
+  .info > .bar .btn { flex: 1 1 auto; min-height: 44px; font-size: 14.5px; }
+  .info > .bar .btn.primary { flex: 2 1 55%; }
+  .info > .bar .btn.sm { flex: 1 1 100%; min-height: 38px; font-size: 12.5px; }
+  .console > .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 61;
+    margin: 0; padding: 8px 11px calc(8px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bone) 96%, transparent);
+    border-top: 1px solid var(--edge); gap: 7px;
+  }
+  .console > .bar .btn { flex: 1 1 auto; min-height: 44px; }
+  .console > .bar .btn.primary { flex: 2 1 55%; }
+  /* 质问台打开时，隐藏主操作栏，避免两层固定栏叠加 */
+  body.challenging .info > .bar { display: none; }
+  /* 给固定栏留出空间 */
+  .mode-host { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .panel .opt-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .glyphbox { width: 92px; height: 92px; }
+  .glyph { font-size: 54px; }
+  .piece { min-width: 50px; min-height: 50px; }
+  .piece .g { font-size: 21px; }
+}

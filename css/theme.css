@@ -1,0 +1,318 @@
+/* ============================================================================
+   字趣 · 主题层
+   设计取向：参考《黑神话：悟空》一类"厚重东方 + 现代游戏感"的处理手法
+             （深色底、材质层次、雕刻感描边、戏剧性明暗对比），
+             但颜色与纹样一律回到甲骨本身：
+               墨（刻痕）· 骨（载体）· 朱砂（填朱）· 青铜（少量点缀）· 灼痕（兆纹）
+   三套主题共用同一套 CSS 变量名，切换只换变量值。
+   ============================================================================ */
+
+:root {
+  /* —— 主色：墨 · 骨 · 朱砂 —— */
+  --ink:        #1b1611;   /* 墨（正文与刻痕） */
+  --ink-2:      #5b4f3e;   /* 淡墨 */
+  --ink-soft:   #8a7a60;   /* 更淡，用于渐变末端 */
+
+  --bone:       #efe4cd;   /* 骨（页面底 / 亮面） */
+  --bone-hi:    #f7efdc;   /* 受光面 */
+  --bone-lo:    #ddcfae;   /* 背光面 */
+
+  --cinnabar:   #a8321f;   /* 朱砂（填朱）—— 点睛与强调 */
+  --cinnabar-hi:#c8482f;   /* 朱砂高光 */
+  --bronze:     #8a6a33;   /* 青铜 —— 少量点缀、描边 */
+  --bronze-hi:  #b98f47;
+
+  --edge:       #b79a6b;   /* 外描边 */
+  --edge-in:    #dcc79c;   /* 内描线 */
+  --crack:      #8a7a5e;   /* 兆纹 */
+
+  /* —— 语义别名（旧样式沿用） —— */
+  --paper:      var(--bone);
+  --card:       var(--bone-hi);
+  --bone1:      #f3e9d6;
+  --bone2:      #e6d8bd;
+  --gold:       var(--bronze);
+  --red:        var(--cinnabar);
+  --green:      #3f6b4a;
+  --blue:       #3f5872;
+  --line:       var(--edge);
+  --shadow:     0 2px 12px rgba(70, 52, 26, .18);
+
+  --r:          10px;
+  --r-sm:       6px;
+  --r-pill:     999px;
+}
+
+/* ============================================================================
+   主题：灼骨（默认，深色戏剧感）—— 对应《黑神话》式的厚重基调
+   用法：<html data-theme="zhuogu"> 或 applyTheme('zhuogu')
+   ============================================================================ */
+html[data-theme="zhuogu"] {
+  --ink:        #f0e6d2;                    /* 深底上，文字改为骨白 */
+  --ink-2:      #b8a888;
+  --ink-soft:   #8d7f66;
+
+  --bone:       #14100c;                    /* 页面底：灼烧后的深褐 */
+  --bone-hi:    #201a13;                    /* 卡片亮面 */
+  --bone-lo:    #0d0a07;
+
+  --cinnabar:   #b33722;
+  --cinnabar-hi:#d4543a;
+  --bronze:     #a8853f;
+  --bronze-hi:  #d8b163;
+
+  --edge:       #4a3c28;                    /* 描边仍偏暗，靠内线提亮 */
+  --edge-in:    #6d5a3b;
+  --crack:      #5a4c36;
+
+  --paper:      var(--bone);
+  --card:       var(--bone-hi);
+  --bone1:      #241d15;
+  --bone2:      #2e251b;
+  --gold:       var(--bronze);
+  --red:        var(--cinnabar);
+  --line:       var(--edge);
+  --shadow:     0 6px 24px rgba(0, 0, 0, .55);
+}
+
+/* ============================================================================
+   主题：骨白（浅色，出土文物的本来颜色）
+   ============================================================================ */
+html[data-theme="bone"] {
+  --ink:        #221d15;
+  --ink-2:      #6b5f4b;
+  --ink-soft:   #6f6455;
+  --bone:       #f0e6d2;
+  --bone-hi:    #faf4e6;
+  --bone-lo:    #e6d8bd;
+  --edge:       #b59a6e;
+  --edge-in:    #dcc79c;
+  --paper:      var(--bone);
+  --card:       var(--bone-hi);
+  --bone1:      #f3e9d6;
+  --bone2:      #e6d8bd;
+  --shadow:     0 2px 12px rgba(70, 52, 26, .16);
+}
+
+/* ============================================================================
+   主题：素色（无纹理，阅读优先）
+   ============================================================================ */
+html[data-theme="plain"] {
+  --bone:       #f4efe4;
+  --bone-hi:    #fffdf8;
+  --bone1:      #f8f4ea;
+  --bone2:      #ece5d5;
+  --paper:      var(--bone);
+  --card:       var(--bone-hi);
+  --edge:       #c2ad86;
+  --edge-in:    #e0d0ad;
+}
+
+/* ============================================================================
+   页面底纹：真实甲骨文字形平铺 + 骨纹
+   深色主题下需要压暗并降低对比，否则会干扰阅读。
+   ============================================================================ */
+body {
+  color: var(--ink);
+  background-color: var(--bone);
+  background-image:
+    var(--ob-pattern),
+    var(--bone-grain);
+  background-repeat: repeat, repeat;
+  background-position: 0 0, 0 0;
+  background-size: 860px 860px, 180px 180px;
+  background-attachment: fixed, fixed;
+  --userbg: none;
+}
+/* 深色主题：纹样压暗，靠透明度与混合模式融进底子 */
+html[data-theme="zhuogu"] body {
+  background-blend-mode: soft-light, normal;
+  opacity: 1;
+}
+html[data-theme="zhuogu"] body::after {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% -10%, rgba(179,55,34,.10), transparent 60%),
+              radial-gradient(ellipse at 50% 120%, rgba(168,133,63,.08), transparent 55%);
+}
+html[data-theme="plain"] body { background-image: none; }
+
+/* 用户自定义背景（自动淡化，不干扰阅读） */
+body.has-userbg::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: var(--userbg);
+  background-size: cover; background-position: center;
+  opacity: .16; mix-blend-mode: multiply;
+}
+html[data-theme="zhuogu"] body.has-userbg::before { opacity: .22; mix-blend-mode: screen; }
+
+/* 内容层要盖在装饰层之上 */
+.top, .wrap, .footer { position: relative; z-index: 1; }
+
+/* ============================================================================
+   材质与雕刻感：卡片、分隔、描边
+   参考手法——黑神话式"描金边 + 材质层次"，这里换成"内线刻痕 + 骨面层次"
+   ============================================================================ */
+.sect, .panel, .console, .scene .mode-card, .scene .home-card, .tl-table, .setup .sect {
+  position: relative;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bone-hi) 92%, var(--bone)) 0%, var(--bone-hi) 45%, color-mix(in srgb, var(--bone-hi) 88%, var(--bone-lo)) 100%);
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
+}
+/* 四角刻点：像骨片边缘凿出的定位点 */
+.sect::before, .panel::before, .console::before {
+  content: ''; position: absolute; inset: 4px; pointer-events: none; border-radius: inherit;
+  background:
+    radial-gradient(circle at 0 0,       var(--edge) 1.4px, transparent 1.6px),
+    radial-gradient(circle at 100% 0,    var(--edge) 1.4px, transparent 1.6px),
+    radial-gradient(circle at 0 100%,    var(--edge) 1.4px, transparent 1.6px),
+    radial-gradient(circle at 100% 100%, var(--edge) 1.4px, transparent 1.6px);
+  opacity: .7;
+}
+
+/* 章节标题：左侧一道朱砂竖线，像契文的分栏线 */
+.sect h4, .sec-title {
+  position: relative;
+  padding-left: 11px;
+}
+.sect h4::before, .sec-title::before {
+  content: ''; position: absolute; left: 0; top: .18em; bottom: .18em; width: 3px;
+  background: var(--cinnabar); border-radius: 2px;
+}
+
+/* 分隔线：双线，像骨片上的界划 */
+hr, .hr {
+  border: 0; height: 3px; margin: 14px 0;
+  background: linear-gradient(180deg, var(--edge) 0 1px, transparent 1px 2px, var(--edge) 1px 2px);
+  opacity: .6;
+}
+
+/* ============================================================================
+   按钮：胶囊 + 内描边；主按钮用朱砂，次按钮骨面
+   ============================================================================ */
+.btn {
+  font-family: inherit;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bone-hi) 96%, var(--bone)),
+    color-mix(in srgb, var(--bone2) 92%, var(--bone-lo)));
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-pill);
+  padding: 8px 15px; font-size: 14px; cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--edge-in), 0 1px 2px rgba(0, 0, 0, .16);
+  transition: transform .06s, box-shadow .12s, filter .12s;
+}
+.btn:active { transform: translateY(1px) scale(.985); }
+.btn.sm { padding: 6px 12px; font-size: 12.5px; }
+.btn.primary {
+  background: linear-gradient(180deg, var(--cinnabar-hi), var(--cinnabar));
+  color: #fdf3e6; border-color: color-mix(in srgb, var(--cinnabar) 70%, #000);
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 200, .22), 0 2px 8px rgba(120, 30, 15, .35);
+}
+.btn.danger {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cinnabar) 88%, #000), var(--cinnabar));
+  color: #fdf3e6; border-color: color-mix(in srgb, var(--cinnabar) 60%, #000);
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* 小标签 / 徽记 */
+.chip, .tag {
+  display: inline-block; font-size: 11px; line-height: 1.5;
+  padding: 2px 8px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--bone2) 80%, transparent);
+  border: 1px solid var(--edge-in); color: var(--ink-2);
+}
+.tag { background: transparent; }
+
+/* ============================================================================
+   表格：契文式格线
+   ============================================================================ */
+.tl-table, .rv {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  background: color-mix(in srgb, var(--bone-hi) 70%, transparent);
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.tl-table th, .rv th {
+  background: color-mix(in srgb, var(--bronze) 22%, transparent);
+  color: var(--ink); font-weight: 600; text-align: left;
+  padding: 7px 9px; border-bottom: 1px solid var(--edge);
+}
+.tl-table td, .rv td { padding: 6px 9px; border-bottom: 1px dashed color-mix(in srgb, var(--edge) 60%, transparent); }
+.tl-table tr:last-child td, .rv tr:last-child td { border-bottom: 0; }
+
+/* ============================================================================
+   滚动条（桌面端）
+   ============================================================================ */
+* { scrollbar-width: thin; scrollbar-color: var(--edge) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* ============================================================================
+   旧样式兼容：原 app.css 里用的变量名与选择器在此对齐新主题
+   ============================================================================ */
+.seal {
+  background: var(--cinnabar); color: #fbeee2;
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 60%, #000);
+  border-radius: 3px; padding: 3px 8px; letter-spacing: 2px; line-height: 1.35;
+  font-size: 11px; flex: 0 0 auto;
+}
+.hint, .obnote {
+  font-size: 11.5px; color: var(--ink-2); line-height: 1.65;
+}
+.okmsg { color: var(--green); font-size: 12px; }
+.prob { color: var(--cinnabar); font-size: 12px; }
+.lead { font-size: 13.5px; color: var(--ink-2); line-height: 1.75; max-width: 46em; }
+.overlay, .imgpanel { background: color-mix(in srgb, var(--bone-lo) 82%, transparent); }
+.edbox, .imgbox {
+  background: var(--bone-hi); border: 1px solid var(--edge); border-radius: var(--r);
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
+}
+.rowinput, .mini, .io, select, input[type="text"], textarea {
+  font-family: inherit; font-size: 13.5px;
+  background: color-mix(in srgb, var(--bone-hi) 92%, #fff);
+  color: var(--ink); border: 1px solid var(--edge); border-radius: var(--r-sm);
+  padding: 6px 9px;
+}
+.io { width: 100%; line-height: 1.6; }
+select.mini { padding: 6px 9px; }
+
+/* 滑块（答题时长）——轨道用骨面，滑块用朱砂 */
+input[type="range"] { -webkit-appearance: none; appearance: none; height: 22px; background: transparent; }
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--bronze) 0%, color-mix(in srgb, var(--bone2) 90%, transparent) 0%);
+  border: 1px solid var(--edge-in);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px;
+  border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--cinnabar-hi), var(--cinnabar));
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 60%, #000);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+}
+input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--bone2); }
+input[type="range"]::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--cinnabar); border: 1px solid color-mix(in srgb, var(--cinnabar) 60%, #000);
+}
+
+/* 复选框：朱砂勾 */
+input[type="checkbox"] { accent-color: var(--cinnabar); width: 16px; height: 16px; }
+.sw { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; padding: 5px 0; cursor: pointer; }
+
+/* 轻提示 */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 9999;
+  background: color-mix(in srgb, var(--bone-lo) 92%, #000);
+  color: var(--ink); font-size: 13px; line-height: 1.6;
+  padding: 10px 16px; border-radius: var(--r-pill);
+  border: 1px solid var(--edge-in);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .5);
+  max-width: min(88vw, 520px); text-align: center;
+}
+html[data-theme="bone"] .toast, html[data-theme="plain"] .toast {
+  background: color-mix(in srgb, var(--ink) 88%, #000); color: var(--bone-hi);
+}

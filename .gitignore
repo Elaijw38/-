@@ -1,0 +1,30 @@
+# 排除开发与自查用文件，保持仓库干净（这些依赖本机 Edge 与 Python）
+
+# 自查输出与临时文件
+_check/
+_shot_*.html
+_drive.html
+_drive.js
+_probe*.html
+_probe*.js
+
+# 部署包副本（由 dev 脚本生成，源在仓库内，勿重复提交）
+字趣_部署包/
+*.zip
+
+# 本机 Edge 无头配置目录（自查时生成）
+edgeprofile/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 旧版原型（保留在本地，不进新仓库）
+_历史版本/
