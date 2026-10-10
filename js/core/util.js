@@ -148,37 +148,4 @@
     });
   };
 
-  /* ---------- 主题（全局外观，与具体模式无关） ---------- */
-  App.THEMES = {
-    bone:  { label: '甲骨骨色', vars: {} },
-    ink:   { label: '墨底朱字', vars: {
-      '--paper': '#20211d', '--card': '#282a25', '--bone1': '#2e302a', '--bone2': '#3a3c34',
-      '--ink': '#f2e9d6', '--ink2': '#c3b79c', '--ink-soft': '#c3b79c',
-      '--line': '#5c5a4c', '--shadow': '0 2px 12px rgba(0,0,0,.4)'
-    } },
-    plain: { label: '素色（关闭纹理）', vars: {
-      '--paper': '#f4efe4', '--card': '#fffdf8', '--bone1': '#f8f4ea', '--bone2': '#ece5d5'
-    } }
-  };
-  App.applyTheme = function (name, bgImage) {
-    var t = App.THEMES[name] || App.THEMES.bone;
-    var root = document.documentElement;
-    if (root && root.style && root.style.setProperty) {
-      /* 先回到默认值，再套主题覆盖，避免上一个主题的变量残留 */
-      Object.keys(App.THEMES).forEach(function (k) {
-        Object.keys(App.THEMES[k].vars).forEach(function (v) { root.style.removeProperty(v); });
-      });
-      Object.keys(t.vars).forEach(function (k) { root.style.setProperty(k, t.vars[k]); });
-    }
-    /* 墨底主题需要关掉骨纹背景，否则深底上看不清 */
-    var off = (name === 'ink');
-    document.body.style.backgroundImage = off ? 'none' : '';
-    if (bgImage) {
-      document.body.style.setProperty('--userbg', 'url("' + bgImage + '")');
-      document.body.classList.add('has-userbg');
-    } else {
-      document.body.classList.remove('has-userbg');
-    }
-  };
-
 })(window.App = window.App || {});

@@ -80,11 +80,6 @@
         toast: App.toast, signed: App.signed, secs: App.secs
       },
       store: App.store,
-      /* 主题已固定为骨白，这里只如实转发，且不提供切换入口 */
-      theme: {
-        get: function () { return App.theme.get(); },
-        set: function () { /* 固定主题，忽略 */ }
-      },
       nav: {
         /* 模式内部可以请求跳转（例如结算后回首页） */
         home: function () { App.router.go('home'); },

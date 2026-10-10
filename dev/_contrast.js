@@ -16,10 +16,10 @@ function block(selector) {
 }
 
 const root = block(':root');
+/* 站点只有一套外观：:root 打底，再被 html[data-theme="bone"] 覆盖。
+   实际生效值 = 两者合并（后者优先）。 */
 const themes = {
-  zhuogu: block('html[data-theme="zhuogu"]'),
-  bone: block('html[data-theme="bone"]'),
-  plain: block('html[data-theme="plain"]'),
+  'bone（唯一外观）': Object.assign({}, root, block('html[data-theme="bone"]') || {}),
 };
 
 /* ---------- 解析颜色（支持 var() 别名、#rgb、#rrggbb） ---------- */

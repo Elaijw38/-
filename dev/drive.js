@@ -31,14 +31,15 @@
     log('=== 模块就绪 ===');
     log('window.App: ' + (!!App));
     if (App) {
-      log('store/packs/modes/router/shell/theme: ' +
-        [!!App.store, !!App.packs, !!App.modes, !!App.router, !!App.shell, !!App.theme].join(' / '));
+      log('store/packs/modes/router/shell: ' +
+        [!!App.store, !!App.packs, !!App.modes, !!App.router, !!App.shell].join(' / '));
       log('已注册模式: ' + (App.modes ? App.modes.count() : 'n/a') +
           '　内容包类型: ' + (App.packs ? App.packs.types().join(',') : 'n/a'));
       log('品牌字形长度: ' + String(App.brandGlyphURI || '').length);
     }
     log('__ZQ__: ' + (!!window.__ZQ__) +
-        '　data-theme: ' + document.documentElement.getAttribute('data-theme'));
+        '　data-theme: ' + document.documentElement.getAttribute('data-theme') +
+        '　App.theme: ' + (App.theme ? '仍存在（应为空）' : '已移除'));
     var obp = getComputedStyle(document.documentElement).getPropertyValue('--ob-pattern') || '';
     log('底纹 --ob-pattern: ' + obp.trim().length + ' 字符');
     if (!App || !App.router || !App.modes || App.modes.count() === 0) {

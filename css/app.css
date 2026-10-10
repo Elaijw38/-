@@ -40,14 +40,6 @@
     background-position:0 0, 0 0;
     background-size:860px 860px, 180px 180px;
     background-attachment:fixed, fixed;
-    --userbg:none;
-  }
-  /* 用户自定义背景层：另起一层，铺满并淡化，不干扰正文阅读 */
-  body.has-userbg::before{
-    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
-    background-image:var(--userbg);
-    background-size:cover; background-position:center;
-    opacity:.16; mix-blend-mode:multiply;
   }
   body{
     font-family:"Songti SC","Noto Serif SC","Source Han Serif SC",STSong,SimSun,serif;

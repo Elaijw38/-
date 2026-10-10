@@ -67,25 +67,17 @@
   }
 
   /* ============================================================
-     主题：当前固定为「骨白」（浅色），不再向用户提供切换项。
-     传入什么名字都一律按骨白渲染，历史存储里的旧值（如 zhuogu）
-     不会再生效——否则老访客会继续看到深色。
-     css 里的 zhuogu / plain 两套变量仍然保留，日后若要重新开放
-     只需在此处改回读取存储即可。
+     外观：固定为「骨白」浅色主题，站点不提供任何外观设置。
+     html 上的 data-theme="bone" 只是让 css 里那套骨白变量生效的
+     内部实现细节（css 以 [data-theme="bone"] 组织），用户看不到也改不了；
+     不读取任何存储值，因此早期访客残留的 theme 设置不会影响显示。
      ============================================================ */
-  var FIXED_THEME = 'bone';
-  function currentTheme() {
-    return FIXED_THEME;
-  }
-  function applyThemeAll() {
-    var t = FIXED_THEME;
-    document.documentElement.setAttribute('data-theme', t);
-    App.applyTheme(t, App.store.get('bgimg', ''));
-    App.brandGlyphURI = buildBrandGlyphURI(glyphColorFor(t));
+  function applyAppearance() {
+    document.documentElement.setAttribute('data-theme', 'bone');
+    App.brandGlyphURI = buildBrandGlyphURI(glyphColorFor());
     /* 已渲染的站点头需要重画（字形颜色变了） */
     if (App.shell && App.shell.renderHeader) App.shell.renderHeader();
   }
-  App.theme = { get: currentTheme, apply: applyThemeAll };
 
   /* ---------- 页面底纹：真实甲骨文字形平铺（与主题无关，靠主题变量调和） ---------- */
   function injectPattern() {
@@ -106,7 +98,7 @@
   /* ---------- 启动 ---------- */
   function boot() {
     injectPattern();
-    applyThemeAll(currentTheme());
+    applyAppearance();
 
     /* 清掉可能残留的临时类（例如上一次异常退出时留下的） */
     if (document.body.classList) document.body.classList.remove('challenging');
@@ -126,8 +118,7 @@
       version: App.BRAND_VERSION,
       modes: App.modes,
       packs: App.packs,
-      router: App.router,
-      theme: App.theme
+      router: App.router
     };
   }
 

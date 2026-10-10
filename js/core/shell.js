@@ -250,44 +250,6 @@
     var wrap = App.el('div', 'scene');
     wrap.appendChild(App.el('p', 'lead', '这里的设置对所有玩法生效。玩法自己的选项在开局前设置。'));
 
-    /* 外观 */
-    var s1 = App.el('div', 'sect');
-    s1.appendChild(App.el('h4', null, '外观'));
-    /* 配色固定为骨白，不再提供切换项；此处只作说明，避免用户以为漏了设置 */
-    var rowT = App.el('div', 'tune');
-    rowT.appendChild(App.el('label', null, '配色'));
-    rowT.appendChild(App.el('span', 'chip', '骨白（固定）'));
-    s1.appendChild(rowT);
-    var row2 = App.el('div', 'tune');
-    row2.appendChild(App.el('label', null, '背景'));
-    var bin = document.createElement('input');
-    bin.type = 'file'; bin.accept = 'image/*'; bin.className = 'hidden';
-    bin.onchange = function () {
-      var f = bin.files && bin.files[0];
-      if (!f) return;
-      App.readScaled(f, 1600, function (url) {
-        if (!url) { App.toast('背景图读取失败'); return; }
-        App.store.set('bgimg', url);
-        App.applyTheme(App.theme.get(), url);
-        App.toast('背景已更新');
-      }, 'image/jpeg', 0.72);
-    };
-    document.body.appendChild(bin);
-    var b = App.el('button', 'btn sm', '选择背景图');
-    b.onclick = function () { bin.value = ''; bin.click(); };
-    row2.appendChild(b);
-    var bc = App.el('button', 'btn sm', '清除');
-    bc.onclick = function () {
-      App.store.del('bgimg');
-      App.applyTheme(App.theme.get(), '');
-      App.toast('已恢复默认背景');
-    };
-    row2.appendChild(bc);
-    s1.appendChild(row2);
-    s1.appendChild(App.el('div', 'hint',
-      '背景纹样由矢量图形生成，任何屏幕都清晰、且不加载外部图片。也可换成自己的图片（会自动淡化）。'));
-    wrap.appendChild(s1);
-
     /* 内容包 */
     var s2 = App.el('div', 'sect');
     s2.appendChild(App.el('h4', null, '内容包'));

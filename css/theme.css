@@ -45,9 +45,8 @@
   /* —— 文字专用色 ——
      --cinnabar / --bronze / --blue / --green 这几个值同时兼作「底色」（朱砂印章、
      主按钮、比分徽记、时间条），不能为了文字去改它们，否则白字压朱砂底
-     会立刻失效。故另立一套仅用于文字的值。
-     取色规则：浅底主题取更深的同色（保证在骨面上也够沉），
-     深底主题在 [data-theme="zhuogu"] 里覆写为提亮版。 */
+     会立刻失效。故另立一套仅用于文字的值，取更深的同色，
+     保证在骨面上小字也达到 AA 4.5:1。 */
   --cinnabar-tint: #9b3324;
   --bronze-tint:   #7a5c25;
   --blue-tint:     #3f5872;
@@ -55,53 +54,9 @@
 }
 
 /* ============================================================================
-   主题：灼骨（默认，深色戏剧感）—— 对应《黑神话》式的厚重基调
-   用法：<html data-theme="zhuogu"> 或 applyTheme('zhuogu')
-   ============================================================================ */
-html[data-theme="zhuogu"] {
-  --ink:        #f0e6d2;                    /* 深底上，文字改为骨白 */
-  --ink-2:      #b8a888;
-  --ink-soft:   #8d7f66;
-
-  --bone:       #14100c;                    /* 页面底：灼烧后的深褐 */
-  --bone-hi:    #201a13;                    /* 卡片亮面 */
-  --bone-lo:    #0d0a07;
-
-  --cinnabar:   #b33722;
-  --cinnabar-hi:#d4543a;
-  --bronze:     #a8853f;
-  --bronze-hi:  #d8b163;
-
-  --edge:       #4a3c28;                    /* 描边仍偏暗，靠内线提亮 */
-  --edge-in:    #6d5a3b;
-  --crack:      #5a4c36;
-
-  --paper:      var(--bone);
-  --card:       var(--bone-hi);
-  --bone1:      #241d15;
-  --bone2:      #2e251b;
-  --gold:       var(--bronze);
-  --red:        var(--cinnabar);
-  --line:       var(--edge);
-  --shadow:     0 6px 24px rgba(0, 0, 0, .55);
-
-  /* 深底上「墨」要提亮，否则小字在骨面/卡片上糊掉 */
-  --ink-soft:   #9d8e73;   /* 原 #8d7f66 在 --bone1 上仅 4.25:1 */
-
-  /* 文字用色提亮版（深底专用）；大号字的 --cinnabar #b33722 在 --bone 上
-     为 3.14:1，已满足大字 ≥3.0，故不必动原值 */
-  --cinnabar-tint: #e07b5e;
-  --bronze-tint:   #d3ac67;
-  --blue-tint:     #8fadcc;
-  --green-tint:    #7ec894;
-}
-
-/* ============================================================================
-   主题：骨白（浅色，出土文物的本来颜色）
-   ★ 这是当前唯一启用的主题。站点在 js/core/build.js 里把主题锁死为 bone，
-     设置页不再提供切换项（旧存储值也不会生效）。
-   下面 zhuogu / plain 两套变量为保留方案：若要重新开放切换，
-   只需在 build.js 里改回读取存储，并把设置页的下拉加回来。
+   外观：固定为「骨白」浅色，站点不提供外观设置。
+   html 上的 data-theme="bone" 由 js/core/build.js 写死，只作为选择下面
+   这组变量的钩子；用户看不到也改不了，也不读取任何存储值。
    ============================================================================ */
 html[data-theme="bone"] {
   --ink:        #221d15;
@@ -120,26 +75,8 @@ html[data-theme="bone"] {
 }
 
 /* ============================================================================
-   主题：素色（无纹理，阅读优先）
-   ============================================================================ */
-html[data-theme="plain"] {
-  --bone:       #f4efe4;
-  --bone-hi:    #fffdf8;
-  --bone1:      #f8f4ea;
-  --bone2:      #ece5d5;
-  --paper:      var(--bone);
-  --card:       var(--bone-hi);
-  --edge:       #c2ad86;
-  --edge-in:    #e0d0ad;
-
-  /* 本主题未覆写 --ink-2 / --ink-soft，会继承 :root，故在此显式对齐浅底最小值 */
-  --ink-2:      #5b4f3e;
-  --ink-soft:   #6f6455;
-}
-
-/* ============================================================================
    页面底纹：真实甲骨文字形平铺 + 骨纹
-   深色主题下需要压暗并降低对比，否则会干扰阅读。
+   （矢量生成，任何分辨率都清晰，不加载外部图片）
    ============================================================================ */
 body {
   color: var(--ink);
@@ -151,28 +88,7 @@ body {
   background-position: 0 0, 0 0;
   background-size: 860px 860px, 180px 180px;
   background-attachment: fixed, fixed;
-  --userbg: none;
 }
-/* 深色主题：纹样压暗，靠透明度与混合模式融进底子 */
-html[data-theme="zhuogu"] body {
-  background-blend-mode: soft-light, normal;
-  opacity: 1;
-}
-html[data-theme="zhuogu"] body::after {
-  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(ellipse at 50% -10%, rgba(179,55,34,.10), transparent 60%),
-              radial-gradient(ellipse at 50% 120%, rgba(168,133,63,.08), transparent 55%);
-}
-html[data-theme="plain"] body { background-image: none; }
-
-/* 用户自定义背景（自动淡化，不干扰阅读） */
-body.has-userbg::before {
-  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: var(--userbg);
-  background-size: cover; background-position: center;
-  opacity: .16; mix-blend-mode: multiply;
-}
-html[data-theme="zhuogu"] body.has-userbg::before { opacity: .22; mix-blend-mode: screen; }
 
 /* 内容层要盖在装饰层之上 */
 .top, .wrap, .footer { position: relative; z-index: 1; }
@@ -342,6 +258,6 @@ input[type="checkbox"] { accent-color: var(--cinnabar); width: 16px; height: 16p
   box-shadow: 0 8px 28px rgba(0, 0, 0, .5);
   max-width: min(88vw, 520px); text-align: center;
 }
-html[data-theme="bone"] .toast, html[data-theme="plain"] .toast {
+html[data-theme="bone"] .toast {
   background: color-mix(in srgb, var(--ink) 88%, #000); color: var(--bone-hi);
 }
