@@ -1,13 +1,14 @@
-# ============================================================
+﻿# ============================================================
 #  字趣 · 一键部署
 #  用法：右键本文件 → 使用 PowerShell 运行
 #        或在本目录执行：  powershell -ExecutionPolicy Bypass -File deploy.ps1
 #
-#  它会：把当前改动提交，然后推送到 GitHub。
+#  它会：提交当前改动 → 推送到 GitHub。
 #  推送成功后等 1~2 分钟，刷新 https://elaijw38.github.io/-/
 # ============================================================
 $ErrorActionPreference = 'Continue'
 $repo = $PSScriptRoot
+$remote = 'https://github.com/elaijw38/-.git'
 
 # git 可能不在 PATH（安装后需要重开窗口），这里自己找
 $git = 'C:\Program Files\Git\cmd\git.exe'
@@ -19,9 +20,9 @@ if (-not (Test-Path $git)) {
     }
 }
 
-function Step($msg) { Write-Host ''; Write-Host ('==> ' + $msg) -ForegroundColor Cyan }
-function Ok($msg)   { Write-Host ('    ' + $msg) -ForegroundColor Green }
-function Warn($msg) { Write-Host ('    ' + $msg) -ForegroundColor Yellow }
+function Step($m) { Write-Host ''; Write-Host ('==> ' + $m) -ForegroundColor Cyan }
+function Ok($m)   { Write-Host ('    ' + $m) -ForegroundColor Green }
+function Warn($m) { Write-Host ('    ' + $m) -ForegroundColor Yellow }
 
 Write-Host '============================================' -ForegroundColor DarkGray
 Write-Host '  字趣 · 部署到 GitHub Pages' -ForegroundColor White
@@ -29,6 +30,22 @@ Write-Host '============================================' -ForegroundColor DarkG
 
 # 别让 git 因为要密码而挂住
 $env:GIT_TERMINAL_PROMPT = '0'
+
+# ---------- 0. 确保远端存在且地址正确 ----------
+Step '检查远端配置'
+$remotes = & $git -C $repo remote
+if ($remotes -contains 'origin') {
+    $cur = & $git -C $repo remote get-url origin
+    if ($cur -ne $remote) {
+        & $git -C $repo remote set-url origin $remote
+        Warn ('远端地址已修正为 ' + $remote)
+    } else {
+        Ok ('origin = ' + $cur)
+    }
+} else {
+    & $git -C $repo remote add origin $remote
+    Ok ('已添加 origin = ' + $remote)
+}
 
 # ---------- 1. 提交本地改动 ----------
 Step '检查并提交本地改动'
@@ -49,15 +66,25 @@ Step '推送到 GitHub'
 $push = & $git -C $repo push origin main 2>&1
 $code = $LASTEXITCODE
 
+# 远端有本地没有的提交（历史上分叉过）→ 覆盖
 if ($code -ne 0) {
     $text = ($push | Out-String)
-    if ($text -match 'rejected|non-fast-forward|fetch first|behind') {
-        Warn '远端有本地没有的提交（之前网页上传留下的历史），改用强制覆盖'
-        Write-Host '    这会把远端换成你本地的完整版本，线上内容以本地为准。' -ForegroundColor Gray
-        $ans = Read-Host '    继续强制推送？(y/N)'
+    $diverged = $text -match 'rejected|non-fast-forward|fetch first|behind|Updates were rejected'
+    if ($diverged) {
+        Warn '远端有本地没有的提交（两边历史分叉）'
+        Write-Host '    这通常是因为以前用网页上传过文件。' -ForegroundColor Gray
+        Write-Host '    覆盖后，线上内容将完全等于你本地这份完整版本。' -ForegroundColor Gray
+        $ans = Read-Host '    强制覆盖远端？(y/N)'
         if ($ans -eq 'y' -or $ans -eq 'Y') {
-            $push = & $git -C $repo push --force origin main 2>&1
+            # 先抓远端，让 --force-with-lease 的比对基准是最新的
+            & $git -C $repo fetch origin 2>&1 | Out-Null
+            $push = & $git -C $repo push --force-with-lease origin main 2>&1
             $code = $LASTEXITCODE
+            if ($code -ne 0) {
+                Warn '--force-with-lease 仍被拒（远端刚又变过），改用 --force'
+                $push = & $git -C $repo push --force origin main 2>&1
+                $code = $LASTEXITCODE
+            }
         } else {
             Warn '已取消'
             Read-Host '按回车退出'; exit 1
@@ -65,6 +92,7 @@ if ($code -ne 0) {
     }
 }
 
+# ---------- 3. 结果 ----------
 if ($code -eq 0) {
     Write-Host ''
     Ok '推送成功！'
