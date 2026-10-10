@@ -47,11 +47,11 @@ io.open(tmp_path, "w", encoding="utf-8").write(
     src.replace("</body>", "<script>\n" + code + "\n</script>\n</body>", 1))
 
 url = "file:///" + tmp_path.replace("\\", "/")
-shot = os.path.join(OUT, "wy_map.png")
+# 这一趟只取报告；截图另走 shoot()——探针容器挂在 #sceneRoot 之后，
+# 直接从首页拍会把首页拍进去、地图落在视野外。
 r = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
                     "--user-data-dir=" + PROFILE,
-                    "--window-size=1000,940",
-                    "--screenshot=" + shot,
+                    "--window-size=1180,780",
                     "--virtual-time-budget=20000", "--dump-dom", url],
                    capture_output=True, text=True, encoding="utf-8",
                    errors="replace", timeout=300)
@@ -64,44 +64,65 @@ rep = (rep.replace("&quot;", '"').replace("&#39;", "'").replace("&#10;", "\n")
           .replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&"))
 io.open(os.path.join(OUT, "wy_report.txt"), "w", encoding="utf-8").write(rep)
 
-# 主报告取回后，再单独跑一次「只截地图」：
+# 主报告取回后，再单独跑「只截图」两遍：
+#   wy_map.png    干净画面（默认状态，画上无任何标记）
+#   wy_hots.png   点了「显示可点处」→ 61 处热区显形
 # 探针容器挂在 #sceneRoot 之后，窗口高度不够时会落到视野之外，
 # 所以截图页把首页场景隐藏、只留探针，才能拍到地图本身。
-# 又因为驱动是逐步执行的，结束时可能停在某个详情页——
-# 这里在截图前清掉学习记录并重挂载一版干净的地图，保证拍的是地图。
-shot_page = os.path.join(NEW, "_wy_shot.html")
-io.open(shot_page, "w", encoding="utf-8").write(
-    src.replace("</body>",
-                "<script>\n" + code + "\n"
-                "/* 截图专用：隐藏首页场景，并重挂载一版干净地图 */\n"
-                "setTimeout(function(){\n"
-                "  var sc = document.getElementById('sceneRoot');\n"
-                "  if (sc) { sc.style.display = 'none'; }\n"
-                "  var App = window.App;\n"
-                "  App.store.del('wangyi');\n"
-                "  var old = document.getElementById('wyProbeHost');\n"
-                "  if (old && old.parentNode) { old.parentNode.removeChild(old); }\n"
-                "  var host = document.createElement('div');\n"
-                "  host.id = 'wyProbeHost';\n"
-                "  document.body.insertBefore(host, document.body.firstChild);\n"
-                "  App.modes.get('wangyi-map').mount(host, App.modes.buildContext(App.modes.get('wangyi-map')));\n"
-                "  window.scrollTo(0, 0);\n"
-                "}, 3000);\n"
-                "</script>\n</body>", 1))
-r2 = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
-                     "--user-data-dir=" + PROFILE,
-                     "--window-size=1000,800",
-                     "--screenshot=" + shot,
-                     "--virtual-time-budget=20000", "--dump-dom",
-                     "file:///" + shot_page.replace("\\", "/")],
-                    capture_output=True, text=True, encoding="utf-8",
-                    errors="replace", timeout=300)
+# 又因为驱动结束时可能停在某个详情页，截图前重挂载一版地图。
+def shoot(tag, click_toggle):
+    page = os.path.join(NEW, "_wy_shot.html")
+    extra = ("  var tb = null;\n"
+             "  var bs = host.querySelectorAll('button');\n"
+             "  for (var i = 0; i < bs.length; i++) {\n"
+             "    if (/显示可点处/.test(bs[i].textContent)) { tb = bs[i]; break; }\n"
+             "  }\n"
+             "  if (tb) { tb.click(); }\n") if click_toggle else ""
+    io.open(page, "w", encoding="utf-8").write(
+        src.replace("</body>",
+                    "<script>\n" + code + "\n"
+                    "/* 截图专用 */\n"
+                    "setTimeout(function(){\n"
+                    "  var sc = document.getElementById('sceneRoot');\n"
+                    "  if (sc) { sc.style.display = 'none'; }\n"
+                    "  var App = window.App;\n"
+                    "  App.store.del('wangyi');\n"
+                    "  var old = document.getElementById('wyProbeHost');\n"
+                    "  if (old && old.parentNode) { old.parentNode.removeChild(old); }\n"
+                    "  var host = document.createElement('div');\n"
+                    "  host.id = 'wyProbeHost';\n"
+                    "  document.body.insertBefore(host, document.body.firstChild);\n"
+                    "  App.modes.get('wangyi-map').mount(host, App.modes.buildContext(App.modes.get('wangyi-map')));\n"
+                    + extra +
+                    "  window.scrollTo(0, 0);\n"
+                    "}, 3000);\n"
+                    "</script>\n</body>", 1))
+    png = os.path.join(OUT, tag + ".png")
+    rr = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
+                         "--user-data-dir=" + PROFILE,
+                         "--window-size=1180,780",
+                         "--screenshot=" + png,
+                         "--virtual-time-budget=22000", "--dump-dom",
+                         "file:///" + page.replace("\\", "/")],
+                        capture_output=True, text=True, encoding="utf-8",
+                        errors="replace", timeout=300)
+    try:
+        os.remove(page)
+    except OSError:
+        pass
+    return png, rr
 
-for f in (tmp_path, shot_page):
+
+shot_clean, r2 = shoot("wy_map", False)
+shot_hots, r3 = shoot("wy_hots", True)
+
+for f in (tmp_path,):
     try:
         os.remove(f)
     except OSError:
         pass
 
-print("已写出 _check/wy_report.txt | dom", len(c), "| exit", r.returncode,
-      "| 截图", os.path.getsize(shot) if os.path.exists(shot) else 0, "B")
+print("已写出 _check/wy_report.txt | dom", len(c), "| exit", r.returncode)
+for f in (shot_clean, shot_hots):
+    print("  截图 %s  %s B" % (os.path.basename(f),
+                              os.path.getsize(f) if os.path.exists(f) else 0))

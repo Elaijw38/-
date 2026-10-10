@@ -14,61 +14,77 @@
 .wy-sub { font-size: 12px; color: var(--ink-2); }
 
 /* ---------- 实物地图（点击即学） ----------
-   地图上一枚枚实物，图标直接用甲骨字形本身——甲骨文本就是象形的，
-   山像山、木像木，拿它当实物图标最贴切，也省掉另造插画素材。
-   画布坐标系见 levels.json 的 viewBox（1240×880）。 */
+   底图是整幅水墨图卷，画上【不画任何字形标记】，保持画面完整。
+   在画里真实实物的位置放隐形热区：
+     · 平时完全看不见
+     · 悬停 → 该处浮出甲骨字形小牌（鼠标用户据此发现可点）
+     · 点「显示可点处」→ 全部热区显形（触屏必需，没有悬停）
+     · 认过的在角上点一枚很小的绿点，不挡画
+   画布坐标系见 levels.json 的 viewBox（1800×907），与底图像素一一对应。 */
+.wy-map { margin: 10px 0 4px; }
 .wy-omap {
   width: 100%; height: auto; display: block;
-  margin: 10px 0 6px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--bone-hi) 60%, var(--bone)) 0%,
-    var(--bone) 46%,
-    color-mix(in srgb, var(--bone-lo) 26%, var(--bone)) 100%);
   border: 1px solid var(--edge);
   border-radius: var(--r-sm);
+  background: var(--bone-lo);
 }
 
-/* 淡墨实景：只让实物“落在地上”，不抢主角 */
-.wy-backdrop { pointer-events: none; }
-.wy-bd-hill { fill: color-mix(in srgb, var(--bone-lo) 34%, transparent); }
-.wy-bd-river { fill: none; stroke: color-mix(in srgb, var(--blue-tint) 26%, transparent); stroke-width: 9; }
-.wy-bd-field path { fill: none; stroke: color-mix(in srgb, var(--bronze-tint) 20%, transparent); stroke-width: 2; }
-.wy-bd-tree path { fill: none; stroke: color-mix(in srgb, var(--green-tint) 24%, transparent); stroke-width: 4; }
-.wy-bd-ground { fill: none; stroke: color-mix(in srgb, var(--edge) 70%, transparent); stroke-width: 1.5; stroke-dasharray: 8 10; }
+/* 命中区：透明，只负责接收点击 */
+.wy-hot { fill: transparent; cursor: pointer; }
 
-.wy-zone-title {
-  font-family: inherit; font-size: 21px; font-weight: 700;
-  fill: color-mix(in srgb, var(--ink) 82%, transparent); letter-spacing: 2px;
+/* 热区轮廓：平时不可见 */
+.wy-ring {
+  fill: none;
+  stroke: var(--cinnabar-tint);
+  stroke-width: 3;
+  stroke-dasharray: 7 6;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s;
 }
-.wy-zone-note { font-family: inherit; font-size: 12.5px; fill: var(--ink-soft); }
+/* 显形模式：必须看得清，否则玩家找不到可点之处。
+   早先只给 2px 描边 + 0.5 不透明度，缩放到屏上只剩 ~1.2px，等于没显示。 */
+.wy-map.show-hots .wy-ring {
+  opacity: .9;
+  stroke-width: 4;
+  fill: color-mix(in srgb, var(--cinnabar-tint) 15%, transparent);
+}
+.wy-map.show-hots .wy-hot:hover + .wy-ring { opacity: 1; stroke-width: 5; }
+/* 单独悬停时也显形 */
+.wy-hot:hover + .wy-ring {
+  opacity: 1; stroke-dasharray: none; stroke-width: 4;
+  fill: color-mix(in srgb, var(--cinnabar-tint) 12%, transparent);
+}
 
-/* 一枚实物 */
-.wy-obj { cursor: pointer; }
-.wy-obj-hit { fill: transparent; }
-.wy-obj-box {
-  fill: color-mix(in srgb, var(--bone-hi) 92%, var(--bone));
-  stroke: var(--edge); stroke-width: 1.5;
-  transition: fill .16s, stroke .16s;
+/* 悬停浮出的字形小牌 */
+.wy-pop { opacity: 0; pointer-events: none; transition: opacity .16s; }
+.wy-hot:hover + .wy-ring + .wy-pop,
+.wy-spot:focus-visible .wy-pop { opacity: 1; }
+.wy-pop-bg {
+  fill: color-mix(in srgb, var(--bone-hi) 94%, var(--bone));
+  stroke: var(--cinnabar-tint);
+  stroke-width: 1.8;
 }
-.wy-obj-form { color: var(--ink); }
-.wy-obj:hover .wy-obj-box {
-  fill: color-mix(in srgb, var(--bronze-tint) 16%, var(--bone-hi));
-  stroke: var(--bronze-tint);
+.wy-pop-form { color: var(--ink); }
+.wy-pop-label {
+  font-family: inherit; font-size: 19px; font-weight: 700;
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--bone-hi) 96%, transparent);
+  stroke-width: 4px;
 }
-.wy-obj:hover .wy-obj-form { color: var(--bronze-tint); }
-.wy-obj.sel .wy-obj-box { stroke: var(--cinnabar-tint); stroke-width: 2.5; }
-.wy-obj:focus-visible { outline: none; }
-.wy-obj:focus-visible .wy-obj-box { stroke: var(--cinnabar-tint); stroke-width: 3; }
-.wy-obj-label {
-  font-family: inherit; font-size: 17px; fill: var(--ink-2);
-  pointer-events: none; letter-spacing: 1px;
-}
-.wy-obj:hover .wy-obj-label { fill: var(--bronze-tint); }
-/* 认过之后盖一枚印记 */
-.wy-obj.seen .wy-obj-box { stroke: color-mix(in srgb, var(--green-tint) 55%, var(--edge)); }
-.wy-obj-tick { fill: var(--green-tint); opacity: .85; }
 
-/* 学习进度 */
+/* 已认：很小的绿点 */
+.wy-seen-dot {
+  fill: var(--green-tint);
+  stroke: color-mix(in srgb, var(--bone-hi) 88%, transparent);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.wy-spot:focus-visible { outline: none; }
+.wy-spot:focus-visible .wy-ring { opacity: 1; stroke-dasharray: none; }
+
+/* 学习进度 + 「显示可点处」开关 */
 .wy-learnbar { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 2px 0 4px; }
 .wy-learnnum {
   font-size: 15px; font-weight: 700; color: var(--bronze-tint);
@@ -76,7 +92,7 @@
 }
 .wy-learnword { font-size: 11.5px; color: var(--ink-2); }
 .wy-meter {
-  flex: 1 1 140px; max-width: 260px; height: 7px; display: inline-block;
+  flex: 0 1 200px; height: 7px; display: inline-block;
   background: color-mix(in srgb, var(--bone-lo) 60%, var(--bone));
   border: 1px solid var(--edge); border-radius: var(--r-pill); overflow: hidden;
 }
@@ -87,19 +103,20 @@
     color-mix(in srgb, var(--green-tint) 70%, transparent));
   transition: width .25s;
 }
+.wy-hotbtn { margin-left: auto; }
+.wy-hotbtn.on {
+  border-color: var(--cinnabar-tint);
+  color: var(--cinnabar-tint);
+  background: color-mix(in srgb, var(--cinnabar-tint) 10%, transparent);
+}
 
-/* 图例 */
-.wy-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-2); margin-bottom: 4px; }
-.wy-lg { display: inline-flex; align-items: center; gap: 5px; }
-.wy-lg-dot {
-  width: 13px; height: 13px; display: inline-block; border-radius: 3px;
-  border: 1px solid var(--edge);
-  background: color-mix(in srgb, var(--bronze-tint) 22%, var(--bone-hi));
+/* 图下小字：操作提示与底图出处 */
+.wy-mapfoot {
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline;
+  font-size: 11.5px; color: var(--ink-2); margin-bottom: 6px;
 }
-.wy-lg-dot.seen {
-  background: color-mix(in srgb, var(--green-tint) 45%, var(--bone-hi));
-  border-color: var(--green-tint);
-}
+.wy-hint { color: var(--bronze-tint); }
+.wy-credit { color: var(--ink-soft); font-size: 10.5px; margin-left: auto; }
 
 /* ---------- 实物详情（学习卡） ---------- */
 .wy-card {
@@ -193,18 +210,17 @@
 /* ---------- 配对 ---------- */
 
 @media (max-width: 560px) {
-  /* 实物地图在窄屏上：整个 SVG 等比缩小已经够用，
-     这里只把文字类元素收小，避免标签比字形还抢眼。
-     注意不要给 .wy-obj-box 加 transform——它是 SVG 元素，
-     变换会叠加到已算好的布局变换上，位置会错。 */
-  .wy-obj-label { font-size: 15px; }
-  .wy-zone-title { font-size: 17px; }
-  .wy-zone-note { font-size: 10.5px; }
+  /* 窄屏上整幅图卷等比缩小即可，热区跟着一起缩，仍可点中。
+     这里只把卡片文字收小，并把「显示可点处」提到显眼处——
+     触屏没有悬停，这个开关是小屏上唯一的可发现性手段。 */
+  .wy-learnbar { gap: 7px; }
+  .wy-hotbtn { margin-left: 0; }
   .wy-card { gap: 14px; padding: 14px; }
   .wy-card-form .wy-big { width: 132px; height: 132px; }
   .wy-card-char { font-size: 38px; }
   .wy-card-mean { font-size: 15px; }
   .wy-glyph.lg { width: 112px; height: 112px; }
+  .wy-credit { margin-left: 0; }
 }
 
 

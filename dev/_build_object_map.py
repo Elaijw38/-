@@ -1,22 +1,14 @@
 # -*- coding: utf-8 -*-
-"""重建王邑实物地图：坐标重排 + 区块标题显式定位。
+"""把豆包那张水墨地图接入为「实物地图」背景，热区隐形。
 
-修的问题：上一版标题按「最上实物再上移」定位，而自然风光区最上的是
-高处的日、月，于是标题被顶到地图中部，压住了牛、羊等实物。
-现在标题位置直接写进数据（titleX/titleY），不再推导。
+设计（用户定的）：**画上不画任何字形标记**，保持画面完整；
+在画里真实的实物位置上放隐形热区，点它就出学习卡。
 
-画布加高到 1240×960，三条带各留出标题行：
-    0   ~ 150   山川草木 标题
-    170 ~ 500   山川草木 实物
-    530 ~ 570   禽兽虫鱼 标题
-    590 ~ 860   禽兽虫鱼 实物
-    960 之后    —— 这是错的，改为下面的实际布局
-实际布局：
-    标题一 y=150  → 实物 190~480
-    标题二 y=530  → 实物 570~800
-    标题三 y=850  → 实物 890~960（会被裁，故改用两列布局）
-因此把「人居器物」的 33 个实物排成 4 行、每行 9 个，落在 870~1000 内，
-画布高 1040。
+所以每个实物点带一个 r（热区半径），大小对应那样东西在画上的实际大小：
+山脉大、陶罐小。坐标在 1800×907 的图空间里手工读图定位
+（配合 dev/_prep_map_image.py 输出的带刻度预览）。
+
+自检会报：缺字形 / 重复 / 热区圆心过近 / 越界 / 超出图内。
 """
 import io, json, os
 
@@ -46,67 +38,94 @@ MEAN = {
     "卜": "龟甲上灼出的裂纹", "贝": "贝壳", "糸": "一束丝",
 }
 
+SKY = [("日", 250, 62, 34), ("月", 1560, 62, 32), ("雨", 760, 66, 34), ("火", 1130, 62, 32)]
 
-def row(chars, y, x0=110, step=118):
-    return [(c, x0 + i * step, y) for i, c in enumerate(chars)]
+LAND = [
+    ("山", 135, 225, 74),   # 左侧主峰
+    ("丘", 350, 175, 50),   # 中部小峰
+    ("谷", 515, 200, 46),   # 两峰之间
+    ("石", 1710, 300, 58),  # 右侧山岩
+    ("土", 62, 475, 44),    # 左侧坡地
+    ("泉", 325, 315, 38),   # 溪流源头
+    ("川", 615, 290, 46),   # 河道
+    ("水", 265, 505, 46),   # 下游河面
+    ("田", 520, 520, 54),   # 城左田亩
+]
 
+PLANT = [
+    ("木", 908, 320, 42),   # 城北大树
+    ("林", 712, 362, 40),   # 树丛
+    ("竹", 1550, 455, 40),  # 右侧林带
+    ("禾", 588, 462, 32),   # 田里谷穗
+    ("米", 1300, 660, 42),  # 城右田亩
+    ("屮", 452, 392, 30),   # 草丛
+]
 
-# 山川草木：标题 y=110，实物 210~530
-# 左两列放天象/山川/水泉，右两列（x>=620）放草木，避免左右撞在一起
-NATURE = (
-    row(list("日月雨火"), 210, x0=800, step=132)
-    + [("山", 110, 330), ("丘", 228, 330), ("石", 346, 330), ("谷", 464, 330)]
-    + [("土", 110, 450), ("泉", 228, 450), ("川", 346, 450), ("水", 464, 450),
-       ("田", 110, 570)]
-    + [("木", 620, 330), ("林", 738, 330)]
-    + [("竹", 620, 450), ("禾", 738, 450)]
-    + [("米", 620, 570), ("屮", 738, 570)]
-)
+BEAST = [
+    ("犬", 556, 248, 30), ("豕", 838, 265, 30),
+    ("牛", 1372, 458, 30), ("羊", 1288, 486, 30),
+    ("鹿", 1112, 710, 30), ("虎", 1692, 556, 40),
+    ("虫", 1650, 748, 32), ("鱼", 246, 566, 30),
+    ("隹", 1452, 322, 28),
+]
 
-# 禽兽虫鱼：标题 y=670，实物 770~1000（与上一区末行 570 隔 200，够开）
-CREATURE = row(list("牛羊犬"), 770, x0=824, step=132) \
-    + row(list("豕鱼隹"), 890, x0=824, step=132) \
-    + row(list("虎鹿虫"), 1010, x0=824, step=132)
-
-# 人居器物：标题 y=1140，实物 1240~1480，四行十列
-LIFE = (row(list("宀门邑郭囗鼎缶皿酉玉"), 1240, x0=110, step=112)
-        + row(list("井舟卜贝糸弓矢刀斧斤"), 1360, x0=110, step=112)
-        + row(list("大力人目耳口止又女子"), 1480, x0=110, step=112)
-        + row(list("足戈衣"), 1600, x0=110, step=112))
+LIFE = [
+    ("邑", 878, 424, 52), ("郭", 692, 442, 45),
+    ("门", 845, 585, 32), ("宀", 1096, 356, 32),
+    ("囗", 1046, 466, 32), ("鼎", 915, 610, 34),
+    ("缶", 762, 512, 28), ("皿", 780, 636, 26),
+    ("酉", 1018, 614, 28), ("玉", 1214, 612, 30),
+    ("井", 528, 656, 38), ("舟", 300, 622, 35),
+    ("卜", 790, 300, 30), ("贝", 1206, 758, 30),
+    ("糸", 196, 676, 30), ("弓", 1326, 540, 30),
+    ("矢", 1382, 572, 28), ("刀", 618, 730, 28),
+    ("斧", 792, 754, 32), ("斤", 1442, 698, 30),
+    ("戈", 1146, 606, 30), ("衣", 1424, 776, 28),
+    ("大", 382, 692, 28), ("力", 560, 720, 28),
+    ("人", 912, 786, 28), ("目", 1120, 660, 28),
+    ("耳", 996, 700, 28), ("口", 1240, 700, 28),
+    ("止", 700, 846, 28), ("又", 946, 828, 28),
+    ("女", 1296, 758, 28), ("子", 1062, 826, 28),
+    ("足", 1448, 846, 28),
+]
 
 ZONES = [
-    ("nature", "山川草木", "郊野所见：日月山川、林木禾稼", 100, 110, NATURE),
-    ("creature", "禽兽虫鱼", "林麓水泽：牛羊犬豕、鹿虎鱼鸟", 824, 670, CREATURE),
-    ("life", "人居器物", "邑中生计：屋舍井舟、鼎彝兵器", 110, 1140, LIFE),
+    ("sky", "天象", "日月雨火", SKY),
+    ("land", "山川", "山水川泉谷丘土石田", LAND),
+    ("plant", "草木", "木林竹禾米屮", PLANT),
+    ("beast", "禽兽虫鱼", "牛羊犬豕鱼隹虎鹿虫", BEAST),
+    ("life", "人居器物", "邑郭门宀鼎缶皿酉弓矢戈衣人目口女子足…", LIFE),
 ]
 
 old = json.loads(io.open(OLD, encoding="utf-8").read())
+VW, VH = 1800, 907
 
 zones = []
-for zid, zname, znote, tx, ty, pts in ZONES:
+for zid, zname, znote, pts in ZONES:
     zones.append({
-        "id": zid,
-        "name": zname,
-        "note": znote,
-        "titleX": tx, "titleY": ty,
+        "id": zid, "name": zname, "note": znote,
         "objects": [
-            {"char": ch, "x": x, "y": y, "meaning": MEAN.get(ch, "")}
-            for ch, x, y in pts
+            {"char": ch, "x": x, "y": y, "r": r, "meaning": MEAN.get(ch, "")}
+            for ch, x, y, r in pts
         ],
     })
 
 doc = {
-    "_note": ("王邑实物地图：zones[].objects 是地图上的实物点"
-              "（char=字, x/y=坐标, meaning=象形说明）；"
-              "titleX/titleY 是区块标题位置。改这里即可增删实物，无需改代码。"),
-    "_version": "3.0",
+    "_note": ("王邑实物地图：zones[].objects 是地图上的【隐形热区】"
+              "（char=字, x/y=圆心, r=半径, meaning=象形说明）。"
+              "坐标对应 assets/wangyi-map.jpg 的像素空间（%d×%d）。"
+              "热区默认不可见——点画上的实物即出学习卡。" % (VW, VH)),
+    "_version": "5.0",
     "map": {
         "id": "wangyi-map",
         "name": "殷商王邑",
-        "subtitle": "点击实物，认甲骨文",
-        "intro": ("这是一张三千年前的王邑。图上每一样东西，都是一枚甲骨文——"
-                  "点它，看古人怎么把它画成一个字。"),
-        "viewBox": "0 0 1240 1700",
+        "subtitle": "点击画上的实物，认甲骨文",
+        "intro": ("这是一张三千年前的王邑。山川、田亩、城邑、牲畜、器物都画在上面——"
+                  "点哪一样东西，就看古人怎么把它画成一个字。"),
+        "viewBox": "0 0 %d %d" % (VW, VH),
+        "bgImage": "assets/wangyi-map.jpg",
+        "bgCredit": "底图：豆包 AI 生成（个人非商用），右下角水印已裁除",
+        "hint": "点画上的实物试试",
         "zones": zones,
         "quiz": {
             "note": "答题型玩法（拆字 / 配对 / 卜辞）的关卡数据，作为可选入口保留。",
@@ -126,40 +145,46 @@ io.open(P, "w", encoding="utf-8", newline="\n").write(
 gl = json.loads(io.open(os.path.join(HERE, "..", "js", "core", "glyph-parts.json"),
                         encoding="utf-8").read())
 parts = gl["parts"]
-allpts, miss = [], []
+pts, miss = [], []
 for z in zones:
     for o in z["objects"]:
         if o["char"] not in parts:
             miss.append(o["char"])
-        allpts.append((o["char"], o["x"], o["y"]))
-chars = [p[0] for p in allpts]
+        pts.append((o["char"], o["x"], o["y"], o["r"]))
+chars = [p[0] for p in pts]
 
-print("区块 %d 个，实物 %d 个" % (len(zones), len(allpts)))
+print("区块 %d 个，实物 %d 个" % (len(zones), len(pts)))
 print("缺字形  : %s" % ("、".join(miss) if miss else "无 ✓"))
 dups = sorted({c for c in chars if chars.count(c) > 1})
 print("重复摆放: %s" % ("、".join(dups) if dups else "无 ✓"))
-bad = []
-for i in range(len(allpts)):
-    for j in range(i + 1, len(allpts)):
-        a, b = allpts[i], allpts[j]
-        d = ((a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5
-        if d < 100:
-            bad.append("%s(%d,%d)↔%s(%d,%d)=%.0f" % (a[0], a[1], a[2], b[0], b[1], b[2], d))
-print("过近(<100): %s" % ("; ".join(bad) if bad else "无 ✓"))
-
-# 标题不能压住任何实物（这才是本次要修的）
-vw, vh = [int(v) for v in doc["map"]["viewBox"].split()[2:]]
-clash = []
-for z in zones:
-    tx, ty = z["titleX"], z["titleY"]
-    for o in z["objects"]:
-        # 标题占位约 高 60、宽 = 字数*26
-        if abs(o["y"] - ty) < 62 and (tx - 20) <= o["x"] <= (tx + len(z["name"]) * 28):
-            clash.append("%s 标题压住 %s(%d,%d)" % (z["name"], o["char"], o["x"], o["y"]))
-print("标题压字: %s" % ("; ".join(clash) if clash else "无 ✓"))
-oob = [p for p in allpts if not (60 <= p[1] <= vw - 40 and 60 <= p[2] <= vh - 40)]
+oob = [p for p in pts if not (20 <= p[1] <= VW - 20 and 20 <= p[2] <= VH - 20)]
 print("越出画布: %s" % ("、".join(p[0] for p in oob) if oob else "无 ✓"))
+
+# 热区互相叠太多会导致点不准；用「圆心距 < 半径和的 0.75」当阈值
+bad = []
+for i in range(len(pts)):
+    for j in range(i + 1, len(pts)):
+        a, b = pts[i], pts[j]
+        d = ((a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5
+        if d < (a[3] + b[3]) * 0.75:
+            bad.append("%s(%d,%d,r%d)↔%s(%d,%d,r%d) 距%.0f 阈%.0f"
+                       % (a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3],
+                          d, (a[3] + b[3]) * 0.75))
+print("热区重叠: %s" % ("; ".join(bad) if bad else "无 ✓"))
+print("半径范围: %d ~ %d" % (min(p[3] for p in pts), max(p[3] for p in pts)))
+
+# 底图文件必须真的在——路径写错的话地图会是一片空白
+bg = doc["map"].get("bgImage")
+if bg:
+    bgp = os.path.normpath(os.path.join(HERE, "..", bg))
+    ok = os.path.exists(bgp)
+    size = os.path.getsize(bgp) if ok else 0
+    print("底图文件: %s  %s  %s" % (bg, "存在 ✓" if ok else "缺失 ✗",
+                                   ("%.2f MB" % (size / 1048576)) if ok else ""))
+    if not ok:
+        raise SystemExit("底图缺失，地图会开天窗：" + bgp)
+else:
+    print("底图: 未配置（将只显示热区）")
+
 for z in zones:
-    ys = [o["y"] for o in z["objects"]]
-    print("  %-6s %2d 个，y 范围 %d~%d，标题 y=%d" % (
-        z["name"], len(z["objects"]), min(ys), max(ys), z["titleY"]))
+    print("  %-8s %2d 个" % (z["name"], len(z["objects"])))
