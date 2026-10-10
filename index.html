@@ -23,11 +23,24 @@
 </head>
 <body>
 
-<!-- 站点头：由壳层渲染 -->
-<header class="top" id="siteTop"></header>
+<!-- 壳层：首页为单列居中；进入页面后切换为「左侧功能栏 + 右侧内容」两栏 -->
+<div class="app-shell" id="appShell">
 
-<!-- 场景挂载点：首页 / 玩法列表 / 对局 / 设置 / 筹备中 -->
-<main id="sceneRoot" class="wrap"></main>
+  <!-- 左侧功能栏：由壳层渲染（仅非首页显示，手机端自动折为顶部横条） -->
+  <aside class="app-nav" id="siteNav"></aside>
+
+  <!-- 右侧内容列 -->
+  <div class="app-main">
+
+    <!-- 站点头：由壳层渲染（首页显示，内页在侧栏模式下隐藏） -->
+    <header class="top" id="siteTop"></header>
+
+    <!-- 场景挂载点：首页 / 玩法列表 / 对局 / 设置 / 筹备中 -->
+    <main id="sceneRoot" class="wrap"></main>
+
+  </div><!-- /app-main -->
+
+</div><!-- /app-shell -->
 
 <!-- 页脚：固定信息 + 字形署名（CC BY 4.0 要求署名） -->
 <footer class="footer">

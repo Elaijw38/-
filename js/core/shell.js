@@ -26,6 +26,7 @@
   /* ---------- 站点头 ---------- */
   function renderHeader() {
     var top = App.$('siteTop');
+    if (!top) return;
     App.clearNode(top);
 
     var left = App.el('div', 'top-left');
@@ -42,8 +43,14 @@
     h1.appendChild(art);
     h1.appendChild(App.el('span', 'sr-only', '甲骨构字记'));
     left.appendChild(h1);
-    left.appendChild(App.el('span', 'brand-sub', App.BRAND_SUB || ''));
+    /* 首页整块居中，副标题交给场景里的导语承担，这里不重复 */
+    if (current.name !== 'home') {
+      left.appendChild(App.el('span', 'brand-sub', App.BRAND_SUB || ''));
+    }
     top.appendChild(left);
+
+    /* 首页只留品牌居中；内页的返回与设置入口都在左侧功能栏里 */
+    if (current.name === 'home') return;
 
     var right = App.el('div', 'top-right');
     var seal = App.el('span', 'seal', App.BRAND_SEAL || '试玩版');
@@ -60,10 +67,71 @@
     top.appendChild(right);
   }
 
+  /* ---------- 左侧功能栏 ---------- */
+  function navActiveId() {
+    switch (current.name) {
+      case 'home':     return 'home';
+      case 'modes':    return 'modes';
+      case 'plan':     return 'plan';
+      case 'settings': return 'settings';
+      case 'play':     return 'modes';      /* 对局属于「开始玩」分支 */
+      default:         return '';
+    }
+  }
+
+  function navItem(item) {
+    var a = App.el('a', 'nav-item');
+    a.href = '#/' + item.id;
+    if (navActiveId() === item.id) a.className += ' on';
+    a.appendChild(App.el('span', 'nav-ico', item.icon));
+    a.appendChild(App.el('span', 'nav-label', item.label));
+    return a;
+  }
+
+  function renderNav() {
+    var host = App.$('siteNav');
+    if (!host) return;
+    App.clearNode(host);
+
+    /* 品牌 */
+    var brand = App.el('div', 'nav-brand');
+    var img = App.el('img', 'brand-glyph');
+    img.alt = ''; img.setAttribute('aria-hidden', 'true');
+    img.src = App.brandGlyphURI || '';
+    brand.appendChild(img);
+    var art = App.el('span', 'brand-art');
+    art.setAttribute('aria-hidden', 'true');
+    ['构', '字', '记'].forEach(function (ch) {
+      art.appendChild(App.el('span', 'ch', ch));
+    });
+    brand.appendChild(art);
+    brand.appendChild(App.el('span', 'sr-only', '甲骨构字记'));
+    /* 侧栏里的品牌可点回首页 */
+    brand.style.cursor = 'pointer';
+    brand.onclick = function () { go('home'); };
+    host.appendChild(brand);
+
+    host.appendChild(App.el('div', 'nav-sub', App.BRAND_SUB || ''));
+
+    /* 与首页三张卡一一对应 */
+    [
+      { id: 'home',     icon: '首', label: '首　页' },
+      { id: 'modes',    icon: '戏', label: '开始玩' },
+      { id: 'plan',     icon: '续', label: '后续玩法' },
+      { id: 'settings', icon: '包', label: '内容与设置' }
+    ].forEach(function (it) { host.appendChild(navItem(it)); });
+
+    /* 底部：试玩版印章 + 版本号 */
+    var foot = App.el('div', 'nav-foot');
+    foot.appendChild(App.el('span', 'seal', App.BRAND_SEAL || '试玩版'));
+    foot.appendChild(App.el('span', 'nav-ver', 'v' + (App.BRAND_VERSION || '')));
+    host.appendChild(foot);
+  }
+
   /* ---------- 场景：首页 ---------- */
   function sceneHome() {
-    var wrap = App.el('div', 'scene');
-    wrap.appendChild(App.el('p', 'lead',
+    var wrap = App.el('div', 'scene home-scene');
+    wrap.appendChild(App.el('p', 'lead home-lead',
       '一个以甲骨文为题材的汉字文化游戏平台。当前已上线「甲骨构字」玩法，' +
       '后续将扩展更多玩法——它们共用同一套字形数据与素材库。'));
 
@@ -374,7 +442,17 @@
     }
     current = r;
     App.clearNode(root);
+    /* 首页单列居中；进入页面后切为「左功能栏 + 右内容」两栏 */
+    var shell = App.$('appShell');
+    if (shell) shell.className = 'app-shell scene-' + r.name;
+    var mode = (r.name === 'home') ? 'single' : 'side';
+    document.body.setAttribute('data-nav', mode);
+    if (document.body.classList) {
+      document.body.classList.toggle('nav-single', mode === 'single');
+      document.body.classList.toggle('nav-side', mode === 'side');
+    }
     renderHeader();
+    renderNav();
     var scene;
     if (r.name === 'modes') scene = sceneModes();
     else if (r.name === 'play') scene = scenePlay(r.params.id);
@@ -394,6 +472,6 @@
   }
 
   App.router = { go: go, replay: replay, render: render, start: start, current: function () { return current; } };
-  App.shell = { render: render, renderHeader: renderHeader, sceneSettings: sceneSettings };
+  App.shell = { render: render, renderHeader: renderHeader, renderNav: renderNav, sceneSettings: sceneSettings };
 
 })(window.App = window.App || {});
