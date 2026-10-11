@@ -222,7 +222,26 @@
       log('进度=' + txt(q(H('.wy-learnnum'))));
 
       log('');
-      log('=== 八、重置 → 整幅画重新变灰 ===');
+      log('=== 八、一键点亮 → 61 处一次点亮 ===');
+      App.store.del('wangyi');
+      mountFresh();
+      log('按之前进度=' + txt(q(H('.wy-learnnum'))));
+      var la = btnByText(/^一键点亮/);
+      log('按钮在=' + flag(!!la) + '　文案=「' + txt(la) + '」');
+      tap(la);
+      var mAll = q('.wy-bg-lit');
+      var midAll = mAll ? String(mAll.getAttribute('mask')).replace(/^url\(#/, '').replace(/\)$/, '') : '';
+      log('点亮后 mask 白圆=' + (document.getElementById(midAll) ?
+        document.getElementById(midAll).querySelectorAll('circle').length : -1) + '（应为 61）');
+      log('进度=' + txt(q(H('.wy-learnnum'))));
+      log('已认标记=' + qa(H('.wy-spot.seen')).length + '（应为 61）');
+      log('存储里的完成数=' + (function () {
+        var p = App.store.get('wangyi', null) || {};
+        var n = 0; for (var k in (p.done || {})) { n += p.done[k].length; } return n;
+      })() + '（应为 61）');
+
+      log('');
+      log('=== 九、重置 → 整幅画重新变灰 ===');
       log('重置按钮在=' + flag(!!btnByText(/重置点亮记录/)));
       App.store.del('wangyi');
       mountFresh();
@@ -231,6 +250,8 @@
       log('清空后 mask 白圆=' + (document.getElementById(mid4) ?
         document.getElementById(mid4).querySelectorAll('circle').length : -1) + '（应为 0）');
       log('进度=' + txt(q(H('.wy-learnnum'))));
+      log('灰图初始态确认：进度 ' + txt(q(H('.wy-learnnum'))) + '，mask 白圆 0，已认标记 ' +
+          qa(H('.wy-spot.seen')).length);
 
     } catch (e) {
       log('!! 异常: ' + (e && e.message ? e.message : e));

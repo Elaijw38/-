@@ -258,6 +258,24 @@
       var modes = App.el('button', 'btn sm', '甲骨构字（原有玩法）');
       modes.onclick = function () { ctx.nav.modes(); };
       side.appendChild(modes);
+
+      /* 一键点亮：演示/展示用。地图初始是全部未点亮的灰图，
+         按这个把 61 处一次点亮。不做二次确认——演示时弹窗碍事，
+         而且「重置」就在旁边，随时能退回灰图。 */
+      var lightAll = App.el('button', 'btn sm', '一键点亮（61 处）');
+      lightAll.onclick = function () {
+        var p = progress();
+        (MAP.zones || []).forEach(function (z) {
+          if (!p.done[z.id]) { p.done[z.id] = []; }
+          (z.objects || []).forEach(function (o) {
+            if (p.done[z.id].indexOf(o.char) < 0) { p.done[z.id].push(o.char); }
+          });
+        });
+        saveProgress(p);
+        render();
+      };
+      side.appendChild(lightAll);
+
       var reset = App.el('button', 'btn sm', '重置点亮记录');
       reset.onclick = function () {
         if (!window.confirm('确定清空点亮记录？整幅画会重新变灰。')) return;
