@@ -141,7 +141,10 @@
       /* 先故意拖错一处，验证会拒绝 */
       var pieces0 = qa(H('.wy-tray-items .wy-piece'));
       dragTo(pieces0[0], [4, 96]);   /* 拖到角落，肯定不对 */
-      log('故意拖到角落 → 判定=' + txt(q(H('.wy-verdict, .verdict'))));
+      var wrongMsg = txt(q(H('.wy-verdict, .verdict')));
+      log('故意拖到角落 → 判定=' + wrongMsg);
+      log('  含方向提示（该往「…」挪）: ' + (/该往/.test(wrongMsg) ? '是 ✓' : '否 ✗'));
+      log('  含进度（已摆 N / M 笔）: ' + (/已摆/.test(wrongMsg) ? '是 ✓' : '否 ✗'));
       log('已摆数=' + qa(H('.wy-placed .wy-stroke')).length + '（应仍为 0）');
 
       /* 再逐笔拖到正确位置 */
@@ -171,10 +174,27 @@
           '　大图=' + flag(!!q(H('.wy-card-form svg'))) +
           '　释义=' + txt(q(H('.wy-card-mean'))));
       log('存储=' + JSON.stringify(App.store.get('wangyi', null)));
+      var exits = qa(H('.wy-side button')).map(txt);
+      log('完成卡出口: ' + exits.join(' / ') + '（应为：下一处 / 回到地图 / 再拼一次）');
 
       log('');
-      log('=== 六、回地图：那一块应该亮了 ===');
-      tap(btnByText(/回到地图/));
+      log('=== 六、「下一处」应跳到下一个还没点亮的实物 ===');
+      var nb = btnByText(/^下一处/);
+      log('  「下一处」按钮在: ' + flag(!!nb));
+      if (nb) {
+        tap(nb);
+        var inCompose = !!q(H('.wy-stage-svg')) || !!q(H('.wy-tray-items'));
+        log('  点它 → 进入构字页: ' + flag(inCompose));
+        log('  可摆笔画数: ' + qa(H('.wy-tray-items .wy-piece')).length
+          + '（新的一处，应为该字的笔画数）');
+        log('  判定行: ' + txt(q(H('.wy-verdict, .verdict'))));
+      }
+
+      log('');
+      log('=== 七、回地图：那一块应该亮了 ===');
+      /* 上一节点了「下一处」，此刻停在构字页。
+         这里直接重新挂载——进度已落盘，地图照样是点亮后的样子。 */
+      mountFresh();
       log('在地图=' + flag(!!q(H('.wy-omap'))));
       var lit2 = q(H('.wy-bg-lit'));
       var mid2 = lit2 ? String(lit2.getAttribute('mask')).replace(/^url\(#/, '').replace(/\)$/, '') : '';

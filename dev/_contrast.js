@@ -55,6 +55,8 @@ function contrast(a, b) {
 
 /* ---------- 实际用到的「文字色 × 背景」组合 ---------- */
 const pairs = [
+  ['--on-dark',   '--ink-deep', '深色面正文（品牌主视觉）'],
+  ['--on-dark-2', '--ink-deep', '深色面次要文字'],
   ['--ink',      '--bone',    '正文（.lead/.glyph/.info）'],
   ['--ink',      '--card',    '正文（卡片内）'],
   ['--ink',      '--bone1',   '正文（构件格/比分板）'],

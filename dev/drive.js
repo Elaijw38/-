@@ -117,6 +117,9 @@
        字卡现在出的是甲骨形（无文字），今字在 #mpGlyphCap；
        构件台每件下方必有 .n 今字角标，所以按角标匹配最稳。 */
     var need = [], allPieces = [];
+    /* 答对之前先记一笔收集数，提交后再比——用来验证进度真的落盘了 */
+    var learnedBefore = App.atlas.stats().learned;
+    var curChar = String((q('#mpGlyphCap') || {}).textContent || '').trim();
     (function () {
       var capEl = q('#mpGlyphCap');
       var g = capEl ? String(capEl.textContent).trim() : '';
@@ -133,6 +136,7 @@
       } catch (e) { log('读内容包出错: ' + e.message); }
       var c = cards.filter(function (x) { return x && x.g === g; })[0];
       if (c) need = String(c.w || '').split('+').filter(Boolean);
+      if (g) { curChar = g; }
       log('字卡=' + g + ' 所需构件=[' + need.join('＋') + ']');
     })();
     /* 找台上那一件：优先用 .n 今字角标，退回整块文本 */
@@ -167,6 +171,30 @@
        （会读到空值或旧值），故不在此断言得分。甲骨片得分的渲染
        由 dev/_preview_bone.html 单独验证。 */
     log('得分渲染: 见 dev/_preview_bone.html');
+
+    /* ---------- 进度落盘（答对过的字进收集） ---------- */
+    var bb = App.store.get('bonebuild', null);
+    var doneList = (bb && bb.done) ? bb.done : [];
+    log('');
+    log('=== 进度落盘 ===');
+    log('  ziqu.bonebuild = [' + doneList.join('、') + ']');
+    log('  本轮字卡「' + curChar + '」已记入: ' +
+        (doneList.indexOf(curChar) >= 0 ? '是' : '否'));
+    var stA = App.atlas.stats();
+    log('  图鉴已解锁: ' + learnedBefore + ' → ' + stA.learned + ' / ' + stA.chars +
+        (stA.learned > learnedBefore ? '（+1，落盘生效）' : '（未变）'));
+    /* 去重是 markLearned 的职责，这里只检查"存下来的没有重复"这个不变量。
+       （早先这段写成"手动 push 一个重复值再看长度变不变"——
+         那绕过了去重逻辑，测的是测试自己，不是产品。） */
+    (function () {
+      var uniq = doneList.filter(function (x, i) { return doneList.indexOf(x) === i; });
+      log('  存储去重不变量: 共 ' + doneList.length + ' 条，去重后 ' + uniq.length +
+          ' 条 → ' + (uniq.length === doneList.length ? '无重复 ✓' : '有重复 ✗'));
+    })();
+    log('  收集档位（图鉴四档）: ' + App.atlas.KINDS.map(function (k) {
+      var b = stA.byKind[k.id] || { total: 0, learned: 0 };
+      return k.name + ' ' + b.learned + '/' + b.total;
+    }).join('　'));
 
     var hb = byText('.info .bar .btn', /提示/);
     if (hb && !hb.disabled) {

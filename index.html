@@ -23,35 +23,49 @@
 </head>
 <body>
 
-<!-- 壳层：首页为单列居中；进入页面后切换为「左侧功能栏 + 右侧内容」两栏 -->
+<!-- 壳层：固定顶部导航 + 自适应内容区。
+     导航由壳层渲染（见 js/core/shell.js 的 renderHeader），
+     桌面一行放下品牌与四个入口，窄屏自动折成"品牌一行 + 入口一行"。 -->
 <div class="app-shell" id="appShell">
 
-  <!-- 左侧功能栏：由壳层渲染（仅非首页显示，手机端自动折为顶部横条） -->
-  <aside class="app-nav" id="siteNav"></aside>
+  <!-- 固定顶部导航：品牌 · 主页 / 开始游戏 / 汉字图鉴 / 玩法说明 -->
+  <header class="top" id="siteTop"></header>
 
-  <!-- 右侧内容列 -->
-  <div class="app-main">
-
-    <!-- 站点头：由壳层渲染（首页显示，内页在侧栏模式下隐藏） -->
-    <header class="top" id="siteTop"></header>
-
-    <!-- 场景挂载点：首页 / 玩法列表 / 对局 / 设置 / 筹备中 -->
-    <main id="sceneRoot" class="wrap"></main>
-
-  </div><!-- /app-main -->
+  <!-- 场景挂载点：首页 / 玩法列表 / 图鉴 / 玩法说明 / 对局 / 设置 -->
+  <main id="sceneRoot" class="wrap"></main>
 
 </div><!-- /app-shell -->
 
-<!-- 页脚：固定信息 + 字形署名（CC BY 4.0 要求署名） -->
+<!-- 页脚：项目介绍 · 玩法入口 · 资料来源（CC BY 4.0 要求署名） -->
 <footer class="footer">
   <div class="foot-in">
-    <span>字趣 · 甲骨构字记　—　以甲骨文为题材的汉字文化游戏平台</span>
+    <div class="foot-col">
+      <h4 class="foot-h">字趣 · 甲骨构字记</h4>
+      <p class="foot-p">以甲骨文为题材的汉字文化游戏平台。用字形本身做玩法，
+        在拼、点、拆的过程里认出三千年前的汉字。</p>
+      <p class="foot-p foot-seal"><span class="seal">试玩版</span>
+        <span class="foot-ver">v<em id="footVer"></em></span></p>
+    </div>
+    <div class="foot-col">
+      <h4 class="foot-h">玩法</h4>
+      <ul class="foot-list" id="footModes"></ul>
+    </div>
+    <div class="foot-col">
+      <h4 class="foot-h">资料来源</h4>
+      <p class="foot-p">字形数据：<a href="https://github.com/zhouyongh/hanzi-glyphs-svg" target="_blank" rel="noopener">hanzi-glyphs-svg</a>
+        （CC BY 4.0），上游为 Zenodo
+        <a href="https://doi.org/10.5281/zenodo.22467946" target="_blank" rel="noopener">10.5281/zenodo.22467946</a>。</p>
+      <p class="foot-p">本项目对字形做了缩放、配色与合成，同一协议
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>。</p>
+      <p class="foot-p">首页骨片照：<a href="https://commons.wikimedia.org/wiki/File:Ancient_Chinese_Writing_on_Ox_Bone,_Shang_Dynasty.jpg" target="_blank" rel="noopener">Ancient Chinese Writing on Ox Bone</a>
+        （摄影 Gary Todd，<a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">CC0 1.0 公有领域</a>，经缩放压缩）；
+        王邑底图由 Agnes AI 生成，无第三方水印。</p>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <span>© 字趣 · 甲骨构字记　—　非商业性质的文化科普与教学演示</span>
     <span class="foot-sep">｜</span>
-    <span>字形数据：<a href="https://github.com/zhouyongh/hanzi-glyphs-svg" target="_blank" rel="noopener">hanzi-glyphs-svg</a>
-      （CC BY 4.0），上游为 Zenodo
-      <a href="https://doi.org/10.5281/zenodo.22467946" target="_blank" rel="noopener">10.5281/zenodo.22467946</a>；
-      本项目对字形做了缩放、配色与合成，协议
-      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>。</span>
+    <span>字形不代表原简拓片，仅作识字对照之用</span>
   </div>
 </footer>
 
@@ -72,6 +86,8 @@
 <script src="js/core/leveldata.js"></script>
 <script src="js/core/util.js"></script>
 <script src="js/core/packs.js"></script>
+<script src="js/core/atlas.js"></script>
+<script src="js/core/achievements.js"></script>
 <script src="js/core/modes.js"></script>
 <script src="js/core/shell.js"></script>
 

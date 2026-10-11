@@ -439,8 +439,17 @@
             } else {
               box.classList.add('miss');
               setTimeout(function () { box.classList.remove('miss'); }, 420);
+              /* 说清"偏在哪"：只给八方向与远近档，不给落点坐标——
+                 坐标就是答案，给了等于代打。
+                 方向按"目标相对落点"算：dx>0 说明目标在右侧，该往右挪。 */
+              var dx = targetX - pt.x, dy = targetY - pt.y;
+              var hz = dx > 8 ? '右' : (dx < -8 ? '左' : '');
+              var vt = dy > 8 ? '下' : (dy < -8 ? '上' : '');
+              var dir = (vt + hz) || '原处附近';
+              var far = d > tol * 2.2 ? '还差得比较远' : '就差一点';
               verdict.className = 'verdict no';
-              verdict.textContent = '✘ 位置不对，再想想这笔该放哪。';
+              verdict.textContent = '✘ 没到位——这笔该往「' + dir + '」挪（' + far +
+                '）。已摆 ' + S.placed.length + ' / ' + n + ' 笔。';
             }
             S.drag = null;
           }
@@ -514,7 +523,31 @@
       el.appendChild(card);
 
       var bar = App.el('div', 'wy-side');
-      var nxt = App.el('button', 'btn primary', '回到地图（这一块已点亮）');
+
+      /* 下一处：同区优先（本来就在这一片看），本区点完了再跨区找。
+         一个都找不到说明整幅画都点亮了，就不摆这个按钮。 */
+      var p0 = progress();
+      var nextIt = null;
+      var all = flatObjects();
+      var same = all.filter(function (it) { return it.zone.id === (zone && zone.id); });
+      var look = same.concat(all);
+      for (var q = 0; q < look.length; q++) {
+        if (!isDone(p0, look[q].zone.id, look[q].obj.char)) { nextIt = look[q]; break; }
+      }
+      if (nextIt) {
+        var nx2 = App.el('button', 'btn primary', '下一处 →');
+        nx2.onclick = function () {
+          S.zone = nextIt.zone;
+          S.sel = nextIt.obj.char;
+          S.placed = [];
+          S.pool = shuffle(range(App.glyphStrokeCount(nextIt.obj.char)));
+          S.view = 'compose';
+          render();
+        };
+        bar.appendChild(nx2);
+      }
+
+      var nxt = App.el('button', 'btn sm', '回到地图');
       nxt.onclick = function () { S.view = 'map'; S.sel = null; render(); };
       bar.appendChild(nxt);
       var again = App.el('button', 'btn sm', '再拼一次');

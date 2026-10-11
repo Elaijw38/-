@@ -76,6 +76,30 @@
     mount: mount
   });
 
+  /* ---------- 进度落盘 ----------
+     答对过的字记进 ziqu.bonebuild，供「汉字图鉴」与首页「我的收集」统计。
+     口径与另外两个玩法一致（王邑记点亮、讨伐记通关，这里记答对过）；
+     答错与超时不记——收集要的是"学会了哪些字"，不是"碰过哪些字"。 */
+  var PROGRESS_KEY = 'bonebuild';
+
+  function markLearned(g) {
+    if (!g) { return; }
+    var p = App.store.get(PROGRESS_KEY, null);
+    if (!p || typeof p !== 'object' ||
+        Object.prototype.toString.call(p.done) !== '[object Array]') {
+      p = { done: [] };
+    }
+    if (p.done.indexOf(g) < 0) {
+      p.done.push(g);
+      App.store.set(PROGRESS_KEY, p);
+    }
+  }
+
+  function learnedCount() {
+    var p = App.store.get(PROGRESS_KEY, null);
+    return (p && p.done) ? p.done.length : 0;
+  }
+
   /* ============================================================
      挂载
      ============================================================ */
@@ -672,6 +696,7 @@
         P().score += gain; P().inv += 1; P().right += 1; P().timeMs += used;
         record(c.g, S.turn, 'ok', need, Math.round(used / 1000), gain,
           '拼成' + (fast ? '（快答 ＋1）' : ''));
+        markLearned(c.g);   /* 进度落盘：这个字进收集 */
         setVerdict('ok', '✔ 拼成！正解 <b>' + need.join('＋') + '</b>　' +
           (fast ? '快答奖励 ＋1，' : '') + '共 ＋' + gain + ' 分');
         revealComposed(c);
@@ -682,10 +707,22 @@
         P().score += pen;
         record(c.g, S.turn, 'wrong', need, Math.round(used / 1000), pen,
           '错答，正解：' + need.join('＋'));
-        /* 单人下不立即公布答案，留到复盘 */
+        /* 答错也要能学到东西：报出"已经放对了几块"，
+           让他知道离答案还有多远——但不公布答案本身，
+           单人局的答案仍然留到复盘（这条规则不改）。
+           注意这是**多重集**比对，不是按槽位比对：
+           本作的判定本来就是不分先后的（见上面的 ok 判断）。 */
+        var hit = 0, pool = need.slice();
+        got.forEach(function (x) {
+          var i = pool.indexOf(x);
+          if (i >= 0) { hit++; pool.splice(i, 1); }
+        });
+        var partial = hit > 0
+          ? '已经有 <b>' + hit + '</b> 块放对了，还差 ' + (need.length - hit) + ' 块。'
+          : '一块都没放对，先看看它可能是哪几类构件。';
         setVerdict('no', S.mode === 'solo'
-          ? '✘ 不对。答案留到复盘时统一公布。'
-          : '✘ 不对（−1）。');
+          ? '✘ 不对。' + partial + '答案留到复盘时统一公布。'
+          : '✘ 不对（−1）。' + partial);
         nextTurn();
       }
     }

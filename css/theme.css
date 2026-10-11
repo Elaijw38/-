@@ -20,31 +20,41 @@
    1. 设计令牌
    ============================================================================ */
 :root {
-  /* —— 墨 —— */
-  --ink:        #1f1a14;   /* 正文与刻痕 */
+  /* —— 墨褐 #29231E —— 正文与刻痕，也是深色面的底色 —— */
+  --ink:        #29231e;
   --ink-2:      #6b6153;   /* 次要文字 */
   --ink-soft:   #6e6455;   /* 更淡，用于说明与占位 */
+
+  /* —— 墨褐深色面（品牌主视觉 / 重点区域）——
+     深色区里的文字与描边用下面这组，不要直接拿 --bone 硬套，
+     否则深浅两套面会互相污染。 */
+  --ink-deep:      #29231e;   /* 深色面本体 */
+  --ink-deep-2:    #352f28;   /* 深色面上的次级块 */
+  --ink-deep-line: #4a4238;   /* 深色面上的发丝描边 */
+  --on-dark:       #f2e8d5;   /* 深色面正文 */
+  --on-dark-2:     rgba(242, 232, 213, .70);
+  --on-dark-3:     rgba(242, 232, 213, .45);
 
   /* 柔白：比 --bone-hi 更亮一档，留给输入框 / 编辑器 / 图片格。
      不用纯 #fff —— 纯白压在低饱和骨白上会"跳"，久看刺眼。 */
   --bone-white: #fffdf9;
 
-  /* —— 骨（页面底 / 面） —— */
-  --bone:       #f1ebe0;   /* 页面底：略去黄，降低长时间阅读的疲劳 */
-  --bone-hi:    #faf6ee;   /* 受光面（卡片） */
-  --bone-lo:    #e5ddcd;   /* 背光面 */
+  /* —— 骨白 #F2E8D5 —— 页面底 / 面 —— */
+  --bone:       #f2e8d5;   /* 页面底 */
+  --bone-hi:    #faf5e9;   /* 受光面（卡片） */
+  --bone-lo:    #e7dcc3;   /* 背光面 */
 
-  /* —— 朱砂（强调 / 主操作） —— */
-  --cinnabar:   #9e3524;
-  --cinnabar-hi:#b8492f;
+  /* —— 朱砂红 #A63E2F —— 主按钮 / 选中态 / 印章 —— */
+  --cinnabar:   #a63e2f;
+  --cinnabar-hi:#bd4d38;
 
-  /* —— 青铜（少量点缀、描边） —— */
-  --bronze:     #8a7350;
-  --bronze-hi:  #a98d5e;
+  /* —— 青铜灰 #8C8066 —— 次级点缀、描边 —— */
+  --bronze:     #8c8066;
+  --bronze-hi:  #a79a7d;
 
   /* —— 描边 —— */
-  --edge:       #c3b39a;   /* 外描边：降饱和，减少生硬感 */
-  --edge-in:    #e7ddcb;   /* 内描线 */
+  --edge:       #c9bda3;   /* 外描边 */
+  --edge-in:    #e8dfc9;   /* 内描线 */
 
   /* —— 语义色 —— */
   --green:      #3f6b4a;
@@ -54,7 +64,7 @@
      这几个值与上面的底色同名色系但更深：底色要压白字，文字要压浅底，
      两者不能共用同一个值。改动前请跑 dev/_contrast.js。 */
   --cinnabar-tint: #9b3324;
-  --bronze-tint:   #7a5c25;
+  --bronze-tint:   #6f6450;
   --blue-tint:     #3f5872;
   --green-tint:    #35603f;
 
@@ -112,14 +122,14 @@
 /* 外观固定为「骨白」浅色：站点不提供外观设置。
    html 上的 data-theme="bone" 由 js/core/build.js 写死，只作为选择这组变量的钩子。 */
 html[data-theme="bone"] {
-  --ink:      #24201a;
+  --ink:      #29231e;
   --ink-2:    #6b6153;
   --ink-soft: #6e6455;
-  --bone:     #f1ebe0;
-  --bone-hi:  #faf6ee;
-  --bone-lo:  #e5ddcd;
-  --edge:     #c3b39a;
-  --edge-in:  #e7ddcb;
+  --bone:     #f2e8d5;
+  --bone-hi:  #faf5e9;
+  --bone-lo:  #e7dcc3;
+  --edge:     #c9bda3;
+  --edge-in:  #e8dfc9;
   --paper:    var(--bone);
   --card:     var(--bone-hi);
   --bone1:    #f4eee3;

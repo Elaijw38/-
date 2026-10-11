@@ -1,20 +1,42 @@
 /* ============================================================================
-   字趣 · 界面层（壳层组件）
-   站点头、页脚、场景容器、首页卡片、模式选择卡、响应式
+   字趣 · 界面层（壳层与页面）
+   ----------------------------------------------------------------------------
+   本次改版的界面骨架：
+
+     固定顶栏     .top        品牌 + 主页/开始游戏/汉字图鉴/玩法说明 + 设置
+     内容区       .wrap       限宽 1080，各页面自己组织
+     首页         .hero       墨褐深色主视觉
+                  .home-sec   区块：核心玩法 / 内容探索
+                  .play-grid  玩法入口卡（真实的三个玩法）
+                  .explore-grid 每日一字 + 我的收集
+     图鉴         .atlas-*    四档真实内容 + 检索 + 详情浮层
+     玩法说明     .howto-*    规则、操作、后续玩法、资料来源
+     页脚         .footer     项目介绍 / 玩法入口 / 资料来源
+
+   改版前是"首页无导航、内页左侧功能栏"，现已统一为固定顶栏。
+   宽屏玩法（模式声明 layout:'wide'）不再依赖 data-nav="side"，
+   选择器改为直接挂 .app-shell.layout-wide。
    ============================================================================ */
 
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
 /* app.css（旧单文件版遗留）给 body 设了 max-width:820px + margin:auto，
-   那是「单列居中窄栏」的做法。现在壳层有了左侧功能栏，必须解除这个限宽，
-   否则整个 body 只有 820px，两栏网格无从展开。 */
+   那是「单列居中窄栏」的做法，会挡住新版的宽版式。这里解除限宽。 */
 body { max-width: none; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  /* 首屏全幅用了 100vw，它把滚动条宽也算进去（约 10px），要裁掉横向溢出。
+     这里必须用 clip 而不是 hidden：hidden 会创建滚动容器，
+     把顶栏的 position: sticky 弄坏（实测滚动后顶栏直接跟走了）。
+     clip 同样裁切，但不创建滚动容器。 */
+  overflow-x: clip;
+}
 body {
   font-family: "Songti SC", "Noto Serif SC", "Source Han Serif SC", STSong, SimSun, serif;
   line-height: 1.62;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* 同上：clip 而非 hidden，别把 sticky 顶栏弄坏 */
+  overflow-x: clip;
 }
 img { max-width: 100%; }
 .hidden { display: none !important; }
@@ -22,70 +44,28 @@ img { max-width: 100%; }
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
-.wrap { max-width: 860px; margin: 0 auto; padding: 0 14px 26px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 var(--s-5) var(--s-7); }
 
 /* ============================================================================
-   站点头
+   固定顶栏
    ============================================================================ */
 .top {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 14px 14px 10px;
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px;
+  position: sticky; top: 0; z-index: var(--z-top);
+  display: flex; align-items: center; gap: var(--s-4);
+  padding: var(--s-2) var(--s-5);
+  background: color-mix(in srgb, var(--bone) 90%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  backdrop-filter: blur(10px) saturate(1.1);
   border-bottom: 1px solid var(--edge);
-  position: relative;
 }
-/* 双横线：像骨片上的界划 */
-.top::after {
-  content: ''; position: absolute; left: 14px; right: 14px; bottom: 3px; height: 1px;
-  background: var(--edge); opacity: .45;
+.top-brand {
+  display: flex; align-items: flex-end; gap: 2px;
+  text-decoration: none; flex: 0 0 auto;
+  font-size: 26px; line-height: 1; letter-spacing: 0;
 }
-.top-left { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
-.brand {
-  display: flex; align-items: flex-end; gap: 2px; margin: 0;
-  font-size: 30px; line-height: 1; letter-spacing: 0;
-}
-.brand-glyph { height: 30px; width: auto; display: block; flex: 0 0 auto; transform: translateY(2px); }
+.brand-glyph { height: 26px; width: auto; display: block; flex: 0 0 auto; transform: translateY(2px); }
 
-/* 首页站点头的动画：让「契刻」的感觉动起来
-   —— 「构字记」艺术字上有一道朱砂光带缓缓扫过（呼应甲骨卜辞的「填朱」），
-      前面的甲骨字形同时轻轻浮动。
-   实现要点：底色必须是「横向可区分」的渐变，否则 background-position
-   平移时取到的颜色不变，扫过就会毫无视觉效果（竖直渐变且两端同色时尤其如此）。 */
-@keyframes brandSweep {
-  0%   { background-position: -30% 0; }
-  100% { background-position: 130% 0; }
-}
-@keyframes brandFloat {
-  0%, 100% { transform: translateY(2px); }
-  50%      { transform: translateY(0); }
-}
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  /* 几何：background-size=S%，position=p% 把背景左缘放在 p·(S−1)/100·W。
-     取 S=300、p 由 0%→100%，可见窗口在渐变坐标里从 [0,1/3] 走到 [2/3,1]。
-     于是：墨色铺满 [0,1/3] 与 [2/3,1]（保证全程文字不露白），
-     朱砂光带放正中间 0.47~0.53 —— 宽 0.06×3W＝0.18W。
-     注意这里 W 是【整个艺术字元素】的宽度（background 按元素框铺开），
-     该元素含「构字记」三字，故 0.18W≈半个字宽，扫过时只点亮一个字。 */
-  body[data-nav="single"] .top .brand-art .ch {
-    background-image: linear-gradient(100deg,
-      var(--ink) 0%, var(--ink) 33%,
-      var(--cinnabar) 47%, var(--cinnabar-hi) 50%, var(--cinnabar) 53%,
-      var(--ink) 67%, var(--ink) 100%);
-    background-size: 300% 100%;
-    background-repeat: no-repeat;
-    animation: brandSweep 7s ease-in-out infinite;
-  }
-}
-body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out infinite; }
-
-/* 尊重系统的「减少动态效果」设置：只停动画，绝不能去掉背景渐变——
-   艺术字是「透明文字色 + 背景裁切成字」实现的，背景一旦移除，
-   文字会整个消失（曾在强制 reduce 下实测为不可见）。 */
-@media (prefers-reduced-motion: reduce) {
-  body[data-nav="single"] .top .brand-art .ch { animation: none; }
-  body[data-nav="single"] .top .brand-glyph { animation: none; }
-}
+/* 品牌艺术字：「透明文字 + 背景裁切」实现，见下方 @supports */
 .brand-art { display: inline-flex; align-items: flex-end; }
 .brand-art .ch {
   display: inline-block;
@@ -105,72 +85,448 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
     text-shadow: 0 1px 0 rgba(255, 255, 255, .18), 0 1px 1px rgba(0, 0, 0, .4);
   }
 }
-.brand-sub { font-size: 12px; color: var(--ink-2); letter-spacing: .5px; }
-.top-right { margin-left: auto; display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
 
-/* ============================================================================
-   页脚
-   ============================================================================ */
-.footer {
-  max-width: 860px; margin: var(--s-7) auto 0;
-  padding: var(--s-4) var(--s-4) calc(var(--s-6) + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--edge);
-  font-size: var(--fs-xs); line-height: 1.8; color: var(--ink-soft);
-  text-align: center;
+@keyframes brandFloat {
+  0%, 100% { transform: translateY(2px); }
+  50%      { transform: translateY(0); }
 }
-.footer a { color: var(--bronze); text-decoration: none; border-bottom: 1px dotted currentColor; }
-.footer a:hover { color: var(--cinnabar); }
-.foot-sep { opacity: .5; margin: 0 4px; }
+@keyframes brandSweep {
+  0%   { background-position: -30% 0; }
+  100% { background-position: 130% 0; }
+}
+/* 朱砂光带缓缓扫过三字艺术字（呼应甲骨卜辞的「填朱」）。
+   底色必须是「横向可区分」的渐变，否则平移时取到的颜色不变，扫过毫无效果。 */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .top .brand-art .ch {
+    background-image: linear-gradient(100deg,
+      var(--ink) 0%, var(--ink) 33%,
+      var(--cinnabar) 47%, var(--cinnabar-hi) 50%, var(--cinnabar) 53%,
+      var(--ink) 67%, var(--ink) 100%);
+    background-size: 300% 100%;
+    background-repeat: no-repeat;
+    animation: brandSweep 7s ease-in-out infinite;
+  }
+}
+.top .brand-glyph { animation: brandFloat 7s ease-in-out infinite; }
+/* 尊重系统「减少动态效果」：只停动画，绝不去掉背景渐变——
+   艺术字是「透明文字色 + 背景裁切」实现的，背景一移除文字会整个消失。 */
+@media (prefers-reduced-motion: reduce) {
+  .top .brand-art .ch, .top .brand-glyph { animation: none; }
+}
+
+/* 导航入口 */
+.top-nav { display: flex; align-items: center; gap: 2px; }
+.top-link {
+  display: inline-flex; align-items: center;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-md); color: var(--ink-2); text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease);
+}
+.top-link:hover { background: color-mix(in srgb, var(--bronze) 13%, transparent); color: var(--ink); }
+.top-link.on {
+  color: var(--cinnabar-tint); font-weight: 700;
+  background: color-mix(in srgb, var(--cinnabar) 9%, transparent);
+}
+.top-right { margin-left: auto; display: flex; align-items: center; gap: var(--s-3); flex: 0 0 auto; }
+.top-set { border: 1px solid var(--edge); }
 
 /* ============================================================================
    场景容器
    ============================================================================ */
-.scene { padding-top: var(--s-4); }
+.scene { padding-top: var(--s-5); }
+/* 首页首屏是全幅图，要顶着顶栏；不然"顶栏 + 首屏"会比一屏多出一截 */
+.scene.home-scene { padding-top: 0; }
 .sec-title {
   font-size: var(--fs-lg); margin: var(--s-6) 0 var(--s-3); letter-spacing: 1px;
   color: var(--ink);
 }
+.sec-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--s-4); flex-wrap: wrap; margin: var(--s-7) 0 var(--s-4);
+}
+.sec-head-l { min-width: 0; }
+.sec-h { margin: 0; font-size: 22px; letter-spacing: 2px; }
+.sec-note { margin: var(--s-1) 0 0; font-size: var(--fs-md); color: var(--ink-2); }
+.sec-more {
+  font-size: var(--fs-md); color: var(--bronze-tint); text-decoration: none;
+  white-space: nowrap; padding-bottom: 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--bronze) 45%, transparent);
+}
+.sec-more:hover { color: var(--cinnabar-tint); border-bottom-color: currentColor; }
 
 /* ============================================================================
-   首页卡片
+   首屏：照片直接铺满 + 文字压上去
+   ----------------------------------------------------------------------------
+   照片用 object-fit: cover 铺满整块；压一层暗角纱把文字托出来。
+   文字块本身只有约 260px 高，所以高度交给 min-height——
+   不再需要"按视口高度去挤图片尺寸"那种算法，也就彻底躲开了
+   "首屏比视口高出十几像素"的反复调整。
    ============================================================================ */
-.home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 6px; }
-.home-card {
-  position: relative; padding: var(--s-4) var(--s-4) var(--s-3); cursor: pointer;
-  border-radius: var(--r);
+.hero {
+  position: relative; overflow: hidden;
+  /* 全幅：从 .wrap 的限宽里破出去，照片真正铺满整屏。
+     负外边距 + 100vw 是标准做法；100vw 会把滚动条宽也算进去，
+     靠 body 上已有的 overflow-x: hidden 兜住，不会产生横向滚动。 */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-top: 0;
+  min-height: calc(100vh - 57px);   /* 57 = 顶栏高，合起来正好一屏 */
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ink-deep);      /* 图没出来时的兜底底色 */
+  /* 深色面上的文字色。漏了这一行，文字会继承正文的墨色，
+     压在暗照片上等于看不见——这个坑刚踩过。 */
+  color: var(--on-dark);
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 48%;
+}
+/* 薄纱：只把边角压下去、给骨片留出亮部。
+   可读性主要靠下面那组 text-shadow，而不是靠把照片压黑——
+   压黑了照片就白铺了。 */
+.hero-veil {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 122% 92% at 50% 46%,
+      rgba(20, 17, 13, .06) 0%, rgba(20, 17, 13, .58) 84%),
+    linear-gradient(180deg,
+      rgba(20, 17, 13, .42) 0%,
+      rgba(20, 17, 13, .16) 44%,
+      rgba(20, 17, 13, .62) 100%);
+}
+.hero-in {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--s-4);
+  width: 100%; max-width: 680px;
+  padding: var(--s-6) var(--s-5);
+  text-align: center;
+}
+.hero-body { position: relative; min-width: 0; }
+/* 全幅照片上托字：阴影要够厚，否则骨片的亮部会把字吃掉 */
+.hero-title {
+  text-shadow: 0 2px 20px rgba(10, 8, 6, .92), 0 1px 4px rgba(10, 8, 6, .8);
+}
+.hero-lead, .hero-kicker, .hero-trust {
+  text-shadow: 0 1px 12px rgba(10, 8, 6, .95), 0 1px 3px rgba(10, 8, 6, .8);
+}
+
+/* 署名：右下角小字，不占版面 */
+.hero-credit {
+  position: absolute; right: var(--s-4); bottom: var(--s-3); z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-end;
+  margin: 0; text-align: right;
+}
+.hero-credit .hc-name { font-size: var(--fs-xs); color: var(--on-dark-2); letter-spacing: 1px; }
+.hc-src { font-size: 10px; line-height: 1.45; color: var(--on-dark-3); }
+
+/* 下滑提示：固定在底部居中 */
+.hero-cue {
+  position: absolute; left: 50%; bottom: var(--s-4);
+  transform: translateX(-50%); z-index: 2;
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  font-family: inherit; font-size: var(--fs-sm); letter-spacing: 2px;
+  color: var(--on-dark-2);
+  background: color-mix(in srgb, var(--ink-deep) 42%, transparent);
+  border: 1px solid var(--ink-deep-line);
+  border-radius: var(--r-pill); cursor: pointer;
+  transition: color var(--t-base) var(--ease),
+              border-color var(--t-base) var(--ease),
+              background var(--t-base) var(--ease);
+}
+.hero-cue:hover {
+  color: var(--on-dark);
+  border-color: var(--on-dark-3);
+  background: color-mix(in srgb, var(--ink-deep) 62%, transparent);
+}
+.hero-cue-arrow { animation: cueBob 1.8s ease-in-out infinite; }
+@keyframes cueBob {
+  0%, 100% { transform: translateY(-2px); opacity: .6; }
+  50%      { transform: translateY(2px);  opacity: 1; }
+}
+
+/* 统计条：首屏下面的一条细带（数据滚下来才看，首屏留给照片） */
+.stat-band {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: var(--s-3) var(--s-7);
+  max-width: 680px; margin: var(--s-4) auto 0;
+  padding: var(--s-3) 0;
+  list-style: none;
+  border-top: 1px solid var(--edge);
+  border-bottom: 1px solid var(--edge);
+}
+.stat-cell { display: flex; align-items: baseline; gap: var(--s-2); }
+.stat-cell b { font-size: 20px; letter-spacing: 1px; color: var(--ink); }
+.stat-cell span { font-size: var(--fs-sm); color: var(--ink-2); }
+
+/* ============================================================================
+   首页区块
+   ============================================================================ */
+.home-sec { margin-bottom: var(--s-4); }
+
+/* 玩法入口卡 */
+.play-grid {
+  display: grid; gap: var(--s-4);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.play-card {
+  position: relative; display: flex; flex-direction: column;
+  padding: var(--s-5); text-decoration: none; color: inherit;
+  background: var(--bone-hi);
+  border: 1px solid var(--edge); border-radius: var(--r);
+  box-shadow: var(--sh-1);
   transition: transform var(--t-base) var(--ease),
               box-shadow var(--t-base) var(--ease),
               border-color var(--t-base) var(--ease);
-  overflow: hidden;
 }
-.home-card:hover { transform: translateY(-2px); }
-.home-card:active { transform: translateY(0); box-shadow: var(--sh-1); }
-/* 卡面叠加一层极淡的灼痕，避免大面积纯色 */
-.home-card::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--cinnabar) 7%, transparent), transparent 58%);
+.play-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sh-3);
+  border-color: color-mix(in srgb, var(--bronze) 55%, var(--edge));
 }
-.home-card.primary { border-color: color-mix(in srgb, var(--cinnabar) 55%, var(--edge)); }
-.home-card.primary::after {
-  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--cinnabar) 14%, transparent), transparent 60%);
-}
-.home-card.ghost { opacity: .92; }
-.hc-icon {
+.play-card:active { transform: translateY(-1px); }
+.pc-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); }
+.pc-icon {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 38px; margin-bottom: 8px;
-  background: color-mix(in srgb, var(--bronze) 10%, var(--bone-hi));
-  border: 1px solid var(--edge); border-radius: var(--r-sm);
-  color: var(--cinnabar-tint); font-size: 19px; font-weight: 700;
-  clip-path: polygon(26% 0%, 74% 5%, 100% 26%, 94% 80%, 60% 100%, 20% 94%, 0% 64%, 8% 20%);
+  width: 40px; height: 44px; flex: 0 0 auto;
+  color: #fdf4ea; font-size: 21px; font-weight: 700;
+  border: 1px solid color-mix(in srgb, var(--edge) 70%, #000);
+  clip-path: polygon(28% 2%, 72% 0%, 99% 22%, 94% 80%, 62% 100%, 22% 94%, 0% 66%, 6% 24%);
 }
-.home-card h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: 1px; }
-.home-card p { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-2); line-height: 1.7; }
-.hc-note { font-size: 11.5px; color: var(--bronze-tint); }
+.pc-title { min-width: 0; }
+.pc-title h3 { margin: 0; font-size: 17px; letter-spacing: 1px; }
+.pc-tagline { font-size: var(--fs-sm); color: var(--ink-2); }
+.pc-desc { margin: 0 0 var(--s-3); font-size: var(--fs-md); color: var(--ink-2); line-height: 1.75; }
+.pc-tags { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-bottom: var(--s-3); }
+.pc-prog { display: flex; align-items: center; gap: var(--s-3); margin-top: auto; padding-top: var(--s-2); }
+.pc-progbar {
+  flex: 1 1 auto; height: 6px; border-radius: var(--r-pill); overflow: hidden;
+  background: var(--edge-in); box-shadow: inset 0 0 0 1px var(--edge);
+}
+.pc-progfill {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--bronze-tint), var(--gold));
+  transition: width var(--t-slow) var(--ease);
+}
+.pc-progtext { font-size: var(--fs-xs); color: var(--bronze-tint); white-space: nowrap; }
+.pc-go {
+  /* auto 让「进入」始终贴底：没有进度条的卡（甲骨构字）也能与
+     有进度条的卡底对齐，三张卡的下缘连成一条线 */
+  margin-top: auto; padding-top: var(--s-3);
+  border-top: 1px dashed var(--edge);
+  font-size: var(--fs-sm); color: var(--cinnabar-tint); letter-spacing: 1px;
+}
+
+/* 内容探索：每日一字 + 我的收集 */
+.explore-grid {
+  display: grid; gap: var(--s-4);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+}
+.daily-card, .collect-card {
+  padding: var(--s-5);
+  background: var(--bone-hi);
+  border: 1px solid var(--edge); border-radius: var(--r);
+  box-shadow: var(--sh-1);
+}
+.dc-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--s-3); flex-wrap: wrap;
+  padding-bottom: var(--s-3); margin-bottom: var(--s-4);
+  border-bottom: 1px solid var(--edge);
+}
+.dc-title { margin: 0; font-size: var(--fs-lg); letter-spacing: 2px; }
+.dc-date { font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: 1px; }
+.dc-body { display: flex; gap: var(--s-5); align-items: flex-start; flex-wrap: wrap; }
+/* 甲骨形放在自己的框里；现代字另立"今字"格，不压在甲骨形上 */
+.dc-ob {
+  flex: 0 0 auto; width: 132px; height: 132px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--bronze) 8%, var(--bone-white));
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+}
+.dc-glyph { width: 104px; height: 104px; color: var(--ink); }
+.dc-glyph.composed { opacity: .82; }
+.dc-ob { position: relative; }
+.dc-composednote {
+  position: absolute; left: 0; right: 0; bottom: 2px; text-align: center;
+  font-size: 10px; color: var(--ink-soft); letter-spacing: 1px;
+}
+.dc-info { flex: 1 1 220px; min-width: 0; }
+.dc-pair { display: flex; align-items: baseline; gap: var(--s-3); margin-bottom: var(--s-2); }
+.dc-lab {
+  flex: 0 0 auto; font-size: var(--fs-xs); letter-spacing: 2px; color: var(--ink-soft);
+  padding: 1px var(--s-2); border: 1px solid var(--edge); border-radius: var(--r-xs);
+}
+.dc-char { font-size: 26px; font-weight: 700; letter-spacing: 2px; }
+.dc-comps { font-size: var(--fs-lg); letter-spacing: 2px; color: var(--bronze-tint); }
+.dc-mean { margin: var(--s-3) 0 var(--s-1); font-size: var(--fs-md); color: var(--ink); line-height: 1.8; }
+.dc-src {
+  margin: 0; font-size: var(--fs-sm); color: var(--bronze-tint); line-height: 1.7;
+  padding-left: var(--s-3); border-left: 2px solid color-mix(in srgb, var(--bronze) 40%, transparent);
+}
+
+.cc-body { display: flex; flex-direction: column; gap: var(--s-3); align-items: flex-start; }
+.cc-big { display: flex; align-items: baseline; gap: var(--s-2); }
+.cc-big b { font-size: 36px; line-height: 1; letter-spacing: 1px; }
+.cc-big span { font-size: var(--fs-md); color: var(--ink-2); }
+.cc-bar {
+  display: block; width: 100%; height: 8px; border-radius: var(--r-pill); overflow: hidden;
+  background: var(--edge-in); box-shadow: inset 0 0 0 1px var(--edge);
+}
+.cc-fill {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--cinnabar), var(--cinnabar-hi));
+  transition: width var(--t-slow) var(--ease);
+}
+.cc-kinds { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: var(--s-1); }
+.cc-kind {
+  display: flex; justify-content: space-between; gap: var(--s-3);
+  font-size: var(--fs-sm); padding: var(--s-1) 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--edge) 60%, transparent);
+}
+.cc-kname { color: var(--ink-2); }
+.cc-knum { color: var(--bronze-tint); font-variant-numeric: tabular-nums; }
+.cc-note { margin: 0; font-size: var(--fs-sm); color: var(--ink-soft); line-height: 1.7; }
 
 /* ============================================================================
-   模式选择卡
+   汉字图鉴
    ============================================================================ */
-.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.atlas-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--s-4); flex-wrap: wrap; margin-bottom: var(--s-4);
+}
+.atlas-prog { display: flex; align-items: baseline; gap: var(--s-1); }
+.atlas-prog b { font-size: 30px; line-height: 1; }
+.atlas-prog span { font-size: var(--fs-sm); color: var(--ink-2); }
+
+.atlas-bar {
+  display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+  margin-bottom: var(--s-3);
+}
+.atlas-tabs { display: flex; gap: var(--s-1); flex-wrap: wrap; }
+.chipbtn {
+  font-family: inherit; font-size: var(--fs-sm); line-height: 1;
+  padding: var(--s-2) var(--s-3);
+  color: var(--ink-2); background: var(--bone-hi);
+  border: 1px solid var(--edge); border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease);
+}
+.chipbtn:hover { border-color: color-mix(in srgb, var(--bronze) 55%, var(--edge)); color: var(--ink); }
+.chipbtn.on {
+  color: #fdf4ea; background: var(--cinnabar);
+  border-color: color-mix(in srgb, var(--cinnabar) 70%, #000);
+}
+.atlas-search { margin-left: auto; min-width: 220px; flex: 1 1 220px; max-width: 320px; }
+.atlas-count { margin: 0 0 var(--s-3); font-size: var(--fs-sm); color: var(--ink-soft); }
+
+.atlas-grid {
+  display: grid; gap: var(--s-3);
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+}
+.atlas-card {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-1) var(--s-2);
+  background: var(--bone-hi); border: 1px solid var(--edge); border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease);
+}
+.atlas-card:hover {
+  transform: translateY(-2px); box-shadow: var(--sh-2);
+  border-color: color-mix(in srgb, var(--bronze) 60%, var(--edge));
+}
+.atlas-card.got { border-color: color-mix(in srgb, var(--green) 42%, var(--edge)); }
+.ac-ob {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 62px; height: 62px;
+}
+.ac-glyph { width: 56px; height: 56px; color: var(--ink); }
+.ac-noglyph { font-size: var(--fs-xs); color: var(--ink-soft); }
+/* 构件组合示意：与整字真字形区分开（虚线内框 + 略淡），
+   避免让人误以为这就是该字的甲骨写法 */
+.ac-glyph.composed { opacity: .82; }
+.ac-ob:has(.composed) { border: 1px dashed color-mix(in srgb, var(--edge) 80%, transparent); border-radius: var(--r-xs); }
+.as-composednote {
+  font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: 1px;
+}
+/* 与游戏里一致：现代字默认不印在甲骨形上，悬停/聚焦才浅浅浮出 */
+.ac-char {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  padding: 1px 6px; border-radius: var(--r-xs);
+  font-size: var(--fs-md); font-weight: 700; color: var(--cinnabar-tint);
+  background: color-mix(in srgb, var(--bone-hi) 90%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--edge) 55%, transparent);
+  opacity: 0; transition: opacity var(--t-base) var(--ease);
+  pointer-events: none; white-space: nowrap;
+}
+.atlas-card:hover .ac-char,
+.atlas-card:focus-visible .ac-char,
+.atlas-card:active .ac-char { opacity: 1; }
+.ac-kind { font-size: 10px; color: var(--ink-soft); letter-spacing: .5px; }
+
+/* 详情浮层：宽屏居中弹窗，窄屏铺满（.overlay/.edbox 在 theme.css 里统一定义） */
+.atlas-sheet { max-width: 620px; }
+.atlas-sheet .edhead { align-items: center; }
+.as-kind {
+  font-size: var(--fs-xs); color: var(--bronze-tint);
+  padding: 1px var(--s-2); border: 1px solid var(--edge); border-radius: var(--r-xs);
+}
+.as-close { margin-left: auto; }
+.as-body { display: flex; gap: var(--s-6); align-items: flex-start; flex-wrap: wrap; }
+.as-left {
+  flex: 0 0 auto; width: 150px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-2);
+}
+.as-glyph { width: 132px; height: 132px; color: var(--ink); }
+.as-char { font-size: 30px; font-weight: 700; letter-spacing: 2px; }
+.as-charlab { font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: 2px; }
+.as-right { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.as-line { margin: 0; font-size: var(--fs-md); color: var(--ink-2); line-height: 1.8; }
+.as-src { color: var(--bronze-tint); }
+.as-links { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-2); }
+.as-state {
+  margin: var(--s-2) 0 0; font-size: var(--fs-sm); color: var(--ink-soft);
+  padding-top: var(--s-2); border-top: 1px dashed var(--edge);
+}
+.as-state.got { color: var(--green-tint); }
+
+/* ============================================================================
+   玩法说明
+   ============================================================================ */
+.howto-sec {
+  padding: var(--s-5);
+  margin-bottom: var(--s-4);
+  background: var(--bone-hi);
+  border: 1px solid var(--edge); border-radius: var(--r);
+  box-shadow: var(--sh-1);
+}
+.howto-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); flex-wrap: wrap; }
+.howto-head .btn { margin-left: auto; }
+.howto-name { margin: 0; font-size: var(--fs-lg); letter-spacing: 1px; }
+.howto-desc { margin: 0 0 var(--s-3); font-size: var(--fs-md); color: var(--ink-2); line-height: 1.8; }
+.howto-steps, .howto-list { margin: 0; padding-left: 1.4em; }
+.howto-steps li, .howto-list li {
+  font-size: var(--fs-md); color: var(--ink-2); line-height: 1.85; margin-bottom: var(--s-1);
+}
+.howto-steps li b, .howto-list li b { color: var(--cinnabar-tint); margin-right: var(--s-2); }
+.howto-tags { display: flex; gap: var(--s-1); flex-wrap: wrap; margin-top: var(--s-3); }
+.howto-tips { background: color-mix(in srgb, var(--bronze) 7%, var(--bone-hi)); }
+
+/* ============================================================================
+   模式选择卡（保留原样，sceneModes 仍在用）
+   ============================================================================ */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--s-4); }
 .mode-card {
   position: relative; padding: var(--s-4) var(--s-4) var(--s-3); cursor: pointer;
   border-radius: var(--r);
@@ -182,7 +538,7 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
 .mode-card:active { transform: translateY(0); box-shadow: var(--sh-1); }
 .mode-card.pending { cursor: default; opacity: .78; }
 .mode-card.pending:hover { transform: none; border-color: var(--edge); }
-.mc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.mc-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-2); }
 .mc-icon {
   display: inline-flex; align-items: center; justify-content: center;
   width: 38px; height: 42px; flex: 0 0 auto;
@@ -192,22 +548,22 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
 }
 .mc-title { min-width: 0; }
 .mc-title h3 { margin: 0; font-size: 16.5px; letter-spacing: .5px; }
-.mc-tagline { font-size: 11.5px; color: var(--ink-2); }
+.mc-tagline { font-size: var(--fs-sm); color: var(--ink-2); }
 .mc-badge {
   margin-left: auto; font-size: 10.5px; padding: 2px 7px; border-radius: var(--r-pill);
   border: 1px solid var(--edge); color: var(--bronze-tint);
   background: color-mix(in srgb, var(--bronze) 14%, transparent);
 }
-.mc-desc { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-2); line-height: 1.7; }
-.mc-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-.mc-foot { font-size: 11px; color: var(--ink-soft); border-top: 1px dashed var(--edge); padding-top: 7px; }
+.mc-desc { margin: 0 0 var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.7; }
+.mc-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: var(--s-2); }
+.mc-foot { font-size: var(--fs-xs); color: var(--ink-soft); border-top: 1px dashed var(--edge); padding-top: 7px; }
 
 /* ============================================================================
-   设置页通用
+   设置页
    ============================================================================ */
-.tune { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 9px 0; }
-.tune > label { font-size: 13px; color: var(--ink-2); flex: 0 0 auto; min-width: 84px; }
-.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.tune { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; margin: var(--s-2) 0; }
+.tune > label { font-size: var(--fs-md); color: var(--ink-2); flex: 0 0 auto; min-width: 84px; }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
 .opts.three { grid-template-columns: repeat(3, 1fr); }
 .opt {
   border: 1px solid var(--edge); background: var(--bone-hi);
@@ -226,243 +582,230 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
 .opt .d { display: block; font-size: 11px; color: var(--ink-2); margin-top: 3px; line-height: 1.55; }
 
 /* ============================================================================
-   壳层布局
-   首页：单列，整块内容居中
-   内页：左侧功能栏 + 右侧内容（data-nav="side"）
+   壳层与宽屏玩法
    ============================================================================ */
-.app-shell { position: relative; z-index: 1; min-height: 100vh; }
-.app-main { min-width: 0; }
+.app-shell { position: relative; z-index: 1; min-height: 60vh; }
 
-body[data-nav="side"] .top { display: none; }
-
-/* 移动端：侧栏折为顶部横条 */
-@media (max-width: 720px) {
-  .app-shell { display: flex; flex-direction: column; min-height: 0; }
-}
+/* 宽屏玩法（模式声明 layout:'wide'）：内容列铺满整个界面。
+   只放开 .app-main 不够——#sceneRoot 本身就是 <main class="wrap">，
+   而 .wrap 有 max-width，它才是真正卡住整幅画的那个。 */
+.app-shell.layout-wide .wrap { max-width: none; padding-left: var(--s-3); padding-right: var(--s-3); }
 
 /* ============================================================================
-   左侧功能栏
+   页脚
    ============================================================================ */
-.app-nav { display: none; }
-
-body[data-nav="side"] .app-nav {
-  --nav-w: 186px;
-  display: flex; flex-direction: column; gap: 3px;
-  box-sizing: border-box;
-  position: fixed; left: 0; top: 4vh; z-index: 20;
-  width: var(--nav-w);
-  max-height: 92vh; overflow-y: auto;
-  padding: var(--s-4) var(--s-3);
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--bone-hi) 96%, var(--bone)) 0%,
-      var(--bone-hi) 50%,
-      color-mix(in srgb, var(--bone-hi) 90%, var(--bone-lo)) 100%);
-  border: 1px solid var(--edge);
-  border-left: 0;
-  border-radius: 0 var(--r) var(--r) 0;
-  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
-}
-
-/* 侧栏不再做四角刻点：那是上一版的"雕刻感"，与简约取向冲突。
-   改为一条极淡的右缘投影，把侧栏与内容列分开，不出声。 */
-.app-nav { box-shadow: var(--sh-2); }
-
-/* 侧栏里的品牌 */
-.app-nav .nav-brand {
-  display: flex; align-items: flex-end; gap: 2px; margin: 0 0 3px;
-  position: relative;
-}
-/* 窄屏下顶部横条容不下 品牌(71)+四项导航(约350)+印章：
-   页面本身已有标题，横条只留导航，避免把「内容与设置」挤出屏幕 */
-@media (max-width: 720px) {
-  .app-nav .nav-brand { display: none; }
-}
-.app-nav .nav-brand .brand-glyph { height: 24px; transform: translateY(1px); }
-.app-nav .nav-brand .brand-art .ch { font-size: 21px; }
-.app-nav .nav-sub {
-  font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: .4px;
-  line-height: 1.45; margin: 0 0 var(--s-3); padding-bottom: var(--s-3);
-  border-bottom: 1px solid var(--edge);
-}
-
-/* 导航项 */
-.app-nav .nav-item {
-  display: flex; align-items: center; gap: var(--s-3);
-  position: relative; z-index: 1;
-  padding: var(--s-2) var(--s-3); border-radius: var(--r-sm);
-  color: var(--ink); text-decoration: none; font-size: var(--fs-md);
-  border: 1px solid transparent;
-  transition: background var(--t-fast) var(--ease),
-              border-color var(--t-fast) var(--ease),
-              color var(--t-fast) var(--ease),
-              transform var(--t-fast) var(--ease);
-}
-.app-nav .nav-item:hover {
-  border-color: color-mix(in srgb, var(--bronze) 45%, transparent);
-  background: color-mix(in srgb, var(--bronze) 9%, transparent);
-}
-.app-nav .nav-item:active { transform: translateY(1px); }
-.app-nav .nav-item .nav-ico {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 25px; height: 28px; flex: 0 0 auto;
-  background: color-mix(in srgb, var(--bronze) 10%, var(--bone-hi));
-  border: 1px solid var(--edge); border-radius: var(--r-xs);
-  color: var(--ink-2); font-size: 13px; font-weight: 700;
-  clip-path: polygon(26% 0%, 74% 5%, 100% 26%, 94% 80%, 60% 100%, 20% 94%, 0% 64%, 8% 20%);
-}
-
-.app-nav .nav-label { letter-spacing: .5px; }
-
-/* 当前项：左侧一道朱砂短条 + 淡朱砂底。
-   比上一版"整块描红"更克制，也更容易在多项之间一眼分出主次。 */
-.app-nav .nav-item.on {
-  border-color: color-mix(in srgb, var(--cinnabar) 30%, transparent);
-  background: color-mix(in srgb, var(--cinnabar) 9%, transparent);
-}
-.app-nav .nav-item.on::before {
-  content: '';
-  position: absolute; left: calc(var(--s-1) * -1); top: 50%;
-  transform: translateY(-50%);
-  width: 3px; height: 18px;
-  background: var(--cinnabar); border-radius: 0 2px 2px 0;
-}
-.app-nav .nav-item.on .nav-ico {
-  color: #fdf4ea;
-  background: var(--cinnabar);
-  border-color: color-mix(in srgb, var(--cinnabar) 60%, #000);
-}
-.app-nav .nav-item.on .nav-label { color: var(--ink); font-weight: 600; }
-
-/* 侧栏底部：试玩版印章 + 版本 */
-.app-nav .nav-foot {
-  position: relative; z-index: 1;
-  margin-top: auto; padding-top: var(--s-3);
+.footer {
+  margin-top: var(--s-8);
+  padding: var(--s-6) var(--s-5) calc(var(--s-5) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--edge);
-  display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap;
-  opacity: .9;
+  background: color-mix(in srgb, var(--bone-lo) 45%, transparent);
 }
-.app-nav .nav-ver { font-size: 10.5px; color: var(--ink-soft); letter-spacing: .5px; }
-
-/* 侧栏模式下的内容列与页脚 */
-body[data-nav="side"] .app-main { width: auto; }
-body[data-nav="side"] .wrap { padding-bottom: 34px; }
-body[data-nav="side"] .footer {
-  border-top: 0; padding: var(--s-2) var(--s-4) calc(var(--s-5) + env(safe-area-inset-bottom));
-  text-align: left;
+.foot-in {
+  max-width: 1080px; margin: 0 auto;
+  display: grid; gap: var(--s-6);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.2fr);
 }
-/* 宽屏玩法（地图/构字/BOSS）下页脚也放开限宽，与内容列对齐 */
-body[data-nav="side"] .app-shell.layout-wide .footer { max-width: none; }
-
-@media (min-width: 721px) {
-  body[data-nav="side"] .app-shell {
-    display: grid;
-    grid-template-columns: 232px minmax(0, 1fr);
-    align-items: start;
-  }
-  /* 显式放到第二列：侧栏是 position:fixed（脱离文档流），
-     不能让主内容依赖自动排布，否则会落到第一列被压窄 */
-  body[data-nav="side"] .app-main {
-    grid-column: 2;
-    max-width: 900px;
-    padding: 0 14px 30px;
-  }
+.foot-h { margin: 0 0 var(--s-2); font-size: var(--fs-md); letter-spacing: 2px; }
+.foot-p { margin: 0 0 var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.85; }
+.foot-p a { color: var(--bronze-tint); text-decoration: none; border-bottom: 1px dotted currentColor; }
+.foot-p a:hover { color: var(--cinnabar-tint); }
+.foot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.foot-item { display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-sm); }
+.foot-item a { color: var(--ink); text-decoration: none; }
+.foot-item a:hover { color: var(--cinnabar-tint); }
+.foot-tag { font-size: var(--fs-xs); color: var(--ink-soft); }
+.foot-seal { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); }
+.foot-ver { font-size: var(--fs-xs); color: var(--ink-soft); }
+.foot-ver em { font-style: normal; }
+.foot-bar {
+  max-width: 1080px; margin: var(--s-5) auto 0; padding-top: var(--s-4);
+  border-top: 1px solid color-mix(in srgb, var(--edge) 60%, transparent);
+  font-size: var(--fs-xs); color: var(--ink-soft);
+  display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-2);
 }
-
+.foot-sep { opacity: .5; }
 
 /* ============================================================================
-   宽屏玩法（模式声明 layout:'wide'）
-   侧栏让位、内容列占满整个界面。
-   起因：.app-main 被限宽 900px 且落在 grid 第二列，王邑图卷作为主打玩法
-   却缩在右侧一块，右边空一大片——整幅画铺不开。
+   响应式
    ============================================================================ */
-body[data-nav="side"] .app-shell.layout-wide .app-main { max-width: none; }
-/* 只放开 .app-main 还不够：#sceneRoot 本身就是 <main class="wrap">，
-   而 .wrap 有 max-width:860px —— 它才是真正卡住整幅画的那个。
-   （逐层量过祖先才看出来：app-main 已是 1406，wrap 仍停在 860。） */
-body[data-nav="side"] .app-shell.layout-wide .wrap { max-width: none; }
 
-@media (min-width: 721px) {
-  body[data-nav="side"] .app-shell.layout-wide {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  body[data-nav="side"] .app-shell.layout-wide .app-nav { display: none; }
-  body[data-nav="side"] .app-shell.layout-wide .app-main {
-    grid-column: 1;
-    max-width: none;
-    padding: 0 12px 16px;
-  }
+/* 中屏：探索区改单列，玩法卡两列 */
+@media (max-width: 900px) {
+  .explore-grid { grid-template-columns: 1fr; }
+  .foot-in { grid-template-columns: 1fr 1fr; }
 }
 
-/* ============================================================================
-   首页：整块内容水平居中
-   导语与卡片共用同一限宽，保证两者左边界对齐、作为一整块居中
-   ============================================================================ */
-.scene.home-scene { text-align: center; }
-.home-scene .home-lead {
-  max-width: 680px; margin: 22px auto 20px; font-size: 14.5px; line-height: 1.88;
-}
-.home-scene .home-grid {
-  max-width: 680px; margin-left: auto; margin-right: auto;
-  grid-template-columns: repeat(2, 1fr);
-  text-align: left;
-}
-/* 卡片内的说明文字限宽，避免宽屏下撑成大段 */
-.home-scene .home-card p { max-width: 40ch; }
-
-/* ============================================================================
-   窄屏（≤720px）：功能栏折为顶部横条
-   注意：断点必须与上面解除两栏网格的 720px 完全一致。
-   曾经把这段放进 560px 的媒体查询里，导致 560~720px 区间
-   网格已塌成单列、侧栏却仍是 position:fixed 竖排，直接浮在内容之上。
-   ============================================================================ */
+/* 窄屏：顶栏折成两行（品牌一行、入口一行可横滑），首屏收紧 */
 @media (max-width: 720px) {
-  body[data-nav="side"] .app-nav {
-    position: static; width: auto; max-height: none;
-    flex-direction: row; align-items: center;
-    gap: 6px; padding: 8px 11px;
-    border: 0; border-bottom: 1px solid var(--edge);
-    border-radius: 0; box-shadow: none;
+  /* 窄屏顶栏折两行，高度变大，首屏的"满一屏"要跟着扣 */
+  .hero { min-height: calc(100vh - 101px); }
+  .top { flex-wrap: wrap; row-gap: 0; padding: var(--s-2) var(--s-3) 0; }
+  .top-brand { font-size: 22px; }
+  .brand-glyph { height: 22px; }
+  .top-right { gap: var(--s-2); }
+  .top-seal { display: none; }
+  .top-nav {
+    order: 3; flex: 1 1 100%; margin: 0 calc(var(--s-1) * -1) var(--s-1);
     overflow-x: auto; overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-  body[data-nav="side"] .app-nav::-webkit-scrollbar { display: none; }
-  body[data-nav="side"] .app-nav::before { display: none; }
-  body[data-nav="side"] .app-nav .nav-sub { display: none; }
-  body[data-nav="side"] .app-nav .nav-foot { display: none; }
-  body[data-nav="side"] .app-nav .nav-ver { display: none; }
-  body[data-nav="side"] .app-nav .nav-item { padding: 6px 8px; font-size: 12.5px; white-space: nowrap; }
-  body[data-nav="side"] .app-nav .nav-item .nav-ico { width: 21px; height: 24px; font-size: 12px; }
-}
+  .top-nav::-webkit-scrollbar { display: none; }
+  .top-link { padding: var(--s-2); font-size: var(--fs-sm); }
 
-/* ============================================================================
-   响应式：手机优先
-   ============================================================================ */
-@media (max-width: 560px) {
-  .wrap { padding: 0 11px calc(20px + env(safe-area-inset-bottom)); }
-  .top { padding: 12px 11px 9px; }
-  .brand { font-size: 26px; }
-  .brand-glyph { height: 26px; }
-  .brand-sub { flex: 1 1 100%; margin-top: 2px; font-size: 11.5px; }
-  .top-right { flex: 1 1 100%; margin-left: 0; justify-content: flex-end; }
-  .home-grid, .mode-grid { grid-template-columns: 1fr; }
+  .wrap { padding: 0 var(--s-3) var(--s-6); }
+  .scene { padding-top: var(--s-3); }
+
+  /* 触控目标：窄屏一切可点元素的净高提到 44px（Apple/Google 的建议值）。
+     实测这之前品牌 22px、更多链接 25px、页脚链接 21px，都偏小。 */
+  .top-brand { align-items: center; min-height: 44px; padding: var(--s-1) 0; }
+  .top-link { min-height: 44px; }
+  .sec-more {
+    display: inline-flex; align-items: center;
+    min-height: 44px; padding: var(--s-2) 0;
+  }
+  .foot-item a { display: flex; align-items: center; min-height: 40px; }
+  .foot-p a { padding: var(--s-1) 0; }
+  .hero-in { gap: var(--s-3); padding: var(--s-4) var(--s-4) var(--s-4); }
+  /* 窄屏一屏更紧：图按 24vh 取，说明牌缩小 */
+  .hero-bone { height: min(24vh, 180px); }
+  .hero-credit { padding: var(--s-1) var(--s-1) var(--s-2); }
+  .hc-src { font-size: 9px; line-height: 1.45; }
+  .hero-title { font-size: 26px; letter-spacing: 2px; }
+  .hero-lead { margin-bottom: var(--s-3); }
+  .hero-cue { margin-top: var(--s-1); }
+  .stat-band { gap: var(--s-2) var(--s-4); margin-top: var(--s-3); }
+  .hero-lead { font-size: var(--fs-md); }
+  .hero-facts { gap: var(--s-3) var(--s-4); }
+  .hero-fact b { font-size: 18px; }
+  /* 收回"整宽"：两个按钮并排，比堆叠省 44px，一屏才放得下 */
+  .hero-main { min-width: 0; }
+  .sec-h { font-size: 19px; }
+  .sec-head { margin: var(--s-6) 0 var(--s-3); }
+  .play-grid { grid-template-columns: 1fr; }
+  .dc-body { gap: var(--s-4); }
+  .dc-ob { width: 108px; height: 108px; }
+  .dc-glyph { width: 84px; height: 84px; }
+  .atlas-search { margin-left: 0; max-width: none; min-height: 44px; }
+  /* 筛选片实测 31px，差一点点；提到 36px 既好点又不至于占满一行 */
+  .chipbtn { min-height: 36px; }
+  .atlas-grid { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: var(--s-2); }
+  .ac-ob { width: 52px; height: 52px; }
+  .ac-glyph { width: 46px; height: 46px; }
+  .as-body { gap: var(--s-4); }
+  .as-left { width: 108px; }
+  .as-glyph { width: 96px; height: 96px; }
+  /* 页脚：三列堆成一列，收紧间距；玩法列表改成两列网格，
+     否则 390px 下页脚能占到 640px 高，把内容挤出屏幕 */
+  .foot-in { grid-template-columns: 1fr; gap: var(--s-4); }
+  .foot-list { grid-template-columns: 1fr 1fr; gap: var(--s-1) var(--s-3); }
+  .foot-h { margin-bottom: var(--s-1); }
+  .foot-p { line-height: 1.75; }
+  .footer { padding-top: var(--s-5); }
+  .foot-bar { margin-top: var(--s-4); padding-top: var(--s-3); font-size: 10.5px; }
   .opts, .opts.three { grid-template-columns: 1fr; }
   .tune > label { flex: 1 1 100%; min-width: 0; margin-bottom: 3px; }
   .tune > select, .tune > input[type="text"] { flex: 1 1 100%; min-height: 42px; font-size: 15px; }
   .tune > .btn { min-height: 40px; }
   .btn { min-height: 40px; }
-  .btn.sm { min-height: 36px; }
+  .btn.sm { min-height: 34px; }
   .tl-table { display: block; overflow-x: auto; white-space: nowrap; }
-
-  .home-scene .home-lead { margin: 20px auto 18px; font-size: 13.5px; }
 }
 
-@media (min-width: 561px) and (max-width: 900px) {
-  .home-grid { grid-template-columns: repeat(2, 1fr); }
+/* 极窄：单列到底 */
+@media (max-width: 400px) {
+  .hero-title { font-size: 23px; }
+  .atlas-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
 }
 
+/* 极矮屏（手机横屏等）：首屏内容比视口还高时，让次要文字退场 */
+@media (max-height: 520px) {
+  .hero-lead, .hero-trust { display: none; }
+  .hero-in { padding: var(--s-4) var(--s-4); gap: var(--s-2); }
+  .hero-credit { right: var(--s-3); bottom: var(--s-2); }
+  .hc-src { font-size: 8px; }
+}
+
+/* 手机横屏且很矮：顶栏收紧，页脚不占屏 */
 @media (max-height: 480px) and (orientation: landscape) {
-  .brand { font-size: 22px; }
+  .top-brand { font-size: 20px; }
   .footer { display: none; }
+}
+
+/* ============================================================================
+   评级与成就墙
+   ----------------------------------------------------------------------------
+   评级是"收集度 → 称号"，成就是 14 项具体目标。
+   未达成的**不灰掉了事**——显示进度条与 now/need，让人知道还差多少。
+   ============================================================================ */
+.cc-rank {
+  width: 100%; display: flex; flex-direction: column; gap: 2px;
+  padding: var(--s-3) var(--s-3);
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 28%, var(--edge));
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--cinnabar) 6%, var(--bone-hi));
+}
+.cc-ranklab { font-size: var(--fs-xs); letter-spacing: 3px; color: var(--cinnabar-tint); }
+.cc-rankname { font-size: 20px; letter-spacing: 3px; color: var(--ink); }
+.cc-ranknote { font-size: var(--fs-xs); color: var(--ink-2); }
+
+.ach-card {
+  margin-top: var(--s-4);
+  padding: var(--s-5);
+  background: var(--bone-hi);
+  border: 1px solid var(--edge); border-radius: var(--r);
+  box-shadow: var(--sh-1);
+}
+.ach-grid {
+  display: grid; gap: var(--s-3);
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+.ach-item {
+  display: flex; gap: var(--s-3); align-items: flex-start;
+  padding: var(--s-3);
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bone-lo) 30%, var(--bone-hi));
+  transition: border-color var(--t-base) var(--ease),
+              background var(--t-base) var(--ease);
+}
+/* 已达成：朱砂描边 + 淡底，与未达成一眼可分 */
+.ach-item.done {
+  border-color: color-mix(in srgb, var(--cinnabar) 42%, var(--edge));
+  background: color-mix(in srgb, var(--cinnabar) 7%, var(--bone-hi));
+}
+.ach-icon {
+  flex: 0 0 auto; width: 34px; height: 38px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-soft); font-size: 16px; font-weight: 700;
+  background: color-mix(in srgb, var(--bronze) 10%, var(--bone-hi));
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  clip-path: polygon(26% 0%, 74% 5%, 100% 26%, 94% 80%, 60% 100%, 20% 94%, 0% 64%, 8% 20%);
+}
+.ach-item.done .ach-icon {
+  color: #fdf4ea; background: var(--cinnabar);
+  border-color: color-mix(in srgb, var(--cinnabar) 70%, #000);
+}
+.ach-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ach-top { display: flex; align-items: baseline; gap: var(--s-2); }
+.ach-name { font-size: var(--fs-md); letter-spacing: 1px; }
+.ach-item.done .ach-name { color: var(--cinnabar-tint); }
+.ach-mark {
+  margin-left: auto; font-size: 10px; letter-spacing: 1px;
+  color: var(--cinnabar-tint);
+}
+.ach-desc { font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.55; }
+.ach-bar {
+  display: block; height: 4px; border-radius: var(--r-pill); overflow: hidden;
+  background: var(--edge-in); box-shadow: inset 0 0 0 1px var(--edge);
+}
+.ach-fill {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--bronze), var(--cinnabar));
+  transition: width var(--t-slow) var(--ease);
+}
+.ach-num { font-size: 10px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .ach-grid { grid-template-columns: 1fr; }
+  .cc-rankname { font-size: 17px; }
 }
