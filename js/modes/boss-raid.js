@@ -131,7 +131,8 @@
     view: 'track',      /* track（线性选关）| fight | win */
     idx: 0,             /* 当前关卡序号（0 基） */
     boss: null, tier: null,
-    phase: 1, hp: 100, broken: [], cut: [], miss: 0, log: [], hint: false
+    phase: 1, hp: 100, broken: [], cut: [], miss: 0, log: [], hint: false,
+    showNames: false   /* 构件池"显示名字"总开关（触屏用，见 renderPool） */
   };
 
   /* ============================================================
@@ -174,7 +175,7 @@
       S.tier = L[i].tier;
       S.view = 'fight';
       S.phase = 1; S.hp = 100; S.broken = []; S.cut = []; S.miss = 0;
-      S.log = []; S.hint = false;
+      S.log = []; S.hint = false; S.showNames = false;
       say('sys', '第 ' + (i + 1) + ' 关 · 讨伐开始',
         '一尊 ' + segOf(S.boss) + ' 段的古字挡在面前。拆开它，就知道是哪个字了。');
       render();
@@ -535,7 +536,8 @@
       if (S.phase === 1) {
         head.appendChild(App.el('span', 'bd-pool-note',
           '挑一个构件砸上去（已拆 ' + S.broken.length + ' / ' + need.length + '）'
-          + (S.miss ? '　误选 ' + S.miss + ' 次' : '')));
+          + (S.miss ? '　误选 ' + S.miss + ' 次' : '')
+          + '　指针放上去看名字'));
       } else if (S.phase === 2) {
         head.appendChild(App.el('span', 'bd-pool-note dead',
           '形体错乱，构件对不上号了——这一手已经失效，改用笔画'));
@@ -543,7 +545,14 @@
         head.appendChild(App.el('span', 'bd-pool-note dead',
           '已经拆到没有构件可对了——只剩笔画'));
       }
+      /* 触屏没有悬停，给一个常显开关——这就是"点击显示名字"。
+         默认关着：甲骨形上不印现代字是既定规则。 */
+      var toggle = App.el('button', 'btn sm ghost bd-pool-toggle',
+        S.showNames ? '隐藏名字' : '显示名字');
+      toggle.onclick = function () { S.showNames = !S.showNames; render(); };
+      head.appendChild(toggle);
       box.appendChild(head);
+      if (S.showNames) { box.className += ' show-names'; }
 
       var grid = App.el('div', 'bd-poolgrid');
       pool.forEach(function (c) {
@@ -559,9 +568,10 @@
         if (App.hasGlyph(c)) { sv.innerHTML = App.glyphSvg(c, 'currentColor'); }
         chip.appendChild(sv);
 
-        /* 构件名得看得见才挑得动，所以不做完全隐藏：
-           默认压到很淡（浅浅的现代字），指针落上去才恢复清晰。 */
-        chip.appendChild(App.el('span', 'bd-chipname', c));
+        /* 构件名同样不直接印在甲骨形上：默认 opacity 0，
+           悬停 / 键盘聚焦 / 按住（触屏）才浮出；
+           池子标题栏的「显示名字」可让全池常显。 */
+        chip.appendChild(App.el('span', 'bd-chipname bo-spoiler-a', c));
         chip.onclick = function () { pickComp(c, idx, hit); };
         grid.appendChild(chip);
       });

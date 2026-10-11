@@ -1106,14 +1106,20 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 }
 .bd-chip:active { transform: translateY(0); }
 .bd-chipglyph { width: 32px; height: 32px; color: var(--ink); display: block; }
+/* 构件名默认不显示（opacity 由 .bo-spoiler-a 管）：
+   甲骨形上不印现代字是既定规则，池子也不例外。 */
 .bd-chipname {
   font-size: 10.5px; line-height: 1.25; letter-spacing: .5px;
   color: var(--bronze-tint);
-  opacity: .42;
-  transition: opacity var(--t-base) var(--ease);
 }
-.bd-chip:hover .bd-chipname,
-.bd-chip:focus-visible .bd-chipname { opacity: 1; }
+/* 名字浮出时给一层薄骨底，压在字上也能看清 */
+.bd-chip .bo-spoiler-a {
+  padding: 0 3px; border-radius: 2px;
+  background: color-mix(in srgb, var(--bone-hi) 86%, transparent);
+}
+/* 「显示名字」开关：点开后全池常显 */
+.bd-pool.show-names .bd-chipname { opacity: 1; }
+.bd-pool-toggle { margin-left: auto; }
 
 /* 已拆下来的那块：沉下去、虚线 */
 .bd-chip.done { opacity: .34; border-style: dashed; cursor: default; }
@@ -1141,5 +1147,5 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 @media (max-width: 760px) {
   .bd-poolgrid { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
   .bd-chipglyph { width: 26px; height: 26px; }
-  .bd-chipname { font-size: 9.5px; opacity: .6; }
+  .bd-chipname { font-size: 9.5px; }
 }

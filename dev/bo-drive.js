@@ -141,7 +141,14 @@
         + '（应 37）');
       log('  池子说明: 「' + txt(q(H('.bd-pool-note'))) + '」');
       var cn = q(H('.bd-chipname'));
-      log('  构件名默认很淡: 「' + txt(cn) + '」opacity=' + opa(cn) + '（应 <1，浅浅的）');
+      log('  构件名默认隐藏: 「' + txt(cn) + '」computed opacity=' + opa(cn) + '（应 0）');
+      log('  池子说明: 「' + txt(q(H('.bd-pool-note'))) + '」');
+      log('  「显示名字」开关在: ' + flag(!!btnByText(/^显示名字$/)));
+      tap(btnByText(/^显示名字$/));
+      log('  点开关后 → 全池名字: opacity=' + opa(q(H('.bd-chipname')))
+        + '（应 1）　开关文案变「' + txt(btnByText(/名字/)) + '」');
+      tap(btnByText(/^隐藏名字$/));
+      log('  再点一次 → opacity=' + opa(q(H('.bd-chipname'))) + '（应回到 0）');
 
       log('');
       log('--- 身上那块不能直接点（点了等于报答案）---');
