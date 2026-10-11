@@ -37,11 +37,11 @@
     h1.appendChild(img);
     var art = App.el('span', 'brand-art');
     art.setAttribute('aria-hidden', 'true');
-    ['构', '字', '记'].forEach(function (ch) {
+    ['造', '词', '记'].forEach(function (ch) {
       art.appendChild(App.el('span', 'ch', ch));
     });
     h1.appendChild(art);
-    h1.appendChild(App.el('span', 'sr-only', '甲骨构字记'));
+    h1.appendChild(App.el('span', 'sr-only', '甲骨造词记'));
     left.appendChild(h1);
     /* 首页整块居中，副标题交给场景里的导语承担，这里不重复 */
     if (current.name !== 'home') {
@@ -101,11 +101,11 @@
     brand.appendChild(img);
     var art = App.el('span', 'brand-art');
     art.setAttribute('aria-hidden', 'true');
-    ['构', '字', '记'].forEach(function (ch) {
+    ['造', '词', '记'].forEach(function (ch) {
       art.appendChild(App.el('span', 'ch', ch));
     });
     brand.appendChild(art);
-    brand.appendChild(App.el('span', 'sr-only', '甲骨构字记'));
+    brand.appendChild(App.el('span', 'sr-only', '甲骨造词记'));
     /* 侧栏里的品牌可点回首页 */
     brand.style.cursor = 'pointer';
     brand.onclick = function () { go('home'); };
@@ -132,8 +132,8 @@
   function sceneHome() {
     var wrap = App.el('div', 'scene home-scene');
     wrap.appendChild(App.el('p', 'lead home-lead',
-      '一个以甲骨文为题材的汉字文化游戏平台。当前已上线「甲骨构字」玩法，' +
-      '后续将扩展更多玩法——它们共用同一套字形数据与素材库。'));
+      '一个以甲骨文为题材的汉字文化游戏平台。现有「殷商王邑」（图卷点亮 · 构字）' +
+      '与「甲骨构字」（拼字 · 卜问 · 质问）两个玩法，共用同一套字形数据与素材库。'));
 
     var cards = App.el('div', 'home-grid');
 
