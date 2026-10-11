@@ -630,166 +630,376 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 }
 
 /* ============================================================================
-   玩法三：构件讨伐（BOSS 战）
-   拆字为武 · 组构为招 · 繁笔破防
+   玩法三：构件讨伐（BOSS 战）—— 线性关卡 + 横版对战
+   ----------------------------------------------------------------------------
+   两屏：
+     · 选关（.bo-track）21 关排成一条横向路径，逐关推进；连接线通关后变绿
+     · 作战（.bd-field）横版三段式：左＝项目形象预留位 / 中＝远景 / 右＝BOSS
+
+   一条贯彻的规则：**甲骨形上不直接印现代字**。
+   默认只见甲骨形，鼠标悬停 / 键盘聚焦 / 按住（触屏）时现代字才浅浅浮出；
+   已通关的关卡与通关结算页例外——那时已经揭晓过，常显。
+   实现见 .bo-spoiler / .bo-spoiler-a。
    ============================================================================ */
+
+/* ---------- 通用标题 ---------- */
 .scene.boss-raid .bo-head {
-  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
-  justify-content: center; margin: 6px 0 4px;
+  display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap;
+  justify-content: center; margin: var(--s-2) 0 var(--s-1);
 }
 .scene.boss-raid .bo-title { margin: 0; font-size: 21px; letter-spacing: 2px; }
-.scene.boss-raid .bo-sub { font-size: 12.5px; color: var(--bronze-tint); }
+.scene.boss-raid .bo-sub { font-size: var(--fs-sm); color: var(--bronze-tint); }
 
-/* ---------- 选 BOSS ---------- */
-.bo-sect { max-width: 980px; margin: 18px auto 0; }
-.bo-tiertitle {
-  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-  padding: 0 2px 8px; border-bottom: 1px solid var(--edge);
+/* ---------- 总进度条 ---------- */
+.bo-progress {
+  display: flex; align-items: center; gap: var(--s-3);
+  max-width: 980px; margin: var(--s-3) auto var(--s-2);
 }
-.bo-tiername { font-size: 15px; font-weight: 700; letter-spacing: 1px; }
-.bo-tiernote { font-size: 12px; color: var(--ink-2); }
-.bo-grid {
-  display: grid; gap: 10px; margin-top: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-}
-.bo-card {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 6px 9px; cursor: pointer;
-  border: 1px solid var(--edge); border-radius: var(--r-sm);
-  background: color-mix(in srgb, var(--bone-hi) 94%, var(--bone));
-  transition: border-color .15s, background .15s, transform .12s;
-}
-.bo-card:hover {
-  border-color: var(--cinnabar-tint);
-  background: color-mix(in srgb, var(--cinnabar-tint) 8%, var(--bone-hi));
-  transform: translateY(-2px);
-}
-.bo-cardglyph { width: 76px; height: 76px; color: var(--ink); display: block; }
-.bo-card.is-comp .bo-cardglyph { width: 92px; }
-.bo-cardname { font-size: 15px; font-weight: 700; letter-spacing: 1px; }
-.bo-cardmeta { font-size: 11px; color: var(--bronze-tint); letter-spacing: .5px; }
-
-/* ---------- 阶段条 ---------- */
-.bo-phases {
-  display: grid; gap: 8px; margin: 10px auto 12px; max-width: 980px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.bo-phase {
-  padding: 8px 11px; border: 1px solid var(--edge); border-radius: var(--r-sm);
-  background: color-mix(in srgb, var(--bone-hi) 92%, var(--bone));
-  opacity: .5; transition: opacity .2s, border-color .2s, background .2s;
-}
-.bo-phase.on {
-  opacity: 1; border-color: var(--cinnabar-tint);
-  background: color-mix(in srgb, var(--cinnabar-tint) 10%, var(--bone-hi));
-  box-shadow: var(--shadow);
-}
-.bo-phase.done { opacity: .8; border-color: var(--green-tint); }
-.bo-phnum { display: block; font-size: 10.5px; letter-spacing: 2px; color: var(--ink-soft); }
-.bo-phname { display: block; font-size: 14px; font-weight: 700; margin: 2px 0 3px; }
-.bo-phnote { display: block; font-size: 11.5px; color: var(--ink-2); line-height: 1.45; }
-
-/* ---------- 血量 ---------- */
-.bo-hpwrap {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  max-width: 980px; margin: 0 auto 10px;
-}
-.bo-hplabel { font-size: 12px; color: var(--ink-2); letter-spacing: 1px; }
-.bo-hpbar {
-  flex: 1 1 240px; height: 12px; border-radius: 6px; overflow: hidden;
+.bo-progtext { font-size: var(--fs-sm); color: var(--ink-2); letter-spacing: .5px; white-space: nowrap; }
+.bo-progmeter {
+  flex: 1 1 auto; height: 8px; border-radius: var(--r-pill); overflow: hidden;
   background: var(--edge-in); box-shadow: inset 0 0 0 1px var(--edge);
 }
-.bo-hpfill {
-  display: block; height: 100%; width: 100%;
-  background: linear-gradient(90deg, var(--cinnabar-tint), var(--bronze-tint));
-  transition: width .35s ease;
+.bo-progfill {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--bronze-tint), var(--gold));
+  transition: width var(--t-slow) var(--ease);
 }
-.bo-hpnum { font-size: 13px; font-weight: 700; color: var(--cinnabar-tint); min-width: 44px; text-align: right; }
 
-/* ---------- BOSS 本体 ---------- */
-.bo-stage {
-  display: flex; justify-content: center; margin: 4px auto 10px;
+/* ---------- 线性关卡路径 ---------- */
+.bo-track {
+  display: flex; align-items: center;
+  overflow-x: auto; overflow-y: hidden;
+  padding: var(--s-4) var(--s-2) var(--s-6);
+  scroll-snap-type: x proximity;
 }
-.bo-body {
-  width: 300px; height: 300px; display: block;
-  border: 1px solid var(--edge); border-radius: var(--r-sm);
-  background: linear-gradient(160deg, var(--bone-hi), var(--bone-lo));
-  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
+.bo-track::-webkit-scrollbar { height: 8px; }
+
+/* 连接线：未通关为骨色，通关后转绿 */
+.bo-link {
+  flex: 0 0 22px; height: 2px; align-self: center;
+  background: var(--edge); border-radius: 1px;
+  transition: background var(--t-base) var(--ease);
+}
+.bo-link.done { background: var(--green); }
+
+/* 关卡节点 */
+.bo-node {
+  position: relative; flex: 0 0 94px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-1) var(--s-3);
+  cursor: pointer; scroll-snap-align: center;
+  background: var(--bone-hi);
+  border: 1px solid var(--edge); border-radius: var(--r);
+  box-shadow: var(--sh-1);
+  transition: transform var(--t-base) var(--ease),
+              box-shadow var(--t-base) var(--ease),
+              border-color var(--t-base) var(--ease);
+}
+.bo-node:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sh-3);
+  border-color: color-mix(in srgb, var(--bronze) 55%, var(--edge));
+}
+.bo-node:active { transform: translateY(-1px); }
+
+/* 已通关：绿边 + 勾 */
+.bo-node.done { border-color: color-mix(in srgb, var(--green) 42%, var(--edge)); }
+.bo-node.done::after {
+  content: '通';
+  position: absolute; right: 5px; top: 4px;
+  font-size: 10px; line-height: 1;
+  color: var(--green-tint);
+}
+/* 下一关：朱砂描红，指明"该打这一关" */
+.bo-node.next {
+  border-color: var(--cinnabar);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinnabar) 12%, transparent), var(--sh-1);
+}
+/* 未解锁：去色 + 压暗，不可点 */
+.bo-node.locked { opacity: .48; cursor: not-allowed; filter: grayscale(.7); }
+.bo-node.locked:hover { transform: none; box-shadow: var(--sh-1); }
+
+.bo-node-num {
+  position: absolute; left: 6px; top: 4px;
+  font-size: 10px; letter-spacing: .5px; color: var(--ink-soft);
+}
+.bo-nodeglyphwrap {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.bo-nodeglyph { width: 52px; height: 52px; color: var(--ink); display: block; }
+/* 答案叠在甲骨形中央浮出，带一层半透骨底保证可读 */
+.bo-node-name {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 1px 7px; border-radius: var(--r-xs);
+  font-size: var(--fs-md); font-weight: 700; letter-spacing: 1px;
+  color: var(--cinnabar-tint); white-space: nowrap;
+  background: color-mix(in srgb, var(--bone-hi) 88%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--edge) 55%, transparent);
+}
+.bo-node-meta { font-size: 10.5px; color: var(--ink-soft); letter-spacing: .3px; }
+
+/* ---------- 现代字的"揭晓"机制 ----------
+   默认 opacity:0。悬停 / 键盘聚焦（:focus-within）/ 按住（:active，触屏也吃）
+   时浅浅浮出；带 .shown 的（已通关）常显。 */
+.bo-spoiler-a {
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease);
+}
+.bo-spoiler:hover .bo-spoiler-a,
+.bo-spoiler:focus-within .bo-spoiler-a,
+.bo-spoiler:active .bo-spoiler-a,
+.bo-spoiler-a.shown { opacity: 1; }
+
+/* ============================================================================
+   横版作战
+   ============================================================================ */
+
+/* ---------- 顶部 HUD ---------- */
+.bd-hud {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-4); flex-wrap: wrap;
+  max-width: 1180px; margin: 0 auto var(--s-3);
+}
+.bd-hud-left { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.bd-lv { font-size: var(--fs-md); font-weight: 700; letter-spacing: 1px; }
+.bd-tier { font-size: var(--fs-xs); color: var(--ink-soft); }
+
+.bd-phases { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.bd-phase {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--edge); border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--bone-hi) 78%, transparent);
+  font-size: var(--fs-xs); color: var(--ink-soft);
+  opacity: .68;
+  transition: opacity var(--t-base) var(--ease),
+              border-color var(--t-base) var(--ease),
+              background var(--t-base) var(--ease);
+}
+.bd-phase b { font-weight: 600; }
+.bd-phdot { width: 7px; height: 7px; border-radius: 50%; background: var(--edge); flex: 0 0 auto; }
+.bd-phase.on {
+  opacity: 1; color: var(--ink);
+  border-color: var(--cinnabar);
+  background: color-mix(in srgb, var(--cinnabar) 9%, var(--bone-hi));
+}
+.bd-phase.on .bd-phdot { background: var(--cinnabar); }
+.bd-phase.done { opacity: .9; border-color: color-mix(in srgb, var(--green) 45%, var(--edge)); }
+.bd-phase.done .bd-phdot { background: var(--green); }
+
+/* ---------- 战场：左形象位 · 中远景 · 右 BOSS ----------
+   注意：.bd-scene 与 .bd-ground 都是 position:absolute，**不占网格列**。
+   所以左右两块必须显式指定列，否则 .bd-boss 会落到中间那一列
+   （血条横跨半个战场、字形跑到左边）——这个坑踩过一次。 */
+.bd-field {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(200px, 292px) minmax(0, 1fr) minmax(260px, 412px);
+  align-items: end;
+  gap: var(--s-4);
+  min-height: 434px;
+  max-width: 1180px;
+  margin: 0 auto var(--s-3);
+  padding: var(--s-5) var(--s-5) 62px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  overflow: hidden;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bone-white) 70%, var(--bone)) 0%,
+    var(--bone-hi) 58%,
+    var(--bone-lo) 100%);
+  box-shadow: var(--sh-1);
+}
+/* 地面 */
+.bd-ground {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 58px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bronze) 20%, var(--bone-lo)), var(--bone-lo));
+  border-top: 1px solid color-mix(in srgb, var(--bronze) 35%, var(--edge));
+}
+/* 远景：纯装饰，且**不接收指针事件**，绝不挡住 BOSS 的点击 */
+.bd-scene { position: absolute; inset: 0; pointer-events: none; }
+.bd-sun {
+  position: absolute; right: 9%; top: 7%;
+  width: 60px; height: 60px; border-radius: 50%;
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--cinnabar) 26%, transparent), transparent 70%);
+}
+.bd-cloud {
+  position: absolute; height: 12px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--bone-white) 70%, transparent);
+}
+.bd-cloud.c1 { left: 24%; top: 15%; width: 116px; }
+.bd-cloud.c2 { left: 44%; top: 8%; width: 82px; opacity: .72; }
+.bd-hill {
+  position: absolute; bottom: 58px;
+  border-radius: 46% 46% 0 0;
+  background: color-mix(in srgb, var(--bronze) 13%, transparent);
+}
+.bd-hill.h1 { left: 12%; width: 330px; height: 116px; }
+.bd-hill.h2 { left: 34%; width: 236px; height: 78px; opacity: .68; }
+
+/* ---------- 左：项目形象预留位 ---------- */
+.bd-hero {
+  grid-column: 1;
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+}
+.bd-hero-slot {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--s-2); min-height: 304px;
+  border: 2px dashed color-mix(in srgb, var(--edge) 85%, transparent);
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--bone-white) 52%, transparent);
+}
+.bd-slot-tag {
+  font-size: var(--fs-lg); letter-spacing: 4px;
+  color: var(--bronze-tint); font-weight: 700;
+}
+.bd-slot-note {
+  font-size: var(--fs-xs); color: var(--ink-soft);
+  text-align: center; line-height: 1.7; padding: 0 var(--s-3);
+}
+
+/* ---------- 两侧的信息头与状态条 ---------- */
+.bd-side-head {
+  display: flex; align-items: baseline; gap: var(--s-2); flex-wrap: wrap;
+  margin-bottom: var(--s-2);
+}
+.bd-side-name { font-size: var(--fs-lg); font-weight: 700; letter-spacing: 1px; }
+.bd-ask { font-style: normal; color: var(--ink-soft); font-weight: 700; }
+/* 名号揭晓后，问号收起 */
+.bo-spoiler:hover .bd-ask,
+.bo-spoiler:focus-within .bd-ask,
+.bo-spoiler:active .bd-ask { display: none; }
+.bd-side-role { font-size: var(--fs-xs); color: var(--ink-soft); }
+
+.bd-sidebar {
+  display: block; height: 10px; border-radius: var(--r-pill); overflow: hidden;
+  background: var(--edge-in); box-shadow: inset 0 0 0 1px var(--edge);
+  margin-bottom: var(--s-2);
+}
+.bd-sidefill {
+  display: block; height: 100%; width: 0;
+  transition: width var(--t-slow) var(--ease);
+}
+.bd-sidefill.hero { background: linear-gradient(90deg, var(--bronze-tint), var(--bronze-hi)); }
+.bd-sidefill.boss { background: linear-gradient(90deg, var(--cinnabar), var(--cinnabar-hi)); }
+.bd-hpnum { font-size: var(--fs-xs); color: var(--cinnabar-tint); letter-spacing: .5px; }
+
+/* ---------- 右：BOSS ---------- */
+.bd-boss {
+  grid-column: 3;
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+}
+.bd-bodybox { display: flex; justify-content: center; margin-top: var(--s-2); }
+.bd-body {
+  display: block; width: 300px; height: 300px;
   color: var(--ink);
+  transition: color var(--t-base) var(--ease);
 }
-.scene-wide .bo-body { width: 430px; height: 430px; }
+.scene-wide .bd-body { width: 330px; height: 330px; }
 
+/* 可点的构件 / 笔画（逻辑沿用，样式保留） */
 .bo-part { cursor: pointer; }
 .bo-part:hover path { stroke: var(--cinnabar-tint); }
 .bo-hit path { pointer-events: stroke; cursor: pointer; }
 .bo-gone { opacity: .13; }
 .bo-gone path { stroke-dasharray: 3 3; }
 .bo-cut { cursor: crosshair; }
-.bo-cut:hover path { stroke: var(--cinnabar-tint); stroke-width: .5; }
+.bo-cut:hover path { stroke: var(--cinnabar-tint); }
 
-/* 阶段二：形体错乱——把身体轻微扭曲、错位，视觉上「构件混同」 */
-.bo-stage.broken .bo-body { animation: boWarp 2.6s ease-in-out infinite; }
+/* 阶段二：形体错乱（构件混同） —— 复刻甲骨异体乱象 */
+.bd-field.broken .bd-body { animation: boWarp 2.6s ease-in-out infinite; }
 @keyframes boWarp {
   0%, 100% { transform: skewX(0deg) translateX(0); }
-  25% { transform: skewX(-1.4deg) translateX(2px); }
-  50% { transform: skewX(0.9deg) translateX(-2px); }
-  75% { transform: skewX(-0.6deg) translateX(1px); }
+  25%      { transform: skewX(-1.4deg) translateX(2px); }
+  50%      { transform: skewX(0.9deg) translateX(-2px); }
+  75%      { transform: skewX(-0.6deg) translateX(1px); }
 }
-/* 阶段三：纯笔画体，偏冷色，与前面区分 */
-.bo-stage.final .bo-body {
-  color: var(--ink);
-  background: linear-gradient(160deg,
-    color-mix(in srgb, var(--bone-hi) 90%, var(--cinnabar-tint)), var(--bone-lo));
-}
+/* 阶段三：纯笔画体，底色偏朱，与前面区分 */
+.bd-field.final .bd-body { color: color-mix(in srgb, var(--ink) 88%, var(--cinnabar)); }
 
-.bo-tip {
-  max-width: 980px; margin: 0 auto 12px; padding: 9px 13px;
-  font-size: 13px; letter-spacing: .5px; text-align: center;
-  border: 1px dashed var(--edge); border-radius: var(--r-sm);
-  background: color-mix(in srgb, var(--bone-hi) 90%, var(--bone));
+/* ---------- 提示 ---------- */
+.bd-tip {
+  max-width: 980px; margin: 0 auto var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--fs-md); letter-spacing: .5px; text-align: center;
+  border: 1px dashed var(--edge); border-radius: var(--r);
+  background: color-mix(in srgb, var(--bone-hi) 88%, transparent);
 }
-.bo-tip.final {
-  border-color: var(--cinnabar-tint);
-  background: color-mix(in srgb, var(--cinnabar-tint) 9%, var(--bone-hi));
+.bd-tip.final {
+  border-color: var(--cinnabar);
+  border-style: solid;
+  background: color-mix(in srgb, var(--cinnabar) 8%, var(--bone-hi));
 }
 
 /* ---------- 战报 ---------- */
-.bo-logs { max-width: 980px; margin: 0 auto; display: grid; gap: 6px; }
-.bo-log {
-  display: flex; gap: 9px; align-items: baseline;
-  padding: 7px 11px; font-size: 12.5px; line-height: 1.5;
+.bd-logs { max-width: 980px; margin: 0 auto; display: grid; gap: var(--s-2); }
+.bd-log {
+  display: flex; gap: var(--s-3); align-items: baseline;
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--fs-sm); line-height: 1.55;
   border-left: 3px solid var(--edge); border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  background: color-mix(in srgb, var(--bone-hi) 88%, var(--bone));
+  background: color-mix(in srgb, var(--bone-hi) 86%, transparent);
 }
-.bo-log b { flex: 0 0 auto; color: var(--bronze-tint); letter-spacing: .5px; }
-.bo-log span { color: var(--ink-2); }
-.bo-log.break { border-left-color: var(--cinnabar-tint); }
-.bo-log.break b { color: var(--cinnabar-tint); }
-.bo-log.cut { border-left-color: var(--bronze-tint); }
-.bo-log.fail { border-left-color: var(--ink-soft); }
-.bo-log.win { border-left-color: var(--green-tint); }
-.bo-log.win b { color: var(--green-tint); }
+.bd-log b { flex: 0 0 auto; color: var(--bronze-tint); letter-spacing: .5px; }
+.bd-log span { color: var(--ink-2); }
+.bd-log.break { border-left-color: var(--cinnabar); }
+.bd-log.break b { color: var(--cinnabar-tint); }
+.bd-log.cut { border-left-color: var(--bronze); }
+.bd-log.fail { border-left-color: var(--ink-soft); }
+.bd-log.win { border-left-color: var(--green); }
+.bd-log.win b { color: var(--green-tint); }
 
 /* ---------- 通关 ---------- */
-.bo-win {
-  display: flex; gap: 22px; align-items: center; flex-wrap: wrap;
-  max-width: 760px; margin: 10px auto 16px; padding: 18px 22px;
-  border: 1px solid color-mix(in srgb, var(--green-tint) 40%, var(--edge));
-  border-radius: var(--r); box-shadow: var(--shadow);
+.bd-win {
+  display: flex; gap: var(--s-6); align-items: center; flex-wrap: wrap;
+  max-width: 760px; margin: var(--s-3) auto var(--s-5);
+  padding: var(--s-5) var(--s-6);
+  border: 1px solid color-mix(in srgb, var(--green) 38%, var(--edge));
+  border-radius: var(--r); box-shadow: var(--sh-2);
   background: linear-gradient(180deg,
-    color-mix(in srgb, var(--bone-hi) 96%, var(--green-tint)), var(--bone-hi));
+    color-mix(in srgb, var(--bone-hi) 94%, var(--green)), var(--bone-hi));
 }
-.bo-winglyph { width: 132px; height: 132px; color: var(--ink); flex: 0 0 auto; }
-.bo-wininfo { flex: 1 1 260px; }
-.bo-wintitle { margin: 0 0 8px; font-size: 22px; letter-spacing: 2px; }
-.bo-windesc { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
-.bo-winnote {
-  margin: 8px 0 0; font-size: 12px; color: var(--bronze-tint);
-  padding: 7px 10px; border-radius: var(--r-sm);
-  background: color-mix(in srgb, var(--bronze-tint) 9%, transparent);
+.bd-winglyph { width: 132px; height: 132px; color: var(--ink); flex: 0 0 auto; }
+.bd-wininfo { flex: 1 1 260px; }
+.bd-wintitle { margin: 0 0 var(--s-2); font-size: 22px; letter-spacing: 2px; }
+.bd-windesc { margin: 0 0 var(--s-1); font-size: var(--fs-md); color: var(--ink-2); line-height: 1.65; }
+.bd-winnote {
+  margin: var(--s-2) 0 0; font-size: var(--fs-sm); color: var(--bronze-tint);
+  padding: var(--s-2) var(--s-3); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bronze) 9%, transparent);
 }
 
-@media (max-width: 720px) {
-  .bo-phases { grid-template-columns: 1fr; }
-  .bo-body, .scene-wide .bo-body { width: 240px; height: 240px; }
+/* ---------- 响应式 ---------- */
+/* 中屏：把左侧形象位压窄，远景让位 */
+@media (max-width: 1024px) {
+  .bd-field { grid-template-columns: minmax(130px, 170px) minmax(0, 1fr) minmax(200px, 300px); }
+  .bd-hero-slot { min-height: 200px; }
+  .bd-body, .scene-wide .bd-body { width: 220px; height: 220px; }
+}
+/* 窄屏：横版改为"上 BOSS、下形象位"，仍保持左右对位的观感 */
+@media (max-width: 760px) {
+  .bd-field {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "hero boss" "ground ground";
+    min-height: 0;
+    padding: var(--s-4) var(--s-4) 52px;
+    gap: var(--s-3);
+  }
+  .bd-hero { grid-area: hero; }
+  .bd-boss { grid-area: boss; }
+  .bd-scene { display: none; }
+  .bd-hero-slot { min-height: 150px; }
+  .bd-slot-tag { font-size: var(--fs-md); letter-spacing: 2px; }
+  .bd-slot-note { font-size: 10px; }
+  .bd-body, .scene-wide .bd-body { width: 150px; height: 150px; }
+  .bd-ground { height: 46px; }
+  .bo-node { flex: 0 0 84px; }
+  .bo-nodeglyph { width: 44px; height: 44px; }
 }

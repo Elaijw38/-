@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""构件讨伐（BOSS 战）：浏览器内功能验证。
+"""构件讨伐（线性关卡 + 横版对战）：浏览器内功能验证。
 
 把 dev/bo-drive.js 注入 index.html 末尾运行，结果写入 data-report 后取回，
-另拍两张图：选 BOSS 页、合体 BOSS 战斗页。
+另拍三张图：线性关卡路径、第 1 关横版作战、末关（17 段繁复字）。
 用法：python dev/_run_bo.py
 """
 import io, os, re, shutil, subprocess, sys
@@ -42,7 +42,7 @@ io.open(tmp_path, "w", encoding="utf-8").write(
 url = "file:///" + tmp_path.replace("\\", "/")
 r = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
                     "--user-data-dir=" + PROFILE,
-                    "--window-size=1180,900",
+                    "--window-size=1280,900",
                     "--virtual-time-budget=22000", "--dump-dom", url],
                    capture_output=True, text=True, encoding="utf-8",
                    errors="replace", timeout=300)
@@ -56,7 +56,7 @@ rep = (rep.replace("&quot;", '"').replace("&#39;", "'").replace("&#10;", "\n")
 io.open(os.path.join(OUT, "bo_report.txt"), "w", encoding="utf-8").write(rep)
 
 
-def shoot(tag, js_setup):
+def shoot(tag, setup):
     """单独跑一遍只截图：隐藏首页场景，把探针挂在最前，直接拍到 BOSS 界面。"""
     page = os.path.join(NEW, "_bo_shot.html")
     io.open(page, "w", encoding="utf-8").write(
@@ -66,21 +66,24 @@ def shoot(tag, js_setup):
                     "  var sc = document.getElementById('sceneRoot');\n"
                     "  if (sc) { sc.style.display = 'none'; }\n"
                     "  var App = window.App;\n"
+                    "  var total = App.levels.boss.tiers.reduce(function(n,t){return n+t.list.length;},0);\n"
+                    + setup +
                     "  var h = document.createElement('div');\n"
-                    "  h.id = 'boShotHost'; h.style.padding = '14px';\n"
+                    "  h.id = 'boShotHost'; h.style.padding = '10px 16px';\n"
                     "  document.body.insertBefore(h, document.body.firstChild);\n"
-                    "  var m = App.modes.get('boss-raid');\n"
-                    "  m.mount(h, App.modes.buildContext(m));\n"
-                    + js_setup +
+                    "  var mm = App.modes.get('boss-raid');\n"
+                    "  mm.mount(h, App.modes.buildContext(mm));\n"
+                    # 必须在挂载之后再点节点：进关会重建 DOM
+                    "  if (window.__after) { window.__after(h); }\n"
                     "  window.scrollTo(0, 0);\n"
                     "}, 1200);\n"
                     "</script>\n</body>", 1))
     png = os.path.join(OUT, tag + ".png")
     rr = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
                          "--user-data-dir=" + PROFILE,
-                         "--window-size=1180,900",
+                         "--window-size=1280,900",
                          "--screenshot=" + png,
-                         "--virtual-time-budget=14000", "--dump-dom",
+                         "--virtual-time-budget=15000", "--dump-dom",
                          "file:///" + page.replace("\\", "/")],
                         capture_output=True, text=True, encoding="utf-8",
                         errors="replace", timeout=300)
@@ -91,20 +94,20 @@ def shoot(tag, js_setup):
     return png, rr
 
 
-def click_script(regex, times=1):
-    return ("  var bs = h.querySelectorAll('button'), t = null;\n"
-            "  for (var i = 0; i < bs.length; i++) { if (" + regex +
-            ".test(bs[i].textContent)) { t = bs[i]; break; } }\n"
-            "  for (var k = 0; k < " + str(times) + "; k++) { if (t) { t.click(); } }\n")
+OPEN1 = ("  App.store.del('bossraid');\n"
+         "  window.__enterN = 0;\n")
+OPEN_ALL = ("  var p = { cleared: [] };\n"
+            "  for (var i = 0; i < total - 1; i++) { p.cleared.push(i); }\n"
+            "  App.store.set('bossraid', p);\n")
 
-
-# 1) 选 BOSS 页
-s1, _ = shoot("bo_pick", "")
-# 2) 合体 BOSS「涉」战斗页（点第一个卡片）
-s2, _ = shoot("bo_fight", "  var cards = h.querySelectorAll('.bo-card'); if (cards[0]) { cards[0].click(); }\n")
-# 3) 终极「車」的身体（elite 第 8 个）
-s3, _ = shoot("bo_elite",
-              "  var cards = h.querySelectorAll('.bo-card'); if (cards[20]) { cards[20].click(); }\n")
+# 1) 线性关卡路径（初始：只有第 1 关解锁）
+s1, _ = shoot("bo_track", OPEN1)
+# 2) 第 1 关横版作战：挂载后点第一个可点节点
+s2, _ = shoot("bo_fight", OPEN1 +
+              "  window.__after = function(h){ var n = h.querySelectorAll('.bo-node'); if (n[0]) n[0].click(); };\n")
+# 3) 末关（17 段）：全解锁后点最后一个节点
+s3, _ = shoot("bo_elite", OPEN_ALL +
+              "  window.__after = function(h){ var n = h.querySelectorAll('.bo-node'); if (n[n.length-1]) n[n.length-1].click(); };\n")
 
 try:
     os.remove(tmp_path)

@@ -1,10 +1,10 @@
-/* 字趣 · 构件讨伐（BOSS 战）的浏览器内验证 —— 开发自查，不参与部署
+/* 字趣 · 构件讨伐（线性关卡 + 横版对战）浏览器内验证 —— 开发自查，不参与部署
    由 dev/_run_bo.py 注入 index.html 末尾运行，结果写入 <html> 的 data-report。
 
-   验三档 BOSS 与三阶段：
-     一阶 合体：身体＝构件拼成，点构件拆下来 → 掉血 → 阶段二 → 阶段三斩笔画 → 通关
-     二阶 独体：身上无构件，直接拆笔画
-     终极 繁复：車 17 段，硬拆构件无效，必须走笔画终局
+   验两屏与一条规则：
+     选关（.bo-track）21 关线性推进，未通关的锁住
+     作战（.bd-field）横版：左「项目形象」预留位 + 右 BOSS
+     规则：甲骨形上不直接印现代字，默认 opacity:0，hover/聚焦/按住才浮出
 
    硬约束（都踩过）：SVG 无 .click()，要派发事件；每次 render 会重建 DOM，
    动作前必须重新查询节点；全程同步，不用 setTimeout 排队。
@@ -20,155 +20,151 @@
   function flag(b) { return b ? '是' : '否'; }
   var HOST_ID = 'boProbeHost';
   function H(s) { return '#' + HOST_ID + ' ' + s; }
+  function opa(e) { return e ? getComputedStyle(e).opacity : '?'; }
 
   function tap(el) {
-    if (!el) return false;
+    if (!el) { return false; }
     if (typeof el.click === 'function') { el.click(); return true; }
     el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
     return true;
   }
   function btnByText(re) {
     var l = qa(H('button'));
-    for (var i = 0; i < l.length; i++) { if (re.test(txt(l[i]))) return l[i]; }
+    for (var i = 0; i < l.length; i++) { if (re.test(txt(l[i]))) { return l[i]; } }
     return null;
   }
   function mountFresh() {
     var App = window.App;
     var old = document.getElementById(HOST_ID);
-    if (old && old.parentNode) old.parentNode.removeChild(old);
+    if (old && old.parentNode) { old.parentNode.removeChild(old); }
     var host = document.createElement('div');
     host.id = HOST_ID;
     document.body.appendChild(host);
     var m = App.modes.get('boss-raid');
     m.mount(host, App.modes.buildContext(m));
   }
-  /* 派发点击到一个 SVG 子节点（用坐标命中的那层也行，这里按选择器取） */
   function hit(el) {
-    if (!el) return false;
+    if (!el) { return false; }
     el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
     return true;
   }
+  function nodes() { return qa(H('.bo-node')); }
+  function openNodes() {
+    return nodes().filter(function (n) { return n.className.indexOf('locked') < 0; });
+  }
   function parts() { return qa(H('.bo-part')); }
   function cuts() { return qa(H('.bo-cut')); }
-  function hp() { return txt(q(H('.bo-hpnum'))); }
+  function hp() { return txt(q(H('.bd-hpnum'))); }
   function phaseOn() {
-    /* 注意：不能写 className.indexOf('on')——「done」里也含 "on"，
-       会把已完成的阶段误判成当前阶段（本驱动就栽过这一次）。
-       要按整词匹配，前后补空格。 */
-    var l = qa(H('.bo-phase'));
+    /* 整词匹配：className.indexOf('on') 会命中 'done' 里的 "on"（本驱动栽过） */
+    var l = qa(H('.bd-phase'));
     for (var i = 0; i < l.length; i++) {
       if ((' ' + l[i].className + ' ').indexOf(' on ') >= 0) { return i + 1; }
     }
     return 0;
   }
-  function enterBoss(tierId, idx) {
-    var cards = qa(H('.bo-grid .bo-card'));
-    /* 按档位顺序累计索引 */
-    var App = window.App, B = App.levels.boss;
-    var off = 0;
-    for (var i = 0; i < B.tiers.length; i++) {
-      if (B.tiers[i].id === tierId) { break; }
-      off += B.tiers[i].list.length;
-    }
-    tap(cards[off + idx]);
+  function clearLevel() {
+    var g = 0;
+    while (parts().length && g++ < 40) { hit(parts()[0]); }
+    tap(btnByText(/改用笔画攻击/));
+    var g2 = 0;
+    while (cuts().length && g2++ < 40) { hit(cuts()[0]); }
+    return g + ' 拆 / ' + g2 + ' 斩';
   }
 
   function run() {
     var App = window.App;
     try {
-      log('=== 一、玩法是否注册 ===');
+      App.store.del('bossraid');
+
+      log('=== 一、玩法注册与关卡表 ===');
       var ms = App.modes.playable().map(function (m) { return m.id; });
       log('  已注册玩法: ' + ms.join('、'));
       log('  boss-raid 在: ' + flag(ms.indexOf('boss-raid') >= 0));
       var B = App.levels.boss;
-      log('  BOSS 档位: ' + B.tiers.map(function (t) { return t.name + '(' + t.list.length + ')'; }).join('　'));
-      log('  BOSS 总数: ' + B.tiers.reduce(function (n, t) { return n + t.list.length; }, 0));
-      var miss = [];
-      B.tiers.forEach(function (t) {
-        t.list.forEach(function (b) {
-          if (t.kind !== 'compound' && !App.hasGlyph(b.char)) { miss.push(b.char); }
-        });
-      });
-      log('  缺字形的 BOSS: ' + (miss.length ? miss.join('、') + ' ✗' : '无 ✓'));
+      var total = B.tiers.reduce(function (n, t) { return n + t.list.length; }, 0);
+      log('  关卡总数: ' + total + '（一阶 6 + 二阶 6 + 终极 9）');
+      log('  玩法卡标签: ' + (App.modes.get('boss-raid').tags || []).join(' / '));
 
       log('');
-      log('=== 二、选择页 ===');
+      log('=== 二、线性关卡路径 ===');
       mountFresh();
-      log('  档位区块: ' + qa(H('.bo-sect')).length + '（应 3）');
-      log('  BOSS 卡片: ' + qa(H('.bo-card')).length + '（应 21）');
-      log('  合体卡片（双构件合体图）: ' + qa(H('.bo-card.is-comp')).length + '（应 6）');
+      log('  路径节点: ' + nodes().length + '（应 ' + total + '）');
+      log('  连接线: ' + qa(H('.bo-link')).length + '（应 ' + (total - 1) + '）');
+      log('  已解锁: ' + openNodes().length + '（初始应 1）');
+      log('  已锁定: ' + (nodes().length - openNodes().length) + '（应 ' + (total - 1) + '）');
+      log('  高亮「该打这一关」: ' + qa(H('.bo-node.next')).length + '（应 1）');
+      log('  总进度文案: ' + txt(q(H('.bo-progtext'))));
 
       log('');
-      log('=== 三、一阶合体「涉」（水＋止）：拆构件 → 崩坏 → 斩笔画 ===');
-      enterBoss('grunt', 0);
-      log('  进入战斗: ' + flag(!!q(H('.bo-body'))));
-      log('  标题: ' + txt(q(H('.bo-title'))));
+      log('=== 三、现代字默认不显示（甲骨形上不印现代字）===');
+      var nm = q(H('.bo-node-name'));
+      log('  节点上的现代字: 「' + txt(nm) + '」　computed opacity=' + opa(nm) + '（应 0）');
+      log('  第 1 关副标题: 「' + txt(q(H('.bo-node-meta'))) + '」（应是"构件 N 块"，不是"水＋止"）');
+
+      log('');
+      log('=== 四、第 1 关「涉」：横版作战 ===');
+      tap(openNodes()[0]);
+      log('  战场存在: ' + flag(!!q(H('.bd-field'))));
+      var slots = qa(H('.bd-hero-slot'));
+      log('  左侧「项目形象」预留位: ' + slots.length + ' 个　文案=「' + txt(slots[0]) + '」');
+      log('  右侧 BOSS 区: ' + flag(!!q(H('.bd-boss'))));
+      log('  BOSS 显示名默认: 「' + txt(q(H('.bd-ask'))) + '」（应为「？」）');
+      var bn = q(H('.bd-boss .bo-spoiler-a'));
+      log('  BOSS 真名 opacity=' + opa(bn) + '（应 0）　真名=「' + txt(bn) + '」');
+      log('  远景装饰: ' + flag(!!q(H('.bd-scene'))) + '　地面: ' + flag(!!q(H('.bd-ground'))));
+      log('  关卡号: ' + txt(q(H('.bd-lv'))) + '　档位: ' + txt(q(H('.bd-tier'))));
       log('  阶段: ' + phaseOn() + '（应 1）　血量: ' + hp());
-      log('  身体上可拆部件: ' + parts().length + '（涉＝水＋止，应 2）');
-      var p0 = parts();
-      log('  第一个部件标题: ' + (p0[0] ? txt(p0[0].querySelector('title')) : '-'));
-      hit(p0[0]);
-      log('  拆掉一个后 → 血量 ' + hp() + '　已拆残影 ' + qa(H('.bo-gone')).length);
-      var logs1 = qa(H('.bo-log'));
-      log('  战报条数: ' + logs1.length + '　最新: ' + txt(logs1[0]));
+      log('  可拆部件: ' + parts().length + '（涉＝水＋止，应 2）');
+      log('  开战战报: 「' + txt(qa(H('.bd-log'))[0]) + '」（不应出现字名）');
+
+      hit(parts()[0]);
+      log('  拆一个 → 血量 ' + hp() + '　残影 ' + qa(H('.bo-gone')).length);
+      log('  战报: ' + txt(qa(H('.bd-log'))[0]));
       hit(parts()[0]);
       log('  拆完两个 → 阶段 ' + phaseOn() + '（应 2）　血量 ' + hp());
-      log('  阶段二提示: ' + txt(q(H('.bo-tip'))));
+            log('  阶段提示: ' + txt(q(H('.bd-tip'))));
 
       log('');
-      log('=== 四、阶段二：构件打法失效 ===');
+      log('=== 五、阶段二失效 → 阶段三斩笔画 → 通关 ===');
       var before = hp();
       var anyPart = parts()[0];
-      log('  阶段二还有可点部件: ' + flag(!!anyPart));
+      log('  阶段二还能点部件: ' + flag(!!anyPart));
       if (anyPart) { hit(anyPart); }
-      log('  点它之后血量: ' + before + ' → ' + hp() + '（应不变，构件失效）');
-      var lg = qa(H('.bo-log'));
-      log('  战报最新: ' + txt(lg[0]));
-      log('  出现「改用笔画攻击」按钮: ' + flag(!!btnByText(/改用笔画攻击/)));
+      log('  点后血量: ' + before + ' → ' + hp() + '（应不变）');
+      log('  出现「改用笔画攻击」: ' + flag(!!btnByText(/改用笔画攻击/)));
+      tap(btnByText(/改用笔画攻击/));
+      log('  阶段: ' + phaseOn() + '（应 3）　可斩: ' + cuts().length + ' 段');
+      var g = 0;
+      while (cuts().length && g++ < 40) { hit(cuts()[0]); }
+            log('  通关页: ' + flag(!!q(H('.bd-win'))) + '　' + txt(q(H('.bd-wintitle'))));
 
       log('');
-      log('=== 五、阶段三：笔画终局 → 通关 ===');
-      tap(btnByText(/改用笔画攻击/));
-      log('  阶段: ' + phaseOn() + '（应 3）');
-      var total = cuts().length;
-      log('  可斩笔画: ' + total + '（涉：水 5 段 + 止 ? 段）');
-      var guard = 0;
-      while (cuts().length && guard++ < 60) { hit(cuts()[0]); }
-      log('  斩击轮次: ' + guard);
-      log('  通关页出现: ' + flag(!!q(H('.bo-win'))));
-      log('  通关标题: ' + txt(q(H('.bo-wintitle'))));
+      log('=== 六、通关后线性推进 ===');
+      tap(btnByText(/回到关卡/));
+      log('  已解锁: ' + openNodes().length + '（应 2）');
+      log('  第 1 关标记已通关: ' + flag(nodes()[0].className.indexOf('done') >= 0));
+      log('  第 1 关现代字常显 opacity=' + opa(qa(H('.bo-node-name'))[0]) + '（应 1，已揭晓过）');
+      log('  总进度: ' + txt(q(H('.bo-progtext'))));
+      log('  连接线已点亮: ' + qa(H('.bo-link.done')).length + '（应 1）');
 
       log('');
-      log('=== 六、二阶独体「山」（1 段） ===');
-      tap(btnByText(/换一尊/));
-      log('  回到选择页: ' + flag(qa(H('.bo-card')).length > 0));
-      enterBoss('solo', 0);
-      log('  进入「' + txt(q(H('.bo-title'))) + '」　阶段 ' + phaseOn());
-      log('  可拆部件: ' + parts().length + '（山＝1 段，应 1）');
-      hit(parts()[0]);
-      log('  拆掉后 → 阶段 ' + phaseOn() + '（应 2）');
-      tap(btnByText(/改用笔画攻击/));
-      log('  阶段三可斩: ' + cuts().length);
-      var g2 = 0;
-      while (cuts().length && g2++ < 30) { hit(cuts()[0]); }
-      log('  通关: ' + flag(!!q(H('.bo-win'))) + '　' + txt(q(H('.bo-wintitle'))));
-
-      log('');
-      log('=== 七、终极「車」（17 段繁复字） ===');
-      tap(btnByText(/换一尊/));
-      enterBoss('elite', 7);   /* elite 列表第 8 个 = 車 */
-      log('  进入「' + txt(q(H('.bo-title'))) + '」　' + txt(q(H('.bo-sub'))));
-      log('  阶段一可拆笔画: ' + parts().length + '（車＝17 段，应 17）');
-      var g3 = 0;
-      while (parts().length && g3++ < 40) { hit(parts()[0]); }
-      log('  拆完 17 段用了 ' + g3 + ' 轮　阶段 ' + phaseOn() + '（应 2）');
-      tap(btnByText(/改用笔画攻击/));
-      log('  阶段三可斩: ' + cuts().length + '（应 17）');
-      var g4 = 0;
-      while (cuts().length && g4++ < 40) { hit(cuts()[0]); }
-      log('  通关: ' + flag(!!q(H('.bo-win'))) + '　' + txt(q(H('.bo-wintitle'))));
-      log('  通关说明: ' + txt(q(H('.bo-windesc'))));
-      log('  有繁复字注释: ' + flag(!!q(H('.bo-winnote'))));
+      log('=== 七、最后一关（17 段繁复字）===');
+      /* 解锁全部按钮会弹 confirm；无头下 confirm 返回 false，
+         这里直接写存储再重挂载，等价于确认后的状态 */
+      var p = { cleared: [] };
+      for (var k = 0; k < total - 1; k++) { p.cleared.push(k); }
+      App.store.set('bossraid', p);
+      mountFresh();
+      log('  已解锁: ' + openNodes().length + '（应 ' + total + '）');
+      log('  「解锁全部」按钮在: ' + flag(!!btnByText(/解锁全部/)));
+      tap(nodes()[total - 1]);
+            log('  进入 ' + txt(q(H('.bd-lv'))) + '　' + txt(q(H('.bd-tier'))));
+      log('  副标题: 「' + txt(q(H('.bd-boss .bd-side-role'))) + '」（应是笔画数，不是释义）');
+      log('  可拆笔画: ' + parts().length + '（应 17）');
+      var r = clearLevel();
+            log('  ' + r + '　通关: ' + flag(!!q(H('.bd-win'))) + '　' + txt(q(H('.bd-wintitle'))));
+      log('  含「繁笔破防」注释: ' + flag(!!q(H('.bd-winnote'))));
 
     } catch (e) {
       log('!! 异常: ' + (e && e.message ? e.message : e));
