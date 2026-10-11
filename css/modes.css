@@ -633,7 +633,7 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
    玩法三：构件讨伐（BOSS 战）—— 线性关卡 + 横版对战
    ----------------------------------------------------------------------------
    两屏：
-     · 选关（.bo-track）21 关排成一条横向路径，逐关推进；连接线通关后变绿
+     · 选关（.bo-bone）21 关沿甲骨片轮廓围成一圈，逐关推进；已通关那段描绿
      · 作战（.bd-field）横版三段式：左＝项目形象预留位 / 中＝远景 / 右＝BOSS
 
    一条贯彻的规则：**甲骨形上不直接印现代字**。
@@ -666,80 +666,142 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   transition: width var(--t-slow) var(--ease);
 }
 
-/* ---------- 线性关卡路径 ---------- */
-.bo-track {
-  display: flex; align-items: center;
-  overflow-x: auto; overflow-y: hidden;
-  padding: var(--s-4) var(--s-2) var(--s-6);
-  scroll-snap-type: x proximity;
+/* ---------- 线性关卡：沿甲骨片轮廓围成一圈 ----------
+   形状、取点全在 JS 里（BONE / boneRing），这里只负责画。
+   底板用 clip-path 切出骨片外形；因为 clip-path 会把 box-shadow 一起剪掉，
+   阴影改用 filter: drop-shadow（它跟着切出来的形状走）。 */
+.bo-bone {
+  position: relative;
+  width: 100%; max-width: 1120px;
+  margin: var(--s-5) auto var(--s-6);
+  aspect-ratio: 100 / 62;
 }
-.bo-track::-webkit-scrollbar { height: 8px; }
-
-/* 连接线：未通关为骨色，通关后转绿 */
-.bo-link {
-  flex: 0 0 22px; height: 2px; align-self: center;
-  background: var(--edge); border-radius: 1px;
-  transition: background var(--t-base) var(--ease);
+.bo-boneplate {
+  position: absolute; inset: 0;
+  clip-path: polygon(3% 46%, 8% 25%, 18% 11%, 34% 4%, 52% 8%, 68% 2%, 83% 11%,
+                     93% 26%, 87% 40%, 95% 54%, 86% 66%, 91% 79%, 75% 88%, 57% 83%,
+                     39% 93%, 21% 86%, 9% 71%, 2% 58%);
+  /* 三层叠出"刻过字的骨片"：
+       ① 卜辞竖行——极淡的竖向刻痕（甲骨上的字是竖着成行的）
+       ② 受光面
+       ③ 骨面本体的暖色渐变（要比页面底色实，否则整块融进背景） */
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 44px,
+      color-mix(in srgb, var(--bronze) 9%, transparent) 44px 45px),
+    radial-gradient(ellipse at 34% 22%,
+      color-mix(in srgb, var(--bone-white) 90%, transparent), transparent 56%),
+    linear-gradient(152deg,
+      #fdf9f0 0%, #f6ecda 42%, #e7d9be 100%);
+  /* clip-path 会连 box-shadow 一起剪掉，所以阴影得用 drop-shadow；
+     但模糊别开太大（原来 18px 直接在边上糊成光晕） */
+  filter: drop-shadow(0 3px 9px rgba(60, 46, 24, .22));
 }
-.bo-link.done { background: var(--green); }
 
-/* 关卡节点 */
-.bo-node {
-  position: relative; flex: 0 0 94px;
-  display: flex; flex-direction: column; align-items: center; gap: var(--s-1);
-  padding: var(--s-3) var(--s-1) var(--s-3);
-  cursor: pointer; scroll-snap-align: center;
+/* 轮廓与路径 */
+.bo-boneline { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.bo-boneline polyline, .bo-boneline polygon {
+  fill: none;
+  vector-effect: non-scaling-stroke;   /* viewBox 被拉伸，线宽必须抗缩放 */
+}
+.bo-boneedge {
+  stroke: color-mix(in srgb, var(--bronze) 62%, var(--edge));
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.bo-bonepath {
+  stroke: color-mix(in srgb, var(--bronze) 34%, transparent);
+  stroke-width: 2; stroke-dasharray: 5 5;
+}
+.bo-bonedone { stroke: var(--green); stroke-width: 3; stroke-linecap: round; }
+
+/* 关卡珠子：串在骨片边上，圆心正好落在轮廓上 */
+.bo-bead {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 66px; height: 66px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
   background: var(--bone-hi);
-  border: 1px solid var(--edge); border-radius: var(--r);
-  box-shadow: var(--sh-1);
+  border: 1.5px solid var(--edge);
+  box-shadow: var(--sh-2);
+  cursor: pointer;
   transition: transform var(--t-base) var(--ease),
               box-shadow var(--t-base) var(--ease),
               border-color var(--t-base) var(--ease);
 }
-.bo-node:hover {
-  transform: translateY(-3px);
+.bo-bead:hover {
+  transform: translate(-50%, -50%) scale(1.09);
   box-shadow: var(--sh-3);
-  border-color: color-mix(in srgb, var(--bronze) 55%, var(--edge));
+  border-color: color-mix(in srgb, var(--bronze) 60%, var(--edge));
+  z-index: 3;
 }
-.bo-node:active { transform: translateY(-1px); }
+.bo-bead:active { transform: translate(-50%, -50%) scale(1.02); }
 
-/* 已通关：绿边 + 勾 */
-.bo-node.done { border-color: color-mix(in srgb, var(--green) 42%, var(--edge)); }
-.bo-node.done::after {
-  content: '通';
-  position: absolute; right: 5px; top: 4px;
-  font-size: 10px; line-height: 1;
-  color: var(--green-tint);
-}
-/* 下一关：朱砂描红，指明"该打这一关" */
-.bo-node.next {
-  border-color: var(--cinnabar);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinnabar) 12%, transparent), var(--sh-1);
-}
-/* 未解锁：去色 + 压暗，不可点 */
-.bo-node.locked { opacity: .48; cursor: not-allowed; filter: grayscale(.7); }
-.bo-node.locked:hover { transform: none; box-shadow: var(--sh-1); }
-
-.bo-node-num {
-  position: absolute; left: 6px; top: 4px;
-  font-size: 10px; letter-spacing: .5px; color: var(--ink-soft);
-}
-.bo-nodeglyphwrap {
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-}
-.bo-nodeglyph { width: 52px; height: 52px; color: var(--ink); display: block; }
-/* 答案叠在甲骨形中央浮出，带一层半透骨底保证可读 */
-.bo-node-name {
+.bo-beadglyphwrap { position: relative; display: flex; align-items: center; justify-content: center; }
+.bo-beadglyph { width: 44px; height: 44px; color: var(--ink); display: block; }
+/* 答案压在甲骨形中央浮出，带半透骨底保证可读 */
+.bo-beadname {
   position: absolute; left: 50%; top: 50%;
   transform: translate(-50%, -50%);
-  padding: 1px 7px; border-radius: var(--r-xs);
+  padding: 1px 6px; border-radius: var(--r-xs);
   font-size: var(--fs-md); font-weight: 700; letter-spacing: 1px;
   color: var(--cinnabar-tint); white-space: nowrap;
-  background: color-mix(in srgb, var(--bone-hi) 88%, transparent);
+  background: color-mix(in srgb, var(--bone-hi) 90%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--edge) 55%, transparent);
 }
-.bo-node-meta { font-size: 10.5px; color: var(--ink-soft); letter-spacing: .3px; }
+/* 关序号：小徽标挂在左上 */
+.bo-beadnum {
+  position: absolute; left: -3px; top: -3px;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-pill);
+  font-size: 10px; line-height: 1;
+  color: var(--ink-2);
+  background: var(--bone-hi);
+  border: 1px solid var(--edge);
+}
+
+/* 状态：下一关朱砂 · 已通关绿 · 完美通关描金 · 未解锁压暗 */
+.bo-bead.next {
+  border-color: var(--cinnabar);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--cinnabar) 14%, transparent), var(--sh-2);
+  animation: beadPulse 2.2s ease-in-out infinite;
+}
+@keyframes beadPulse {
+  0%, 100% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--cinnabar) 14%, transparent), var(--sh-2); }
+  50%      { box-shadow: 0 0 0 9px color-mix(in srgb, var(--cinnabar) 7%, transparent), var(--sh-2); }
+}
+.bo-bead.done { border-color: color-mix(in srgb, var(--green) 60%, var(--edge)); }
+.bo-bead.done .bo-beadnum { color: var(--green-tint); border-color: color-mix(in srgb, var(--green) 45%, var(--edge)); }
+.bo-bead.perfect {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent), var(--sh-2);
+}
+.bo-bead.perfect .bo-beadnum { color: var(--bronze-tint); border-color: var(--gold); }
+.bo-bead.locked { opacity: .58; cursor: not-allowed; filter: grayscale(.6); }
+.bo-bead.locked:hover { transform: translate(-50%, -50%); box-shadow: var(--sh-1); border-color: var(--edge); }
+
+/* 骨片正中：真实进度 */
+.bo-bonecore {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  pointer-events: none; text-align: center;
+}
+.bo-corelabel { font-size: var(--fs-sm); letter-spacing: 4px; color: var(--bronze-tint); }
+.bo-corenum {
+  font-size: 40px; font-weight: 700; letter-spacing: 2px; line-height: 1.1;
+  color: var(--ink);
+}
+.bo-corenote { font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: .5px; }
+
+/* 窄屏：珠子缩小，骨片拉高一点，免得珠子互相压住 */
+@media (max-width: 860px) {
+  .bo-bone { aspect-ratio: 100 / 78; }
+  .bo-bead { width: 50px; height: 50px; }
+  .bo-beadglyph { width: 34px; height: 34px; }
+  .bo-beadnum { min-width: 15px; height: 15px; font-size: 9px; }
+  .bo-corenum { font-size: 26px; }
+}
 
 /* ---------- 现代字的"揭晓"机制 ----------
    默认 opacity:0。悬停 / 键盘聚焦（:focus-within）/ 按住（:active，触屏也吃）
@@ -1000,6 +1062,84 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .bd-slot-note { font-size: 10px; }
   .bd-body, .scene-wide .bd-body { width: 150px; height: 150px; }
   .bd-ground { height: 46px; }
-  .bo-node { flex: 0 0 84px; }
-  .bo-nodeglyph { width: 44px; height: 44px; }
+}
+
+/* ============================================================================
+   构件池（阶段一：自己挑构件砸上去）
+   ----------------------------------------------------------------------------
+   池子里是**全部**构件（37 个），正确项只有 2 个左右，其余是干扰项。
+   构件名要能看清才挑得动，所以不做完全隐藏：
+   默认压到很淡（"浅浅的现代字"），指针落上去才恢复清晰。
+   ============================================================================ */
+.bd-pool {
+  max-width: 1180px; margin: 0 auto var(--s-4);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  border: 1px solid var(--edge); border-radius: var(--r);
+  background: color-mix(in srgb, var(--bone-hi) 86%, transparent);
+}
+.bd-pool-head {
+  display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap;
+  margin-bottom: var(--s-3);
+}
+.bd-pool-head b { font-size: var(--fs-md); letter-spacing: 2px; }
+.bd-pool-note { font-size: var(--fs-sm); color: var(--bronze-tint); }
+.bd-pool-note.dead { color: var(--ink-soft); }
+
+.bd-poolgrid {
+  display: grid; gap: var(--s-2);
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+}
+.bd-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: var(--s-1) 0 var(--s-1);
+  background: var(--bone-hi);
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease);
+}
+.bd-chip:hover {
+  border-color: var(--cinnabar);
+  transform: translateY(-2px);
+  box-shadow: var(--sh-2);
+}
+.bd-chip:active { transform: translateY(0); }
+.bd-chipglyph { width: 32px; height: 32px; color: var(--ink); display: block; }
+.bd-chipname {
+  font-size: 10.5px; line-height: 1.25; letter-spacing: .5px;
+  color: var(--bronze-tint);
+  opacity: .42;
+  transition: opacity var(--t-base) var(--ease);
+}
+.bd-chip:hover .bd-chipname,
+.bd-chip:focus-visible .bd-chipname { opacity: 1; }
+
+/* 已拆下来的那块：沉下去、虚线 */
+.bd-chip.done { opacity: .34; border-style: dashed; cursor: default; }
+.bd-chip.done:hover { transform: none; box-shadow: none; border-color: var(--edge); }
+
+/* 阶段二起：这一手失效，整池压暗 */
+.bd-chip.dead { opacity: .38; filter: grayscale(.7); cursor: not-allowed; }
+.bd-chip.dead:hover { transform: none; box-shadow: none; border-color: var(--edge); }
+
+/* 合体 BOSS 阶段一：身上那块不可点（点它等于指出答案），只能用池子 */
+.bd-field.pool-only .bo-part { cursor: default; pointer-events: none; }
+.bd-field.pool-only .bo-part .bo-hit { pointer-events: none; }
+
+/* 挑错的战报 */
+.bd-log.miss { border-left-color: var(--ink-soft); }
+.bd-log.miss b { color: var(--ink-2); }
+
+/* 完美通关 */
+.bd-winnote.perfect {
+  color: var(--bronze-tint);
+  background: color-mix(in srgb, var(--gold) 15%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+
+@media (max-width: 760px) {
+  .bd-poolgrid { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
+  .bd-chipglyph { width: 26px; height: 26px; }
+  .bd-chipname { font-size: 9.5px; opacity: .6; }
 }

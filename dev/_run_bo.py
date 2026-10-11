@@ -104,10 +104,10 @@ OPEN_ALL = ("  var p = { cleared: [] };\n"
 s1, _ = shoot("bo_track", OPEN1)
 # 2) 第 1 关横版作战：挂载后点第一个可点节点
 s2, _ = shoot("bo_fight", OPEN1 +
-              "  window.__after = function(h){ var n = h.querySelectorAll('.bo-node'); if (n[0]) n[0].click(); };\n")
+              "  window.__after = function(h){ var n = h.querySelectorAll('.bo-bead'); if (n[0]) n[0].click(); };\n")
 # 3) 末关（17 段）：全解锁后点最后一个节点
 s3, _ = shoot("bo_elite", OPEN_ALL +
-              "  window.__after = function(h){ var n = h.querySelectorAll('.bo-node'); if (n[n.length-1]) n[n.length-1].click(); };\n")
+              "  window.__after = function(h){ var n = h.querySelectorAll('.bo-bead'); if (n[n.length-1]) n[n.length-1].click(); };\n")
 
 try:
     os.remove(tmp_path)

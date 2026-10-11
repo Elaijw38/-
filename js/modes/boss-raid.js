@@ -62,6 +62,41 @@
     return 'translate(' + (i * CV * s).toFixed(3) + ',0) scale(' + s.toFixed(5) + ')';
   }
 
+  /* ---------- 甲骨片轮廓 ----------
+     顺时针的百分比坐标，12 个顶点。顶点刻意做得不规整——
+     真骨片本来就不是正多边形，太规整会显得像徽章而不是骨片。 */
+  var BONE = [[3, 46], [8, 25], [18, 11], [34, 4], [52, 8], [68, 2], [83, 11],
+              [93, 26], [87, 40], [95, 54], [86, 66], [91, 79], [75, 88], [57, 83],
+              [39, 93], [21, 86], [9, 71], [2, 58]];
+
+  /* 沿轮廓等距取 n 个点。
+     先按各边实长把总周长均分，再把每个点定位到它落在的那条边上——
+     这样节点是"贴着骨片边缘均匀铺开"，而不是每个顶点分几个。 */
+  function boneRing(n) {
+    var segs = [], total = 0, i;
+    for (i = 0; i < BONE.length; i++) {
+      var a = BONE[i], b = BONE[(i + 1) % BONE.length];
+      var dx = b[0] - a[0], dy = b[1] - a[1];
+      var L = Math.sqrt(dx * dx + dy * dy);
+      segs.push({ a: a, b: b, L: L });
+      total += L;
+    }
+    var out = [];
+    for (var k = 0; k < n; k++) {
+      var want = total * k / n, acc = 0;
+      for (i = 0; i < segs.length; i++) {
+        if (want <= acc + segs[i].L || i === segs.length - 1) {
+          var f = segs[i].L ? (want - acc) / segs[i].L : 0;
+          out.push([segs[i].a[0] + (segs[i].b[0] - segs[i].a[0]) * f,
+                    segs[i].a[1] + (segs[i].b[1] - segs[i].a[1]) * f]);
+          break;
+        }
+        acc += segs[i].L;
+      }
+    }
+    return out;
+  }
+
   /* ---------- 关卡表：把三档拍平成一串线性关卡 ---------- */
   function levelList() {
     var out = [];
@@ -76,14 +111,19 @@
   function prog() {
     var p = App.store.get(STORE_KEY, null);
     if (!p || typeof p !== 'object' || !Array.isArray(p.cleared)) { p = { cleared: [] }; }
+    if (!Array.isArray(p.perfect)) { p.perfect = []; }
     return p;
   }
   function saveProg(p) { App.store.set(STORE_KEY, p); }
   function isCleared(i) { return prog().cleared.indexOf(i) >= 0; }
+  /* 完美通关：合体 BOSS 阶段一一次都没挑错 */
+  function isPerfect(i) { return prog().perfect.indexOf(i) >= 0; }
   function unlocked(i) { return i <= 0 || isCleared(i - 1); }
-  function markCleared(i) {
+  function markCleared(i, perfect) {
     var p = prog();
-    if (p.cleared.indexOf(i) < 0) { p.cleared.push(i); saveProg(p); }
+    if (p.cleared.indexOf(i) < 0) { p.cleared.push(i); }
+    if (perfect && p.perfect.indexOf(i) < 0) { p.perfect.push(i); }
+    saveProg(p);
   }
   function clearedCount() { return prog().cleared.length; }
 
@@ -91,7 +131,7 @@
     view: 'track',      /* track（线性选关）| fight | win */
     idx: 0,             /* 当前关卡序号（0 基） */
     boss: null, tier: null,
-    phase: 1, hp: 100, broken: [], cut: [], log: [], hint: false
+    phase: 1, hp: 100, broken: [], cut: [], miss: 0, log: [], hint: false
   };
 
   /* ============================================================
@@ -116,7 +156,8 @@
 
     function hardReset() {
       S.view = 'track'; S.idx = 0; S.boss = null; S.tier = null;
-      S.phase = 1; S.hp = 100; S.broken = []; S.cut = []; S.log = []; S.hint = false;
+      S.phase = 1; S.hp = 100; S.broken = []; S.cut = []; S.miss = 0;
+      S.log = []; S.hint = false;
     }
 
     function say(kind, title, text) {
@@ -132,7 +173,8 @@
       S.boss = L[i].data;
       S.tier = L[i].tier;
       S.view = 'fight';
-      S.phase = 1; S.hp = 100; S.broken = []; S.cut = []; S.log = []; S.hint = false;
+      S.phase = 1; S.hp = 100; S.broken = []; S.cut = []; S.miss = 0;
+      S.log = []; S.hint = false;
       say('sys', '第 ' + (i + 1) + ' 关 · 讨伐开始',
         '一尊 ' + segOf(S.boss) + ' 段的古字挡在面前。拆开它，就知道是哪个字了。');
       render();
@@ -161,7 +203,8 @@
 
       var bar = App.el('div', 'bo-progress');
       bar.appendChild(App.el('span', 'bo-progtext',
-        '已通关 ' + p.cleared.length + ' / ' + L.length));
+        '已通关 ' + p.cleared.length + ' / ' + L.length
+        + '　完美 ' + p.perfect.length));
       var meter = App.el('span', 'bo-progmeter');
       var fill = App.el('i', 'bo-progfill');
       fill.style.width = (L.length ? Math.round(p.cleared.length / L.length * 100) : 0) + '%';
@@ -173,30 +216,66 @@
         '一条线走到底：拆得动构件的就拆构件；构件混同、拆不动的图画型古字，'
         + '只能进笔画终局。通关一关，解锁下一关。'));
 
-      /* 路径：横向一条，节点之间用连接线串起来 */
-      var track = App.el('div', 'bo-track');
+      /* 21 关沿甲骨片轮廓围成一圈：节点就是串在骨片边上的珠子 */
+      var pts = boneRing(L.length);
       var next = firstOpen();
+      var board = App.el('div', 'bo-bone');
+      board.appendChild(App.el('div', 'bo-boneplate'));
+
+      /* 轮廓与路径叠一层 SVG。
+         viewBox 固定 100×100 再横向拉伸，所以描边必须 non-scaling-stroke，
+         否则线宽会跟着被拉扁。 */
+      var NS = 'http://www.w3.org/2000/svg';
+      var line = document.createElementNS(NS, 'svg');
+      line.setAttribute('viewBox', '0 0 100 100');
+      line.setAttribute('preserveAspectRatio', 'none');
+      line.setAttribute('class', 'bo-boneline');
+      /* 珠子路径：21 个点连成的环 */
+      var ringStr = pts.map(function (q) {
+        return q[0].toFixed(2) + ',' + q[1].toFixed(2);
+      }).join(' ');
+      /* 骨片外形：真正的 12 个顶点，与底板的 clip-path 完全重合，
+         描一圈边，让"骨片的边"和"关卡走的路"分得清。 */
+      var rimStr = BONE.map(function (q) {
+        return q[0].toFixed(2) + ',' + q[1].toFixed(2);
+      }).join(' ');
+      /* 已通关那一段描绿。关卡逐个解锁，所以取最长的已通关前缀 */
+      var upto = -1;
+      for (var d = 0; d < L.length && isCleared(d); d++) { upto = d; }
+      var doneStr = upto >= 0 ? pts.slice(0, upto + 1).map(function (q) {
+        return q[0].toFixed(2) + ',' + q[1].toFixed(2);
+      }).join(' ') : '';
+      line.innerHTML =
+        '<polygon class="bo-boneedge" points="' + rimStr + '"/>' +
+        '<polyline class="bo-bonepath" points="' + ringStr + '"/>' +
+        (doneStr ? '<polyline class="bo-bonedone" points="' + doneStr + '"/>' : '');
+      board.appendChild(line);
+
       L.forEach(function (lv, i) {
-        if (i > 0) {
-          track.appendChild(App.el('span', 'bo-link' + (isCleared(i - 1) ? ' done' : '')));
-        }
         var open = unlocked(i);
         var done = isCleared(i);
         var b = lv.data;
+        var meta = done ? (isPerfect(i) ? '完美通关' : '已通关')
+                        : (open ? ((b.comps && b.comps.length)
+                                   ? '构件 ' + b.comps.length + ' 块'
+                                   : (b.seg || 0) + ' 笔')
+                                : '未解锁');
 
-        var node = App.el('button', 'bo-node bo-spoiler' + (done ? ' done' : '') +
+        var bead = App.el('button', 'bo-bead bo-spoiler' +
+          (done ? ' done' : '') + (isPerfect(i) ? ' perfect' : '') +
           (open ? '' : ' locked') + (i === next ? ' next' : ''));
-        node.setAttribute('aria-label', '第 ' + (i + 1) + ' 关 ' + b.char +
-          (done ? '（已通关）' : (open ? '' : '（未解锁）')));
+        bead.style.left = pts[i][0].toFixed(2) + '%';
+        bead.style.top = pts[i][1].toFixed(2) + '%';
+        bead.setAttribute('title', '第 ' + (i + 1) + ' 关 · ' + meta
+          + (open ? '　' + lv.tier.name : ''));
+        bead.setAttribute('aria-label', '第 ' + (i + 1) + ' 关（' + meta + '）');
 
-        node.appendChild(App.el('span', 'bo-node-num', String(i + 1)));
+        bead.appendChild(App.el('span', 'bo-beadnum', String(i + 1)));
 
-        /* 字形外面套一层定位壳，好让"答案"正好压在甲骨形上浮出——
-           这样节点里不用为空出来的答案预留一整行。 */
-        var gw = App.el('div', 'bo-nodeglyphwrap');
+        var gw = App.el('div', 'bo-beadglyphwrap');
         var sv = svgEl('svg');
         sv.setAttribute('viewBox', '0 0 ' + CV + ' ' + CV);
-        sv.setAttribute('class', 'bo-nodeglyph');
+        sv.setAttribute('class', 'bo-beadglyph');
         if (lv.tier.kind === 'compound' && b.comps && b.comps.length) {
           sv.innerHTML = (b.comps || []).map(function (c, k) {
             return '<g transform="' + compLayout(k, b.comps.length) + '">' +
@@ -206,26 +285,29 @@
           sv.innerHTML = App.glyphSvg(b.char, 'currentColor');
         }
         gw.appendChild(sv);
-
-        /* 不把现代字直接印在甲骨形上：默认只见甲骨，
-           鼠标悬停 / 键盘聚焦 / 按住（触屏）时才浅浅浮出，压在字形中央。
-           已通关的关卡先前揭晓过，就常显。 */
+        /* 现代字依旧不直接印在甲骨形上：悬停/聚焦/按住才浅浅浮出；
+           已通关的先前揭晓过，常显。 */
         gw.appendChild(App.el('span',
-          'bo-node-name bo-spoiler-a' + (done ? ' shown' : ''), b.char));
-        node.appendChild(gw);
-        node.appendChild(App.el('span', 'bo-node-meta',
-          done ? '已通关'
-               : (open ? ((b.comps && b.comps.length) ? '构件 ' + b.comps.length + ' 块'
-                                                      : (b.seg || 0) + ' 笔')
-                       : '未解锁')));
+          'bo-beadname bo-spoiler-a' + (done ? ' shown' : ''), b.char));
+        bead.appendChild(gw);
+
         if (open) {
-          node.onclick = function () { enter(i); };
+          bead.onclick = function () { enter(i); };
         } else {
-          node.disabled = true;
+          bead.disabled = true;
         }
-        track.appendChild(node);
+        board.appendChild(bead);
       });
-      el.appendChild(track);
+
+      /* 骨片正中不留空：用真实进度占住，不做无意义的装饰 */
+      var core = App.el('div', 'bo-bonecore');
+      core.appendChild(App.el('span', 'bo-corelabel', '已通关'));
+      core.appendChild(App.el('span', 'bo-corenum', p.cleared.length + ' / ' + L.length));
+      core.appendChild(App.el('span', 'bo-corenote',
+        '沿骨片一圈走　第 ' + (next >= 0 ? next + 1 : L.length) + ' 关是下一关'));
+      board.appendChild(core);
+
+      el.appendChild(board);
 
       var side = App.el('div', 'wy-side');
       if (next >= 0 && p.cleared.length) {
@@ -328,7 +410,9 @@
 
       /* —— 横版战场 —— */
       var field = App.el('div', 'bd-field' +
-        (S.phase === 2 ? ' broken' : '') + (S.phase === 3 ? ' final' : ''));
+        (S.phase === 2 ? ' broken' : '') + (S.phase === 3 ? ' final' : '') +
+        /* 合体 BOSS 阶段一：身上那块不可点，只能用构件池 */
+        (isCompound() && S.phase === 1 ? ' pool-only' : ''));
 
       /* 左：项目形象预留位（后续换成本作形象立绘） */
       var hero = App.el('div', 'bd-hero');
@@ -388,12 +472,15 @@
       field.appendChild(App.el('span', 'bd-ground'));
       el.appendChild(field);
 
+      /* 构件池：只有身上真有构件的那一档才给（其余档没有可挑的东西） */
+      if (isCompound()) { renderPool(el); }
+
       /* —— 提示 —— */
       var tip = App.el('div', 'bd-tip');
       if (S.phase === 1) {
         if (isCompound()) {
-          tip.textContent = '点 BOSS 身上的构件，把它拆下来（'
-            + S.broken.length + ' / ' + pieceCount() + '）';
+          tip.textContent = '从下面的构件池里挑一个构件砸上去'
+            + (S.miss ? '（误选 ' + S.miss + ' 次）' : '');
         } else if (S.tier.id === 'elite') {
           tip.textContent = '构件混同的图画型古字，没有能拆的部件——先斩它的笔画（'
             + S.broken.length + ' / ' + pieceCount() + '）';
@@ -434,6 +521,87 @@
       el.appendChild(acts);
 
       bindBody(sv);
+    }
+
+    /* 构件池：把全部构件铺出来，让玩家自己挑。
+       设计上必须给**全部**构件（含 28 个干扰项），只给正确项等于报答案。 */
+    function renderPool(el) {
+      var pool = BOSS.palette || [];
+      var need = S.boss.comps || [];
+      var box = App.el('div', 'bd-pool');
+
+      var head = App.el('div', 'bd-pool-head');
+      head.appendChild(App.el('b', null, '构件池'));
+      if (S.phase === 1) {
+        head.appendChild(App.el('span', 'bd-pool-note',
+          '挑一个构件砸上去（已拆 ' + S.broken.length + ' / ' + need.length + '）'
+          + (S.miss ? '　误选 ' + S.miss + ' 次' : '')));
+      } else if (S.phase === 2) {
+        head.appendChild(App.el('span', 'bd-pool-note dead',
+          '形体错乱，构件对不上号了——这一手已经失效，改用笔画'));
+      } else {
+        head.appendChild(App.el('span', 'bd-pool-note dead',
+          '已经拆到没有构件可对了——只剩笔画'));
+      }
+      box.appendChild(head);
+
+      var grid = App.el('div', 'bd-poolgrid');
+      pool.forEach(function (c) {
+        var idx = need.indexOf(c);
+        var hit = idx >= 0 && S.broken.indexOf(idx) >= 0;
+        var chip = App.el('button', 'bd-chip bo-spoiler' +
+          (hit ? ' done' : '') + (S.phase === 1 ? '' : ' dead'));
+        chip.setAttribute('aria-label', '构件 ' + c);
+
+        var sv = svgEl('svg');
+        sv.setAttribute('viewBox', '0 0 ' + CV + ' ' + CV);
+        sv.setAttribute('class', 'bd-chipglyph');
+        if (App.hasGlyph(c)) { sv.innerHTML = App.glyphSvg(c, 'currentColor'); }
+        chip.appendChild(sv);
+
+        /* 构件名得看得见才挑得动，所以不做完全隐藏：
+           默认压到很淡（浅浅的现代字），指针落上去才恢复清晰。 */
+        chip.appendChild(App.el('span', 'bd-chipname', c));
+        chip.onclick = function () { pickComp(c, idx, hit); };
+        grid.appendChild(chip);
+      });
+      box.appendChild(grid);
+      el.appendChild(box);
+    }
+
+    /* 挑了一个构件：对上就拆下来，对不上记一次误选 */
+    function pickComp(c, idx, alreadyHit) {
+      if (S.phase !== 1) {
+        if (!S.hint) {
+          S.hint = true;
+          say('fail', '构件打法失效', '构件已经混同、变形，对不上号了。改用笔画。');
+        }
+        render();
+        return;
+      }
+      if (alreadyHit) { return; }
+
+      if (idx < 0) {
+        S.miss++;
+        say('miss', '砸空了', '「' + c + '」不在它身上——再看一遍，它到底由什么拼起来。');
+        render();
+        return;
+      }
+
+      S.broken.push(idx);
+      S.hp -= 50 / pieceCount();
+      var eff = effectOf(c);
+      say('break', eff[0] + '（' + c + '）', eff[1]);
+
+      if (S.broken.length >= pieceCount() || S.hp <= 0) {
+        S.hp = Math.max(50, S.hp);
+        S.phase = 2;
+        say('fail', '构件崩坏', '它把拆散的部件又吸了回去——形体错乱、构件混同。'
+          + '这正是甲骨文里那些异体乱象。构件打法继续不下去了。');
+        render();
+        return;
+      }
+      render();
     }
 
     /* 身体 SVG：按阶段给出不同结构（与上一版一致） */
@@ -518,23 +686,25 @@
         return;
       }
 
+      /* 身上有构件的档：阶段一**只能**用构件池。
+         直接点身上那块等于把答案指出来，所以这里不绑点击；
+         阶段二点头身只给一句失效提示（那是引导，不是输入）。 */
+      if (isCompound()) {
+        if (S.phase === 2) {
+          Array.prototype.forEach.call(sv.querySelectorAll('.bo-part'), function (g) {
+            g.addEventListener('click', function () { pickComp('', -1, false); });
+          });
+        }
+        return;
+      }
+
       Array.prototype.forEach.call(sv.querySelectorAll('.bo-part'), function (g) {
         g.addEventListener('click', function () {
           var k = parseInt(g.getAttribute('data-k'), 10);
           var kind = g.getAttribute('data-kind');
           if (S.broken.indexOf(k) >= 0) { return; }
 
-          if (S.phase === 2) {
-            if (!S.hint) {
-              S.hint = true;
-              say('fail', '构件打法失效', '构件已经混同、变形，拆不动了。'
-                + '它化成了一团没有部件的图画——改用笔画。');
-            }
-            render();
-            return;
-          }
-
-          /* 阶段一：拆下来，掉血，报出这个构件的能力 */
+          /* 阶段一：拆下来，掉血 */
           S.broken.push(k);
           S.hp -= 50 / pieceCount();
 
@@ -567,7 +737,7 @@
     }
 
     function win() {
-      markCleared(S.idx);
+      markCleared(S.idx, S.miss === 0);
       S.view = 'win';
       say('win', '斩杀', '「' + S.boss.char + '」的纹路护甲全断，形体崩解。');
       render();
@@ -599,6 +769,13 @@
       } else {
         info.appendChild(App.el('p', 'bd-windesc',
           '全身 ' + segOf(b) + ' 段连续纹路，没有一处能拆的构件，只能用笔画破。'));
+      }
+      /* 合体档报一下误选：这是自己判断构件的成绩单 */
+      if (b.comps && b.comps.length) {
+        info.appendChild(App.el('p', S.miss === 0 ? 'bd-winnote perfect' : 'bd-winnote',
+          S.miss === 0
+            ? '※ 完美通关：一次都没挑错——你一眼就看出了它由哪几个构件拼成。'
+            : '※ 本关误选了 ' + S.miss + ' 次。挑错不扣血，但意味着还没看清它的构件。'));
       }
       if (b.char === '車' || b.char === '虎') {
         info.appendChild(App.el('p', 'bd-winnote',
@@ -649,7 +826,8 @@
 
   function unmount() {
     S.view = 'track'; S.boss = null; S.tier = null; S.idx = 0;
-    S.phase = 1; S.hp = 100; S.broken = []; S.cut = []; S.log = []; S.hint = false;
+    S.phase = 1; S.hp = 100; S.broken = []; S.cut = []; S.miss = 0;
+    S.log = []; S.hint = false;
   }
 
   var total = BOSS ? (BOSS.tiers || []).reduce(function (n, t) { return n + t.list.length; }, 0) : 0;
