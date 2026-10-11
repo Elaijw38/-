@@ -629,5 +629,199 @@
    ]
   },
   "_version": "7.0"
+ },
+ "boss": {
+  "_version": "1.0",
+  "tiers": [
+   {
+    "id": "grunt",
+    "name": "一阶 · 合体字",
+    "kind": "compound",
+    "note": "身体由构件拼成。拆掉构件就破——止封走位、口封印技能、水火消属性。",
+    "list": [
+     {
+      "char": "涉",
+      "note": "趟水过河——水与止缺一不可",
+      "kind": "compound",
+      "comps": [
+       "水",
+       "止"
+      ],
+      "seg": 0
+     },
+     {
+      "char": "鸣",
+      "note": "鸟鸣于口——口是它的喉咙",
+      "kind": "compound",
+      "comps": [
+       "口",
+       "隹"
+      ],
+      "seg": 0
+     },
+     {
+      "char": "焚",
+      "note": "以火烧林——木与火相生相杀",
+      "kind": "compound",
+      "comps": [
+       "木",
+       "火"
+      ],
+      "seg": 0
+     },
+     {
+      "char": "逐",
+      "note": "追豕而猎——止是它的腿",
+      "kind": "compound",
+      "comps": [
+       "止",
+       "豕"
+      ],
+      "seg": 0
+     },
+     {
+      "char": "安",
+      "note": "室中有女则安——宀是它的屋顶",
+      "kind": "compound",
+      "comps": [
+       "宀",
+       "女"
+      ],
+      "seg": 0
+     },
+     {
+      "char": "家",
+      "note": "屋下养豕——拆了屋顶便不成家",
+      "kind": "compound",
+      "comps": [
+       "宀",
+       "豕"
+      ],
+      "seg": 0
+     }
+    ]
+   },
+   {
+    "id": "solo",
+    "name": "二阶 · 独体字",
+    "kind": "stroke",
+    "note": "独体象形，身上没有可拆的构件。直接拆它的笔画，几笔就散。",
+    "list": [
+     {
+      "char": "山",
+      "note": "三峰并立",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 1
+     },
+     {
+      "char": "人",
+      "note": "侧立之人",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 2
+     },
+     {
+      "char": "木",
+      "note": "树干枝叶",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 3
+     },
+     {
+      "char": "日",
+      "note": "一轮圆日",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 3
+     },
+     {
+      "char": "月",
+      "note": "一弯弦月",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 2
+     },
+     {
+      "char": "水",
+      "note": "流水蜿蜒",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 5
+     }
+    ]
+   },
+   {
+    "id": "elite",
+    "name": "终极 · 繁复字",
+    "kind": "stroke",
+    "note": "构件混同、拆分模糊的图画型古字。硬拆构件无效——只能用笔画斩，一段一段断它的纹路护甲。",
+    "list": [
+     {
+      "char": "象",
+      "note": "长鼻巨兽",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 6
+     },
+     {
+      "char": "龍",
+      "note": "鳞虫之长",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 9
+     },
+     {
+      "char": "鳥",
+      "note": "短尾之鸟",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 11
+     },
+     {
+      "char": "鼓",
+      "note": "以手击鼓",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 11
+     },
+     {
+      "char": "馬",
+      "note": "长鬃之马",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 12
+     },
+     {
+      "char": "龜",
+      "note": "甲虫之龟",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 14
+     },
+     {
+      "char": "舞",
+      "note": "执牛尾而舞",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 16
+     },
+     {
+      "char": "車",
+      "note": "双轮之车",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 17
+     },
+     {
+      "char": "虎",
+      "note": "张口有纹之虎",
+      "kind": "stroke",
+      "comps": [],
+      "seg": 17
+     }
+    ]
+   }
+  ]
  }
 }

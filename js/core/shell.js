@@ -132,8 +132,9 @@
   function sceneHome() {
     var wrap = App.el('div', 'scene home-scene');
     wrap.appendChild(App.el('p', 'lead home-lead',
-      '一个以甲骨文为题材的汉字文化游戏平台。当前已上线「甲骨构字」玩法，' +
-      '后续将扩展更多玩法——它们共用同一套字形数据与素材库。'));
+      '一个以甲骨文为题材的汉字文化游戏平台。现有「殷商王邑」（图卷点亮 · 构字）、' +
+      '「甲骨构字」（拼字 · 卜问 · 质问）与「构件讨伐」（拆构件打 BOSS）三个玩法，' +
+      '共用同一套字形数据与素材库。'));
 
     var cards = App.el('div', 'home-grid');
 

@@ -628,3 +628,168 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .piece { min-width: 50px; min-height: 50px; }
   .piece .g { font-size: 21px; }
 }
+
+/* ============================================================================
+   玩法三：构件讨伐（BOSS 战）
+   拆字为武 · 组构为招 · 繁笔破防
+   ============================================================================ */
+.scene.boss-raid .bo-head {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  justify-content: center; margin: 6px 0 4px;
+}
+.scene.boss-raid .bo-title { margin: 0; font-size: 21px; letter-spacing: 2px; }
+.scene.boss-raid .bo-sub { font-size: 12.5px; color: var(--bronze-tint); }
+
+/* ---------- 选 BOSS ---------- */
+.bo-sect { max-width: 980px; margin: 18px auto 0; }
+.bo-tiertitle {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 0 2px 8px; border-bottom: 1px solid var(--edge);
+}
+.bo-tiername { font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+.bo-tiernote { font-size: 12px; color: var(--ink-2); }
+.bo-grid {
+  display: grid; gap: 10px; margin-top: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+}
+.bo-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px 9px; cursor: pointer;
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bone-hi) 94%, var(--bone));
+  transition: border-color .15s, background .15s, transform .12s;
+}
+.bo-card:hover {
+  border-color: var(--cinnabar-tint);
+  background: color-mix(in srgb, var(--cinnabar-tint) 8%, var(--bone-hi));
+  transform: translateY(-2px);
+}
+.bo-cardglyph { width: 76px; height: 76px; color: var(--ink); display: block; }
+.bo-card.is-comp .bo-cardglyph { width: 92px; }
+.bo-cardname { font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+.bo-cardmeta { font-size: 11px; color: var(--bronze-tint); letter-spacing: .5px; }
+
+/* ---------- 阶段条 ---------- */
+.bo-phases {
+  display: grid; gap: 8px; margin: 10px auto 12px; max-width: 980px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.bo-phase {
+  padding: 8px 11px; border: 1px solid var(--edge); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bone-hi) 92%, var(--bone));
+  opacity: .5; transition: opacity .2s, border-color .2s, background .2s;
+}
+.bo-phase.on {
+  opacity: 1; border-color: var(--cinnabar-tint);
+  background: color-mix(in srgb, var(--cinnabar-tint) 10%, var(--bone-hi));
+  box-shadow: var(--shadow);
+}
+.bo-phase.done { opacity: .8; border-color: var(--green-tint); }
+.bo-phnum { display: block; font-size: 10.5px; letter-spacing: 2px; color: var(--ink-soft); }
+.bo-phname { display: block; font-size: 14px; font-weight: 700; margin: 2px 0 3px; }
+.bo-phnote { display: block; font-size: 11.5px; color: var(--ink-2); line-height: 1.45; }
+
+/* ---------- 血量 ---------- */
+.bo-hpwrap {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  max-width: 980px; margin: 0 auto 10px;
+}
+.bo-hplabel { font-size: 12px; color: var(--ink-2); letter-spacing: 1px; }
+.bo-hpbar {
+  flex: 1 1 240px; height: 12px; border-radius: 6px; overflow: hidden;
+  background: var(--edge-in); box-shadow: inset 0 0 0 1px var(--edge);
+}
+.bo-hpfill {
+  display: block; height: 100%; width: 100%;
+  background: linear-gradient(90deg, var(--cinnabar-tint), var(--bronze-tint));
+  transition: width .35s ease;
+}
+.bo-hpnum { font-size: 13px; font-weight: 700; color: var(--cinnabar-tint); min-width: 44px; text-align: right; }
+
+/* ---------- BOSS 本体 ---------- */
+.bo-stage {
+  display: flex; justify-content: center; margin: 4px auto 10px;
+}
+.bo-body {
+  width: 300px; height: 300px; display: block;
+  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  background: linear-gradient(160deg, var(--bone-hi), var(--bone-lo));
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
+  color: var(--ink);
+}
+.scene-wide .bo-body { width: 430px; height: 430px; }
+
+.bo-part { cursor: pointer; }
+.bo-part:hover path { stroke: var(--cinnabar-tint); }
+.bo-hit path { pointer-events: stroke; cursor: pointer; }
+.bo-gone { opacity: .13; }
+.bo-gone path { stroke-dasharray: 3 3; }
+.bo-cut { cursor: crosshair; }
+.bo-cut:hover path { stroke: var(--cinnabar-tint); stroke-width: .5; }
+
+/* 阶段二：形体错乱——把身体轻微扭曲、错位，视觉上「构件混同」 */
+.bo-stage.broken .bo-body { animation: boWarp 2.6s ease-in-out infinite; }
+@keyframes boWarp {
+  0%, 100% { transform: skewX(0deg) translateX(0); }
+  25% { transform: skewX(-1.4deg) translateX(2px); }
+  50% { transform: skewX(0.9deg) translateX(-2px); }
+  75% { transform: skewX(-0.6deg) translateX(1px); }
+}
+/* 阶段三：纯笔画体，偏冷色，与前面区分 */
+.bo-stage.final .bo-body {
+  color: var(--ink);
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--bone-hi) 90%, var(--cinnabar-tint)), var(--bone-lo));
+}
+
+.bo-tip {
+  max-width: 980px; margin: 0 auto 12px; padding: 9px 13px;
+  font-size: 13px; letter-spacing: .5px; text-align: center;
+  border: 1px dashed var(--edge); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bone-hi) 90%, var(--bone));
+}
+.bo-tip.final {
+  border-color: var(--cinnabar-tint);
+  background: color-mix(in srgb, var(--cinnabar-tint) 9%, var(--bone-hi));
+}
+
+/* ---------- 战报 ---------- */
+.bo-logs { max-width: 980px; margin: 0 auto; display: grid; gap: 6px; }
+.bo-log {
+  display: flex; gap: 9px; align-items: baseline;
+  padding: 7px 11px; font-size: 12.5px; line-height: 1.5;
+  border-left: 3px solid var(--edge); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: color-mix(in srgb, var(--bone-hi) 88%, var(--bone));
+}
+.bo-log b { flex: 0 0 auto; color: var(--bronze-tint); letter-spacing: .5px; }
+.bo-log span { color: var(--ink-2); }
+.bo-log.break { border-left-color: var(--cinnabar-tint); }
+.bo-log.break b { color: var(--cinnabar-tint); }
+.bo-log.cut { border-left-color: var(--bronze-tint); }
+.bo-log.fail { border-left-color: var(--ink-soft); }
+.bo-log.win { border-left-color: var(--green-tint); }
+.bo-log.win b { color: var(--green-tint); }
+
+/* ---------- 通关 ---------- */
+.bo-win {
+  display: flex; gap: 22px; align-items: center; flex-wrap: wrap;
+  max-width: 760px; margin: 10px auto 16px; padding: 18px 22px;
+  border: 1px solid color-mix(in srgb, var(--green-tint) 40%, var(--edge));
+  border-radius: var(--r); box-shadow: var(--shadow);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bone-hi) 96%, var(--green-tint)), var(--bone-hi));
+}
+.bo-winglyph { width: 132px; height: 132px; color: var(--ink); flex: 0 0 auto; }
+.bo-wininfo { flex: 1 1 260px; }
+.bo-wintitle { margin: 0 0 8px; font-size: 22px; letter-spacing: 2px; }
+.bo-windesc { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.bo-winnote {
+  margin: 8px 0 0; font-size: 12px; color: var(--bronze-tint);
+  padding: 7px 10px; border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bronze-tint) 9%, transparent);
+}
+
+@media (max-width: 720px) {
+  .bo-phases { grid-template-columns: 1fr; }
+  .bo-body, .scene-wide .bo-body { width: 240px; height: 240px; }
+}

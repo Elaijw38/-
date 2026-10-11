@@ -57,6 +57,24 @@ EXTRA = {
 }
 # 数据集未收录「囗」，但它不参与任何字卡，用「口」的字形作方框代用
 FALLBACK = {"囗": {"glyph_id": 75, "note": "数据集未收录「囗」；借用「口」的方框形，不参与任何字卡"}}
+
+# BOSS 战专用的繁复字形：笔画段数多（9~17 段），用于「笔画终局」——
+# 全身是连续纹路护甲，一段一段斩断。段数实测见 dev/_boss_probe.py。
+# 只做字形，不进地图，也不进「甲骨构字」的构件台。
+BOSS = {
+    "車": 1000,   # 17 段
+    "舞": 424,    # 16 段
+    "龜": 962,    # 14 段
+    "馬": 702,    # 12 段
+    "龍": 843,    # 9 段
+    "鼓": 361,    # 11 段
+    "鳥": 296,    # 11 段
+    "爵": 1188,   # 10 段
+    "彝": 952,    # 10 段
+    "尊": 1054,   # 10 段
+    "絲": 953,    # 10 段
+    "象": 701,    # 6 段
+}
 CANVAS = 100.0     # 统一画布边长（viewBox 单位）
 PAD = 5.0          # 四周留白
 
@@ -191,6 +209,8 @@ def main():
     for table in EXTRA.values():
         for name, gid in table.items():
             wanted.setdefault(name, gid)
+    for name, gid in BOSS.items():
+        wanted.setdefault(name, gid)
     for name, info in FALLBACK.items():
         wanted[name] = info["glyph_id"]
 
