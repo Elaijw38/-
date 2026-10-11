@@ -7,6 +7,10 @@ _drive.html
 _drive.js
 _probe*.html
 _probe*.js
+# 手机端量测/截图用的注入包装页（由 dev/_bb_audit.py 生成，用完即弃）
+_wrap_*.html
+_bone_shot.html
+_cdp_*.js
 
 # 部署包副本（由 dev 脚本生成，源在仓库内，勿重复提交）
 字趣_部署包/

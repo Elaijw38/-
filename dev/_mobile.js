@@ -148,6 +148,23 @@ const AUDIT = `(function(){
   } else {
     console.log('  无元素超出右缘 ✓');
   }
+  /* 包装页可以往 data-bone 里塞自定义量测（如甲骨构字的构件台尺寸） */
+  const extra = await send('Runtime.evaluate', {
+    expression: "document.documentElement.getAttribute('data-bone')", returnByValue: true });
+  const raw = extra && extra.result && extra.result.value;
+  if (raw) {
+    try {
+      const b = JSON.parse(raw);
+      console.log('  构件台：%d 块　排成 %d 行　宽 %s（内容宽 %s）',
+        b.pieces, b.rows, b.tray ? b.tray.w : '-', b.trayInnerW);
+      console.log('    底边 %s　可用高 %s（视口 %s − 操作栏 %s）→ 一屏内看完: %s',
+        b.trayBottom, b.usable, b.vh, b.barH,
+        b.fits ? '是' : '否（超出 ' + (b.trayBottom - b.usable) + '）');
+      if (b.card) console.log('    字卡区 top=%s h=%s', b.card.t, b.card.h);
+      if (b.slots) console.log('    放置槽 top=%s h=%s　底边 %s', b.slots.t, b.slots.h, b.slotsBottom);
+    } catch (e) { console.log('    （data-bone 解析失败）'); }
+  }
+
   if (o.smallTaps.n) {
     console.log('  触控目标偏小（<' + 32 + 'px）: ' + o.smallTaps.n + ' 个  '
       + o.smallTaps.list.join('、'));

@@ -636,6 +636,12 @@ img { max-width: 100%; }
 }
 
 /* 窄屏：顶栏折成两行（品牌一行、入口一行可横滑），首屏收紧 */
+/* 手机端：对局页底部有固定操作栏（约 57px），
+   提示若仍贴在底部会盖住主按钮（契刻/生成）。抬到操作栏上方。 */
+@media (max-width: 560px) {
+  .toast { bottom: calc(74px + env(safe-area-inset-bottom)); }
+}
+
 @media (max-width: 720px) {
   /* 窄屏顶栏折两行，高度变大，首屏的"满一屏"要跟着扣 */
   .hero { min-height: calc(100vh - 101px); }

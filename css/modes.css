@@ -578,20 +578,73 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
    手机端：构件台横向滚动、操作栏固定底部
    ============================================================================ */
 @media (max-width: 560px) {
-  .scoreboard .pts { font-size: 22px; }
-  .glyphbox { width: 132px; height: 132px; }
-  .glyph { font-size: 76px; }
-  .glyph.gimg { width: 96px; height: 96px; }
+  /* ---------- 手机端目标：字卡 + 放置槽 + 构件台，一屏看完 ----------
+     实测原本到构件台底边要 1025px，可用只有 738（视口 844 − 固定操作栏 106），
+     于是必须往上砍近 300px。砍的顺序：先撤重复的，再并次要的，最后压尺寸。 */
 
-  /* 构件台一行横滑，格子够大好点 */
+  /* 导语：玩法说明页里已经完整讲过一遍，这里再来一遍是重复占位 */
+  .scene.play-scene > .lead, .play-scene .lead { display: none; }
+
+  /* 顶部工具条（返回/玩法名/重开）压扁 */
+  .play-bar { padding: 3px 0 5px; margin-bottom: 2px; }
+  .play-bar .btn { min-height: 34px; }
+  .play-bar .chip { font-size: 12px; padding: 2px 8px; }
+
+  /* 比分板与回合行并成一行高度 */
+  .scoreboard { padding: 3px 8px; margin-bottom: 2px; }
+  .scoreboard .pts { font-size: 19px; }
+  .scoreboard .pl { padding: 3px 7px; }
+  .scoreboard .nm { font-size: 11.5px; }
+  .scoreboard .pts { font-size: 17px; }
+  .bar.roundbar, .scoreboard + .bar { margin: 0 0 2px; padding: 0; font-size: 11px; }
+
+  /* 思考时间：压成细条 */
+  .timer { padding: 0 0 2px; }
+  .timer .tl { font-size: 10.5px; }
+  .timer .tl .fill { height: 4px; }
+
+  /* 字卡：132 → 104，给构件台腾地方 */
+  .glyphbox { width: 104px; height: 104px; }
+  .glyph { font-size: 62px; }
+  .glyph.gimg { width: 78px; height: 78px; }
+
+  /* 提示行并进上方，去掉多余外边距 */
+  .info { padding: 0; }
+  .info .name { margin: 0 0 2px; font-size: 11.5px; color: var(--ink-2); }
+
+  /* 字卡与槽之间的空隙也收一收 */
+  .stage { margin: 4px 0; }
+  .slots { margin: 2px 0; }
+
+  /* 构件台标题撤掉：构件台长什么样一眼就懂，不需要标题占 23px */
+  h3.sec { display: none; }
+
+  /* 构件台：**自动换行的网格**，不再一行横滑。
+     改版前 37 个构件挤成 1 行、内容宽 2622px，视口只有 390——
+     最后一个构件在 2240px 外，得横向滑很久才够得着。
+     网格化之后一屏看全，选构件不用来回滑。 */
   .pieces {
-    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
-    -webkit-overflow-scrolling: touch; gap: 9px; padding: 5px 2px 10px;
-    scroll-snap-type: x proximity;
+    display: grid;
+    /* 8 列：37 个构件排 5 行（原来 42px 一列只能排 7 列、要 6 行） */
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    gap: 4px;
+    padding: 2px 0 4px;
+    overflow: visible;
+    scroll-snap-type: none;
   }
-  .pieces::-webkit-scrollbar { display: none; }
-  .piece { flex: 0 0 auto; min-width: 62px; min-height: 62px; scroll-snap-align: start; }
-  .piece .g { font-size: 26px; }
+  .piece {
+    min-width: 0; min-height: 0; width: auto;
+    aspect-ratio: 1 / 1;
+    padding: 2px;
+  }
+  .piece .g { font-size: 18px; line-height: 1; }
+  .piece .n { font-size: 9px; margin-top: 0; line-height: 1.1; }
+  .piece .g.gimg { width: 22px; height: 22px; }
+  /* 真甲骨字形是内联 SVG，尺寸不由 font-size 决定，必须单独指定。
+     漏了这条，34×34 的字形会把 38px 的格子塞满、四角被骨形轮廓切掉。 */
+  .piece .g .pieceob { width: 24px; height: 24px; }
+  /* 格子小，骨形 clip-path 的棱角会啃掉内容，放宽成小圆角 */
+  .piece { clip-path: none; border-radius: 4px; }
 
   .slot { width: 48px; height: 54px; font-size: 22px; }
   #mpSlots, .slots { gap: 8px; }
@@ -604,9 +657,15 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
     border-top: 1px solid var(--edge); gap: 7px; flex-wrap: wrap;
     backdrop-filter: saturate(1.1) blur(6px);
   }
-  .info > .bar .btn { flex: 1 1 auto; min-height: 44px; font-size: 14.5px; }
-  .info > .bar .btn.primary { flex: 2 1 55%; }
-  .info > .bar .btn.sm { flex: 1 1 100%; min-height: 38px; font-size: 12.5px; }
+  /* 两个按钮**并排**，不要各自换行。
+     app.css:461 有一条 `.stage > .info > .bar .btn.sm { flex: 1 1 100% }`，
+     比这里多一层选择器、权重更高，会把次要按钮撑成整宽 → 操作栏叠成两行、
+     高到 104px。而它上面就是构件台，等于白白吃掉一整行构件的高度。
+     所以这里用**同等权重**的选择器覆盖，并压住换行。 */
+  .stage > .info > .bar { flex-wrap: nowrap; padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); }
+  .stage > .info > .bar .btn { flex: 1 1 0; min-width: 0; min-height: 42px; font-size: 13.5px; padding: 0 10px; }
+  .stage > .info > .bar .btn.primary { flex: 1.6 1 0; }
+  .stage > .info > .bar .btn.sm { flex: 1 1 0; min-height: 42px; font-size: 12.5px; }
   .console > .bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 61;
     margin: 0; padding: 8px 11px calc(8px + env(safe-area-inset-bottom));
@@ -618,8 +677,65 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   /* 质问台打开时，隐藏主操作栏，避免两层固定栏叠加 */
   body.challenging .info > .bar { display: none; }
   /* 给固定栏留出空间 */
-  .mode-host { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  /* 操作栏变矮了，留给它的空间也跟着收 */
+  .mode-host { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
   .panel .opt-2 { grid-template-columns: 1fr; }
+}
+
+/* 平板竖屏（iPad 768×1024 等）：宽度超过 560，走的是桌面尺寸，
+   实测构件台底边 998、可用 984 —— 差 14px。小幅收紧字卡即可。 */
+@media (min-width: 561px) and (max-width: 900px) and (orientation: portrait) {
+  .glyphbox { width: 116px; height: 116px; }
+  .glyph { font-size: 66px; }
+  .glyph.gimg { width: 96px; height: 96px; }
+  .pieces { gap: 6px; }
+  .scoreboard { padding: 6px 10px; }
+  .timer { padding: 2px 0; }
+}
+
+/* 矮屏手机（375×667、360×640 这类）：
+   上面那套压缩后构件台底边仍在 746 左右，而可用只有 610（视口 667 − 操作栏 57）。
+   这里再做一轮——撤掉与别处重复的信息，把尺寸整体降一档。 */
+@media (max-width: 560px) and (max-height: 800px) {
+  .play-bar { padding: 2px 0 3px; margin-bottom: 1px; }
+  .play-bar .btn { min-height: 30px; }
+  .scoreboard { padding: 2px 7px; margin-bottom: 1px; }
+  .scoreboard .pl { padding: 2px 6px; }
+  .scoreboard .pts { font-size: 15px; }
+  .scoreboard .nm { font-size: 10.5px; }
+  /* 回合/轮到/难度 与上方比分板讲的是同一件事，矮屏先撤这行 */
+  .bar.roundbar, .scoreboard + .bar { display: none; }
+  .timer { padding: 0; }
+  .timer .tl { font-size: 10px; }
+  /* 字卡再小一档，但仍是全屏最大的元素 */
+  .glyphbox { width: 84px; height: 84px; }
+  .glyph { font-size: 50px; }
+  .glyph.gimg { width: 62px; height: 62px; }
+  /* 提示语与字卡上方的"契文"小字重复，矮屏撤掉 */
+  .info .name { display: none; }
+  /* 再省 45px：比分板、计时条、放置槽、间距各让一点。
+     字卡不动——它是题目本身，再小就看不清了。 */
+  .scoreboard { padding: 0 6px; }
+  .scoreboard .pl { padding: 1px 5px; }
+  .scoreboard .pts { font-size: 13px; }
+  .scoreboard .nm { font-size: 10px; }
+  .timer .tl { font-size: 9.5px; }
+  .timer .tl .fill { height: 3px; }
+  .stage { margin: 2px 0; }
+  .slots { margin: 0; }
+  .slot { width: 44px; height: 44px; font-size: 19px; }
+  #mpSlots, .slots { gap: 6px; }
+  /* 构件台改 10 列：37 个构件排 4 行（5 行 → 4 行省约 50px）。
+     格子从 ~35px 降到 ~32px，仍高于 32px 的触控下限；
+     比继续抠字卡/比分板的像素划算——那些抠下去会伤可读性。 */
+  .pieces {
+    grid-template-columns: repeat(auto-fill, minmax(31px, 1fr));
+    gap: 2px;
+  }
+  .piece { padding: 1px; }
+  .piece .g { font-size: 15px; }
+  .piece .n { font-size: 7.5px; }
+  .piece .g .pieceob { width: 18px; height: 18px; }
 }
 
 @media (max-height: 480px) and (orientation: landscape) {
