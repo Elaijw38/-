@@ -1,82 +1,134 @@
 /* ============================================================================
-   字趣 · 主题层
-   设计取向：参考《黑神话：悟空》一类"厚重东方 + 现代游戏感"的处理手法
-             （深色底、材质层次、雕刻感描边、戏剧性明暗对比），
-             但颜色与纹样一律回到甲骨本身：
-               墨（刻痕）· 骨（载体）· 朱砂（填朱）· 青铜（少量点缀）· 灼痕（兆纹）
-   三套主题共用同一套 CSS 变量名，切换只换变量值。
+   字趣 · 主题与组件层
+   ----------------------------------------------------------------------------
+   设计取向：简约现代的平台风格，低饱和、克制专业、减少视觉疲劳。
+   颜色的来处仍然是甲骨本身：墨（刻痕）· 骨（载体）· 朱砂（填朱）· 青铜（点缀）。
+   但**去掉上一版的装饰性重手法**（四角刻点、双线分隔、厚重内描边），
+   改用：柔和的层次阴影 + 统一的间距与圆角刻度 + 明确的交互态。
+
+   本层分四块：
+     1. 设计令牌（色 / 间距 / 圆角 / 阴影 / 动效 / 层级 / 字号）
+     2. 基础与背景
+     3. 通用组件（面、按钮、徽记、表格、表单、滚动条、轻提示）
+     4. 状态提示（加载 / 空 / 错误）—— 不改 JS 也能生效，见该节注释
+
+   约定：**只改样式，不动任何业务逻辑**。新增的类名一律是可选的增强，
+   原有类名与选择器全部保留，避免破坏既有功能。
    ============================================================================ */
 
+/* ============================================================================
+   1. 设计令牌
+   ============================================================================ */
 :root {
-  /* —— 主色：墨 · 骨 · 朱砂 —— */
-  --ink:        #1b1611;   /* 墨（正文与刻痕） */
-  --ink-2:      #5b4f3e;   /* 淡墨 */
-  --ink-soft:   #8a7a60;   /* 更淡，用于渐变末端 */
+  /* —— 墨 —— */
+  --ink:        #1f1a14;   /* 正文与刻痕 */
+  --ink-2:      #6b6153;   /* 次要文字 */
+  --ink-soft:   #6e6455;   /* 更淡，用于说明与占位 */
 
-  --bone:       #efe4cd;   /* 骨（页面底 / 亮面） */
-  --bone-hi:    #f7efdc;   /* 受光面 */
-  --bone-lo:    #ddcfae;   /* 背光面 */
+  /* 柔白：比 --bone-hi 更亮一档，留给输入框 / 编辑器 / 图片格。
+     不用纯 #fff —— 纯白压在低饱和骨白上会"跳"，久看刺眼。 */
+  --bone-white: #fffdf9;
 
-  --cinnabar:   #a8321f;   /* 朱砂（填朱）—— 点睛与强调 */
-  --cinnabar-hi:#c8482f;   /* 朱砂高光 */
-  --bronze:     #8a6a33;   /* 青铜 —— 少量点缀、描边 */
-  --bronze-hi:  #b98f47;
+  /* —— 骨（页面底 / 面） —— */
+  --bone:       #f1ebe0;   /* 页面底：略去黄，降低长时间阅读的疲劳 */
+  --bone-hi:    #faf6ee;   /* 受光面（卡片） */
+  --bone-lo:    #e5ddcd;   /* 背光面 */
 
-  --edge:       #b79a6b;   /* 外描边 */
-  --edge-in:    #dcc79c;   /* 内描线 */
-  --crack:      #8a7a5e;   /* 兆纹 */
+  /* —— 朱砂（强调 / 主操作） —— */
+  --cinnabar:   #9e3524;
+  --cinnabar-hi:#b8492f;
 
-  /* —— 语义别名（旧样式沿用） —— */
-  --paper:      var(--bone);
-  --card:       var(--bone-hi);
-  --bone1:      #f3e9d6;
-  --bone2:      #e6d8bd;
-  --gold:       var(--bronze);
-  --red:        var(--cinnabar);
+  /* —— 青铜（少量点缀、描边） —— */
+  --bronze:     #8a7350;
+  --bronze-hi:  #a98d5e;
+
+  /* —— 描边 —— */
+  --edge:       #c3b39a;   /* 外描边：降饱和，减少生硬感 */
+  --edge-in:    #e7ddcb;   /* 内描线 */
+
+  /* —— 语义色 —— */
   --green:      #3f6b4a;
   --blue:       #3f5872;
-  --line:       var(--edge);
-  --shadow:     0 2px 12px rgba(70, 52, 26, .18);
 
-  --r:          10px;
-  --r-sm:       6px;
-  --r-pill:     999px;
-
-  /* —— 文字专用色 ——
-     --cinnabar / --bronze / --blue / --green 这几个值同时兼作「底色」（朱砂印章、
-     主按钮、比分徽记、时间条），不能为了文字去改它们，否则白字压朱砂底
-     会立刻失效。故另立一套仅用于文字的值，取更深的同色，
-     保证在骨面上小字也达到 AA 4.5:1。 */
+  /* —— 文字专用深色（保证骨面上的小字达到 AA 4.5:1）——
+     这几个值与上面的底色同名色系但更深：底色要压白字，文字要压浅底，
+     两者不能共用同一个值。改动前请跑 dev/_contrast.js。 */
   --cinnabar-tint: #9b3324;
   --bronze-tint:   #7a5c25;
   --blue-tint:     #3f5872;
   --green-tint:    #35603f;
+
+  /* —— 间距刻度（4 的倍数，全站统一）—— */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-7: 32px;
+  --s-8: 40px;
+
+  /* —— 圆角刻度（"圆角适中"：不再用大胶囊）—— */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r:    10px;
+  --r-lg: 14px;
+  --r-pill: 999px;   /* 仅留给徽记 / 进度条这类需要全圆的地方 */
+
+  /* —— 层次阴影：柔和、低对比，避免"浮起来" —— */
+  --sh-1: 0 1px 2px rgba(60, 46, 24, .07);
+  --sh-2: 0 2px 8px rgba(60, 46, 24, .09);
+  --sh-3: 0 8px 24px rgba(60, 46, 24, .13);
+  --shadow: var(--sh-2);          /* 旧名沿用 */
+
+  /* —— 动效 —— */
+  --t-fast: .12s;
+  --t-base: .18s;
+  --t-slow: .28s;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+
+  /* —— 层级 —— */
+  --z-nav: 20;
+  --z-top: 30;
+  --z-toast: 9999;
+
+  /* —— 字号 —— */
+  --fs-xs: 11px;
+  --fs-sm: 12.5px;
+  --fs-md: 13.5px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+
+  /* —— 旧别名（app.css / modes.css 里仍在引用，保留） —— */
+  --paper:  var(--bone);
+  --card:   var(--bone-hi);
+  --bone1:  #f4eee3;
+  --bone2:  #e5ddcd;
+  --gold:   var(--bronze);
+  --red:    var(--cinnabar);
+  --line:   var(--edge);
 }
 
-/* ============================================================================
-   外观：固定为「骨白」浅色，站点不提供外观设置。
-   html 上的 data-theme="bone" 由 js/core/build.js 写死，只作为选择下面
-   这组变量的钩子；用户看不到也改不了，也不读取任何存储值。
-   ============================================================================ */
+/* 外观固定为「骨白」浅色：站点不提供外观设置。
+   html 上的 data-theme="bone" 由 js/core/build.js 写死，只作为选择这组变量的钩子。 */
 html[data-theme="bone"] {
-  --ink:        #221d15;
-  --ink-2:      #6b5f4b;
-  --ink-soft:   #6f6455;
-  --bone:       #f0e6d2;
-  --bone-hi:    #faf4e6;
-  --bone-lo:    #e6d8bd;
-  --edge:       #b59a6e;
-  --edge-in:    #dcc79c;
-  --paper:      var(--bone);
-  --card:       var(--bone-hi);
-  --bone1:      #f3e9d6;
-  --bone2:      #e6d8bd;
-  --shadow:     0 2px 12px rgba(70, 52, 26, .16);
+  --ink:      #24201a;
+  --ink-2:    #6b6153;
+  --ink-soft: #6e6455;
+  --bone:     #f1ebe0;
+  --bone-hi:  #faf6ee;
+  --bone-lo:  #e5ddcd;
+  --edge:     #c3b39a;
+  --edge-in:  #e7ddcb;
+  --paper:    var(--bone);
+  --card:     var(--bone-hi);
+  --bone1:    #f4eee3;
+  --bone2:    #e5ddcd;
+  --shadow:   var(--sh-2);
 }
 
 /* ============================================================================
-   页面底纹：真实甲骨文字形平铺 + 骨纹
-   （矢量生成，任何分辨率都清晰，不加载外部图片）
+   2. 基础与背景
    ============================================================================ */
 body {
   color: var(--ink);
@@ -93,171 +145,419 @@ body {
 /* 内容层要盖在装饰层之上 */
 .top, .wrap, .footer { position: relative; z-index: 1; }
 
-/* ============================================================================
-   材质与雕刻感：卡片、分隔、描边
-   参考手法——黑神话式"描金边 + 材质层次"，这里换成"内线刻痕 + 骨面层次"
-   ============================================================================ */
-.sect, .panel, .console, .scene .mode-card, .scene .home-card, .tl-table, .setup .sect {
-  position: relative;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bone-hi) 92%, var(--bone)) 0%, var(--bone-hi) 45%, color-mix(in srgb, var(--bone-hi) 88%, var(--bone-lo)) 100%);
-  border: 1px solid var(--edge);
-  border-radius: var(--r);
-  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
-}
-/* 四角刻点：像骨片边缘凿出的定位点 */
-.sect::before, .panel::before, .console::before {
-  content: ''; position: absolute; inset: 4px; pointer-events: none; border-radius: inherit;
-  background:
-    radial-gradient(circle at 0 0,       var(--edge) 1.4px, transparent 1.6px),
-    radial-gradient(circle at 100% 0,    var(--edge) 1.4px, transparent 1.6px),
-    radial-gradient(circle at 0 100%,    var(--edge) 1.4px, transparent 1.6px),
-    radial-gradient(circle at 100% 100%, var(--edge) 1.4px, transparent 1.6px);
-  opacity: .7;
+/* 全局交互：可点元素统一给出手型与过渡 */
+a, button, .btn, summary, label.sw, [role="button"] { cursor: pointer; }
+button:disabled, .btn:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+
+/* 键盘可达性：统一焦点环（只在键盘导航时出现，鼠标点击不打扰） */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cinnabar) 65%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
 }
 
-/* 章节标题：左侧一道朱砂竖线，像契文的分栏线 */
+/* ============================================================================
+   3. 通用组件
+   ============================================================================ */
+
+/* ---------- 3.1 面（卡片 / 面板）----------
+   统一：圆角 --r、内边距 --s-4~5、柔和阴影、发丝级描边。
+   去掉了上一版的四角刻点与厚重内描边——那是"雕刻感"，与"简约现代"冲突。 */
+.sect, .panel, .console, .scene .mode-card, .scene .home-card, .tl-table, .setup .sect {
+  position: relative;
+  background: var(--bone-hi);
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  box-shadow: var(--sh-1);
+  transition: box-shadow var(--t-base) var(--ease),
+              border-color var(--t-base) var(--ease),
+              transform var(--t-base) var(--ease);
+}
+
+/* 可点的面：悬停轻微抬升 + 阴影加深（"明确柔和的反馈"） */
+.scene .mode-card:hover,
+.scene .home-card:not(.ghost):hover {
+  box-shadow: var(--sh-3);
+  border-color: color-mix(in srgb, var(--bronze) 55%, var(--edge));
+  transform: translateY(-2px);
+}
+
+/* ---------- 3.2 章节标题 ----------
+   一道朱砂短竖线作为视觉锚点，克制、不喧哗。 */
 .sect h4, .sec-title {
   position: relative;
-  padding-left: 11px;
+  padding-left: var(--s-3);
+  font-size: var(--fs-lg);
+  letter-spacing: .5px;
 }
 .sect h4::before, .sec-title::before {
-  content: ''; position: absolute; left: 0; top: .18em; bottom: .18em; width: 3px;
+  content: '';
+  position: absolute; left: 0; top: .2em; bottom: .2em; width: 3px;
   background: var(--cinnabar); border-radius: 2px;
 }
 
-/* 分隔线：双线，像骨片上的界划 */
+/* 分隔线：单线发丝，不再双线（减噪） */
 hr, .hr {
-  border: 0; height: 3px; margin: 14px 0;
-  background: linear-gradient(180deg, var(--edge) 0 1px, transparent 1px 2px, var(--edge) 1px 2px);
-  opacity: .6;
+  border: 0; height: 1px; margin: var(--s-4) 0;
+  background: var(--edge);
+  opacity: .55;
 }
 
-/* ============================================================================
-   按钮：胶囊 + 内描边；主按钮用朱砂，次按钮骨面
-   ============================================================================ */
+/* ---------- 3.3 按钮 ----------
+   四个层级：默认（次）/ primary（主）/ danger（危险）/ ghost（弱）。
+   尺寸统一（sm 28 / 默认 34 / lg 40），圆角适中，交互态明确。 */
 .btn {
-  font-family: inherit;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--bone-hi) 96%, var(--bone)),
-    color-mix(in srgb, var(--bone2) 92%, var(--bone-lo)));
+  --btn-h: 34px;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1);
+  min-height: var(--btn-h);
+  font-family: inherit; font-size: var(--fs-md); line-height: 1;
+  padding: 0 var(--s-4);
   color: var(--ink);
+  background: var(--bone-hi);
   border: 1px solid var(--edge);
-  border-radius: var(--r-pill);
-  padding: 8px 15px; font-size: 14px; cursor: pointer;
-  box-shadow: inset 0 0 0 1px var(--edge-in), 0 1px 2px rgba(0, 0, 0, .16);
-  transition: transform .06s, box-shadow .12s, filter .12s;
+  border-radius: var(--r-sm);
+  box-shadow: var(--sh-1);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease),
+              transform var(--t-fast) var(--ease);
 }
-.btn:active { transform: translateY(1px) scale(.985); }
-.btn.sm { padding: 6px 12px; font-size: 12.5px; }
-.btn.primary {
-  background: linear-gradient(180deg, var(--cinnabar-hi), var(--cinnabar));
-  color: #fdf3e6; border-color: color-mix(in srgb, var(--cinnabar) 70%, #000);
-  box-shadow: inset 0 0 0 1px rgba(255, 220, 200, .22), 0 2px 8px rgba(120, 30, 15, .35);
+.btn:hover {
+  background: color-mix(in srgb, var(--bone-hi) 88%, var(--bronze));
+  border-color: color-mix(in srgb, var(--bronze) 50%, var(--edge));
 }
-.btn.danger {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--cinnabar) 88%, #000), var(--cinnabar));
-  color: #fdf3e6; border-color: color-mix(in srgb, var(--cinnabar) 60%, #000);
-}
-.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:active { transform: translateY(1px); box-shadow: none; }
 
-/* 小标签 / 徽记 */
+.btn.sm { --btn-h: 28px; font-size: var(--fs-sm); padding: 0 var(--s-3); }
+.btn.lg { --btn-h: 40px; font-size: var(--fs-lg); padding: 0 var(--s-5); }
+
+/* 主按钮：朱砂实底 */
+.btn.primary {
+  background: var(--cinnabar);
+  color: #fdf4ea;
+  border-color: color-mix(in srgb, var(--cinnabar) 78%, #000);
+  box-shadow: var(--sh-2);
+}
+.btn.primary:hover {
+  background: var(--cinnabar-hi);
+  border-color: color-mix(in srgb, var(--cinnabar-hi) 78%, #000);
+}
+
+/* 危险按钮：深一档的朱砂，与主按钮拉开层级又不喧宾夺主 */
+.btn.danger {
+  background: color-mix(in srgb, var(--cinnabar) 82%, #000);
+  color: #fdf4ea;
+  border-color: color-mix(in srgb, var(--cinnabar) 55%, #000);
+}
+.btn.danger:hover { background: var(--cinnabar); }
+
+/* 弱按钮：无底色，仅描边，用于密集排布的次要操作 */
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ink-2);
+}
+.btn.ghost:hover {
+  background: color-mix(in srgb, var(--bronze) 12%, transparent);
+  border-color: color-mix(in srgb, var(--bronze) 35%, transparent);
+  color: var(--ink);
+}
+
+.btn:disabled, .btn[aria-disabled="true"] {
+  opacity: .45; box-shadow: none; transform: none;
+}
+
+/* ---------- 3.4 徽记 / 标签 ---------- */
 .chip, .tag {
-  display: inline-block; font-size: 11px; line-height: 1.5;
-  padding: 2px 8px; border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--bone2) 80%, transparent);
-  border: 1px solid var(--edge-in); color: var(--ink-2);
+  display: inline-block;
+  font-size: var(--fs-xs); line-height: 1.6;
+  padding: 1px var(--s-2);
+  border-radius: var(--r-xs);
+  background: color-mix(in srgb, var(--bronze) 12%, transparent);
+  border: 1px solid var(--edge-in);
+  color: var(--ink-2);
+  white-space: nowrap;
 }
 .tag { background: transparent; }
 
-/* ============================================================================
-   表格：契文式格线
-   ============================================================================ */
+/* ---------- 3.5 表格 ----------
+   表头明显区分、行高舒适、悬停高亮、末行不收口线。 */
 .tl-table, .rv {
-  width: 100%; border-collapse: collapse; font-size: 13px;
-  background: color-mix(in srgb, var(--bone-hi) 70%, transparent);
-  border: 1px solid var(--edge); border-radius: var(--r-sm);
+  width: 100%; border-collapse: separate; border-spacing: 0;
+  font-size: var(--fs-md);
+  background: var(--bone-hi);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
   overflow: hidden;
 }
 .tl-table th, .rv th {
-  background: color-mix(in srgb, var(--bronze) 22%, transparent);
+  background: color-mix(in srgb, var(--bronze) 14%, var(--bone-hi));
   color: var(--ink); font-weight: 600; text-align: left;
-  padding: 7px 9px; border-bottom: 1px solid var(--edge);
+  padding: var(--s-3) var(--s-3);
+  border-bottom: 1px solid var(--edge);
+  white-space: nowrap;
 }
-.tl-table td, .rv td { padding: 6px 9px; border-bottom: 1px dashed color-mix(in srgb, var(--edge) 60%, transparent); }
+.tl-table td, .rv td {
+  padding: var(--s-3) var(--s-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--edge) 45%, transparent);
+  vertical-align: middle;
+}
+.tl-table tbody tr:hover td, .rv tbody tr:hover td {
+  background: color-mix(in srgb, var(--bronze) 7%, transparent);
+}
 .tl-table tr:last-child td, .rv tr:last-child td { border-bottom: 0; }
 
-/* ============================================================================
-   滚动条（桌面端）
-   ============================================================================ */
-* { scrollbar-width: thin; scrollbar-color: var(--edge) transparent; }
-*::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 4px; }
-*::-webkit-scrollbar-track { background: transparent; }
+/* 操作列：按钮排布规整、不换行 */
+.tl-table td .btn + .btn, .rv td .btn + .btn { margin-left: var(--s-2); }
 
-/* ============================================================================
-   旧样式兼容：原 app.css 里用的变量名与选择器在此对齐新主题
-   ============================================================================ */
-.seal {
-  background: var(--cinnabar); color: #fbeee2;
-  border: 1px solid color-mix(in srgb, var(--cinnabar) 60%, #000);
-  border-radius: 3px; padding: 3px 8px; letter-spacing: 2px; line-height: 1.35;
-  font-size: 11px; flex: 0 0 auto;
+/* ---------- 3.6 表单 ----------
+   输入框 / 下拉 / 文本域统一样式；标签与控件排版清晰。 */
+.rowinput, .mini, .io, select, input[type="text"], input[type="number"],
+input[type="search"], input[type="date"], textarea {
+  font-family: inherit; font-size: var(--fs-md);
+  color: var(--ink);
+  background: var(--bone-hi);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+  transition: border-color var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease);
 }
-.hint, .obnote {
-  font-size: 11.5px; color: var(--ink-2); line-height: 1.65;
+.rowinput:hover, .mini:hover, .io:hover, select:hover,
+input[type="text"]:hover, textarea:hover {
+  border-color: color-mix(in srgb, var(--bronze) 50%, var(--edge));
 }
-.okmsg { color: var(--green); font-size: 12px; }
-.prob { color: var(--cinnabar-tint); font-size: 12px; }
-.lead { font-size: 13.5px; color: var(--ink-2); line-height: 1.75; max-width: 46em; }
-.overlay, .imgpanel { background: color-mix(in srgb, var(--bone-lo) 82%, transparent); }
-.edbox, .imgbox {
-  background: var(--bone-hi); border: 1px solid var(--edge); border-radius: var(--r);
-  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
-}
-.rowinput, .mini, .io, select, input[type="text"], textarea {
-  font-family: inherit; font-size: 13.5px;
-  background: color-mix(in srgb, var(--bone-hi) 92%, #fff);
-  color: var(--ink); border: 1px solid var(--edge); border-radius: var(--r-sm);
-  padding: 6px 9px;
+.rowinput:focus, .mini:focus, .io:focus, select:focus,
+input[type="text"]:focus, input[type="number"]:focus,
+input[type="search"]:focus, input[type="date"]:focus, textarea:focus {
+  outline: none;
+  border-color: var(--cinnabar);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinnabar) 14%, transparent);
 }
 .io { width: 100%; line-height: 1.6; }
-select.mini { padding: 6px 9px; }
+select.mini { padding: var(--s-2) var(--s-3); }
 
-/* 滑块（答题时长）——轨道用骨面，滑块用朱砂 */
+/* 表单行：标签与控件对齐（供 .tune / .sw 这类既有结构使用） */
+.tune { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.tune > label { font-size: var(--fs-md); color: var(--ink-2); }
+
+/* 复选框 / 单选：统一为朱砂勾选 */
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--cinnabar);
+  width: 16px; height: 16px;
+}
+.sw {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  font-size: var(--fs-md); padding: var(--s-1) 0; cursor: pointer;
+}
+
+/* 滑块（答题时长）：轨道用骨面，滑块用朱砂 */
 input[type="range"] { -webkit-appearance: none; appearance: none; height: 22px; background: transparent; }
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 6px; border-radius: 3px;
-  background: linear-gradient(90deg, var(--bronze) 0%, color-mix(in srgb, var(--bone2) 90%, transparent) 0%);
+  height: 6px; border-radius: var(--r-pill);
+  background: var(--bone-lo);
   border: 1px solid var(--edge-in);
 }
 input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px;
-  border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--cinnabar-hi), var(--cinnabar));
+  -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px;
+  border-radius: 50%; background: var(--cinnabar);
   border: 1px solid color-mix(in srgb, var(--cinnabar) 60%, #000);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+  box-shadow: var(--sh-1);
+  transition: transform var(--t-fast) var(--ease);
 }
-input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--bone2); }
+input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.1); }
+input[type="range"]::-moz-range-track { height: 6px; border-radius: var(--r-pill); background: var(--bone-lo); }
 input[type="range"]::-moz-range-thumb {
-  width: 18px; height: 18px; border-radius: 50%;
+  width: 16px; height: 16px; border-radius: 50%;
   background: var(--cinnabar); border: 1px solid color-mix(in srgb, var(--cinnabar) 60%, #000);
 }
 
-/* 复选框：朱砂勾 */
-input[type="checkbox"] { accent-color: var(--cinnabar); width: 16px; height: 16px; }
-.sw { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; padding: 5px 0; cursor: pointer; }
+/* ---------- 3.7 滚动条 ----------
+   细、低对比、悬停才显色——符合"长时间使用不累眼"。 */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--edge) 70%, transparent) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--edge) 62%, transparent);
+  border-radius: var(--r-pill);
+  border: 2px solid transparent;   /* 用透明边做出内缩，视觉更细 */
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--edge); background-clip: padding-box; }
 
-/* 轻提示 */
+/* ---------- 3.8 轻提示 ---------- */
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 9999;
-  background: color-mix(in srgb, var(--bone-lo) 92%, #000);
-  color: var(--ink); font-size: 13px; line-height: 1.6;
-  padding: 10px 16px; border-radius: var(--r-pill);
-  border: 1px solid var(--edge-in);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, .5);
+  bottom: calc(var(--s-6) + env(safe-area-inset-bottom));
+  z-index: var(--z-toast);
+  color: var(--bone-hi);
+  background: color-mix(in srgb, var(--ink) 92%, #000);
+  font-size: var(--fs-md); line-height: 1.6;
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--r);
+  box-shadow: var(--sh-3);
   max-width: min(88vw, 520px); text-align: center;
+  animation: toastIn var(--t-base) var(--ease);
 }
-html[data-theme="bone"] .toast {
-  background: color-mix(in srgb, var(--ink) 88%, #000); color: var(--bone-hi);
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ---------- 3.9 旧样式兼容 ---------- */
+.seal {
+  background: var(--cinnabar); color: #fbeee2;
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 60%, #000);
+  border-radius: var(--r-xs); padding: 2px var(--s-2);
+  letter-spacing: 2px; line-height: 1.4;
+  font-size: var(--fs-xs); flex: 0 0 auto;
+}
+.hint, .obnote { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.7; }
+.okmsg { color: var(--green-tint); font-size: var(--fs-sm); }
+.prob  { color: var(--cinnabar-tint); font-size: var(--fs-sm); }
+.lead  { font-size: var(--fs-md); color: var(--ink-2); line-height: 1.8; max-width: 46em; }
+.overlay, .imgpanel { background: color-mix(in srgb, var(--bone-lo) 82%, transparent); }
+.edbox, .imgbox {
+  background: var(--bone-hi); border: 1px solid var(--edge);
+  border-radius: var(--r); box-shadow: var(--sh-2);
+}
+
+/* ============================================================================
+   4. 状态提示（加载 / 空 / 错误）
+   ----------------------------------------------------------------------------
+   这里**不需要改 JS 就能生效**：
+   平台把「找不到玩法 / 玩法未实现 / 玩法加载出错 / 数据缺失」都渲染成
+   所在容器里的**唯一一段 .lead**。用 :only-child 精确命中这类落单的提示，
+   把裸文字变成有层级的状态卡；正常导语（有兄弟节点）不受影响。
+   部件池的「都摆上去了」另有专用类 .wy-tray-empty。
+   ============================================================================ */
+.scene > .lead:only-child,
+.mode-host > .lead:only-child {
+  position: relative;
+  max-width: 44em; margin: var(--s-7) auto;
+  padding: var(--s-6) var(--s-6) var(--s-6) calc(var(--s-6) + 34px);
+  background: var(--bone-hi);
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--cinnabar);
+  border-radius: var(--r);
+  box-shadow: var(--sh-1);
+  font-size: var(--fs-md); color: var(--ink);
+  line-height: 1.75;
+}
+/* 左侧圆标里的感叹号（纯 CSS，无额外 DOM） */
+.scene > .lead:only-child::before,
+.mode-host > .lead:only-child::before {
+  content: '!';
+  position: absolute; left: var(--s-5); top: var(--s-6);
+  width: 20px; height: 20px; line-height: 20px; text-align: center;
+  font-size: var(--fs-sm); font-weight: 700;
+  color: var(--cinnabar-tint);
+  background: color-mix(in srgb, var(--cinnabar) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 30%, transparent);
+  border-radius: 50%;
+}
+
+/* 空态：部件池摆空 */
+.wy-tray-empty {
+  padding: var(--s-5) 0; text-align: center;
+  font-size: var(--fs-sm); color: var(--ink-soft);
+}
+
+
+/* ============================================================================
+   6. 弹窗 / 抽屉
+   ----------------------------------------------------------------------------
+   复用既有类名（它们本是已删除的「内容包编辑器 / 图片管理」弹层，JS 里已无引用）：
+     .overlay / .imgpanel  → 遮罩
+     .edbox  / .imgbox     → 对话框主体
+     .edhead               → 标题栏
+     .edbody               → 内容区
+   桌面端居中弹出；窄屏自动变全屏抽屉（那一段也在本文件里重declare，
+   避免与 app.css 里旧的媒体查询因加载顺序互相覆盖）。
+   ============================================================================ */
+.overlay, .imgpanel {
+  position: fixed; inset: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--s-5); overflow: auto;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  animation: maskIn var(--t-base) var(--ease);
+}
+@keyframes maskIn { from { opacity: 0; } to { opacity: 1; } }
+
+.edbox, .imgbox {
+  width: 100%; max-width: 860px;
+  background: var(--bone-hi);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-3);
+  padding: var(--s-5) var(--s-5) var(--s-6);
+  animation: dialogIn var(--t-base) var(--ease);
+}
+@keyframes dialogIn {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 标题栏：一道发丝线把头部与内容分开 */
+.edhead {
+  display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap;
+  padding-bottom: var(--s-3); margin-bottom: var(--s-4);
+  border-bottom: 1px solid var(--edge);
+}
+.edhead h3 { margin: 0; font-size: var(--fs-xl); letter-spacing: 2px; }
+
+/* 内容区：独立底，与弹窗背景分层 */
+.edbody {
+  background: var(--bone-white);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  padding: var(--s-3);
+}
+
+/* 底部操作区（有就生效，没有不影响） */
+.edfoot {
+  display: flex; justify-content: flex-end; gap: var(--s-2);
+  margin-top: var(--s-4); padding-top: var(--s-3);
+  border-top: 1px solid var(--edge);
+}
+
+/* 窄屏：居中弹窗改为全屏抽屉（拇指可达），此处是唯一定义处 */
+@media (max-width: 720px) {
+  .overlay, .imgpanel { padding: 0; align-items: stretch; }
+  .edbox, .imgbox {
+    max-width: 100%; min-height: 100vh;
+    border: 0; border-radius: 0;
+    padding: var(--s-4) var(--s-4) calc(var(--s-6) + env(safe-area-inset-bottom));
+  }
+}
+
+/* ============================================================================
+   7. 路由切换的过渡
+   ----------------------------------------------------------------------------
+   每次 render 都会重建 .scene 节点，所以这组动画会随切换自动重放——
+   页面之间是"淡入上浮"而不是硬切。侧栏是常驻节点，只对导航项做过渡。
+   ============================================================================ */
+.scene { animation: sceneIn var(--t-base) var(--ease); }
+/* 只做淡入，不做位移：给 .scene 加 transform 会让它变成 position:fixed
+   后代的包含块，动画那 180ms 里任何固定定位元素都会跑到错位置。
+   淡入已经能消掉"硬切"的突兀感，不值得为此冒布局风险。 */
+@keyframes sceneIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ============================================================================
+   5. 无障碍与动效偏好
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  /* 注意：只停动画，不能顺手改样式。
+     早先为了"减弱动效"给首页标题去掉 background-image，
+     结果文字是透明的、底色没了，标题直接消失。 */
 }

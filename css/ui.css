@@ -112,10 +112,11 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
    页脚
    ============================================================================ */
 .footer {
-  max-width: 860px; margin: 26px auto 0;
-  padding: 14px 14px calc(22px + env(safe-area-inset-bottom));
+  max-width: 860px; margin: var(--s-7) auto 0;
+  padding: var(--s-4) var(--s-4) calc(var(--s-6) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--edge);
-  font-size: 10.5px; line-height: 1.8; color: var(--ink-2); text-align: center; opacity: .9;
+  font-size: var(--fs-xs); line-height: 1.8; color: var(--ink-soft);
+  text-align: center;
 }
 .footer a { color: var(--bronze); text-decoration: none; border-bottom: 1px dotted currentColor; }
 .footer a:hover { color: var(--cinnabar); }
@@ -124,9 +125,9 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
 /* ============================================================================
    场景容器
    ============================================================================ */
-.scene { padding-top: 14px; }
+.scene { padding-top: var(--s-4); }
 .sec-title {
-  font-size: 15px; margin: 20px 0 10px; letter-spacing: 1px;
+  font-size: var(--fs-lg); margin: var(--s-6) 0 var(--s-3); letter-spacing: 1px;
   color: var(--ink);
 }
 
@@ -135,28 +136,30 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
    ============================================================================ */
 .home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 6px; }
 .home-card {
-  position: relative; padding: 16px 16px 14px; cursor: pointer;
-  transition: transform .12s, box-shadow .18s, border-color .18s;
+  position: relative; padding: var(--s-4) var(--s-4) var(--s-3); cursor: pointer;
+  border-radius: var(--r);
+  transition: transform var(--t-base) var(--ease),
+              box-shadow var(--t-base) var(--ease),
+              border-color var(--t-base) var(--ease);
   overflow: hidden;
 }
-.home-card:hover { transform: translateY(-2px); border-color: var(--bronze); }
-.home-card:active { transform: translateY(0) scale(.995); }
+.home-card:hover { transform: translateY(-2px); }
+.home-card:active { transform: translateY(0); box-shadow: var(--sh-1); }
 /* 卡面叠加一层极淡的灼痕，避免大面积纯色 */
 .home-card::after {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--cinnabar) 12%, transparent), transparent 60%);
+  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--cinnabar) 7%, transparent), transparent 58%);
 }
 .home-card.primary { border-color: color-mix(in srgb, var(--cinnabar) 55%, var(--edge)); }
 .home-card.primary::after {
-  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--cinnabar) 22%, transparent), transparent 62%);
+  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--cinnabar) 14%, transparent), transparent 60%);
 }
 .home-card.ghost { opacity: .92; }
 .hc-icon {
   display: inline-flex; align-items: center; justify-content: center;
   width: 34px; height: 38px; margin-bottom: 8px;
-  background: linear-gradient(180deg, var(--bone2), var(--bone-lo));
+  background: color-mix(in srgb, var(--bronze) 10%, var(--bone-hi));
   border: 1px solid var(--edge); border-radius: var(--r-sm);
-  box-shadow: inset 0 0 0 1px var(--edge-in);
   color: var(--cinnabar-tint); font-size: 19px; font-weight: 700;
   clip-path: polygon(26% 0%, 74% 5%, 100% 26%, 94% 80%, 60% 100%, 20% 94%, 0% 64%, 8% 20%);
 }
@@ -169,20 +172,22 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
    ============================================================================ */
 .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .mode-card {
-  position: relative; padding: 15px 15px 12px; cursor: pointer;
-  transition: transform .12s, border-color .18s, box-shadow .18s;
+  position: relative; padding: var(--s-4) var(--s-4) var(--s-3); cursor: pointer;
+  border-radius: var(--r);
+  transition: transform var(--t-base) var(--ease),
+              box-shadow var(--t-base) var(--ease),
+              border-color var(--t-base) var(--ease);
 }
-.mode-card:hover { transform: translateY(-2px); border-color: var(--bronze); }
-.mode-card:active { transform: translateY(0) scale(.995); }
+.mode-card:hover { transform: translateY(-2px); }
+.mode-card:active { transform: translateY(0); box-shadow: var(--sh-1); }
 .mode-card.pending { cursor: default; opacity: .78; }
 .mode-card.pending:hover { transform: none; border-color: var(--edge); }
 .mc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .mc-icon {
   display: inline-flex; align-items: center; justify-content: center;
   width: 38px; height: 42px; flex: 0 0 auto;
-  color: #fdf3e6; font-size: 20px; font-weight: 700;
+  color: #fdf4ea; font-size: 20px; font-weight: 700;
   border: 1px solid color-mix(in srgb, var(--edge) 70%, #000);
-  box-shadow: inset 0 0 0 1px rgba(255, 240, 220, .18);
   clip-path: polygon(28% 2%, 72% 0%, 99% 22%, 94% 80%, 62% 100%, 22% 94%, 0% 66%, 6% 24%);
 }
 .mc-title { min-width: 0; }
@@ -205,15 +210,17 @@ body[data-nav="single"] .top .brand-glyph { animation: brandFloat 7s ease-in-out
 .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .opts.three { grid-template-columns: repeat(3, 1fr); }
 .opt {
-  border: 1px solid var(--edge); background: color-mix(in srgb, var(--bone-hi) 70%, transparent);
-  border-radius: var(--r-sm); padding: 10px 11px; cursor: pointer; min-height: 54px;
-  box-shadow: inset 0 0 0 1px var(--edge-in); transition: border-color .15s, background .15s;
+  border: 1px solid var(--edge); background: var(--bone-hi);
+  border-radius: var(--r-sm); padding: var(--s-3); cursor: pointer; min-height: 54px;
+  transition: border-color var(--t-fast) var(--ease),
+              background var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease);
 }
-.opt:hover { border-color: var(--bronze); }
+.opt:hover { border-color: color-mix(in srgb, var(--bronze) 55%, var(--edge)); }
 .opt.on {
   border-color: var(--cinnabar);
-  background: color-mix(in srgb, var(--cinnabar) 10%, transparent);
-  box-shadow: inset 0 0 0 1px var(--cinnabar), 0 0 0 3px color-mix(in srgb, var(--cinnabar) 16%, transparent);
+  background: color-mix(in srgb, var(--cinnabar) 7%, var(--bone-hi));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinnabar) 12%, transparent);
 }
 .opt .t { display: block; font-size: 14px; font-weight: 700; }
 .opt .d { display: block; font-size: 11px; color: var(--ink-2); margin-top: 3px; line-height: 1.55; }
@@ -245,7 +252,7 @@ body[data-nav="side"] .app-nav {
   position: fixed; left: 0; top: 4vh; z-index: 20;
   width: var(--nav-w);
   max-height: 92vh; overflow-y: auto;
-  padding: 15px 13px 14px;
+  padding: var(--s-4) var(--s-3);
   background:
     linear-gradient(180deg,
       color-mix(in srgb, var(--bone-hi) 96%, var(--bone)) 0%,
@@ -257,14 +264,9 @@ body[data-nav="side"] .app-nav {
   box-shadow: var(--shadow), inset 0 0 0 1px var(--edge-in);
 }
 
-/* 侧栏四角刻点，与卡片同一手法 */
-.app-nav::before {
-  content: ''; position: absolute; inset: 4px; pointer-events: none; border-radius: inherit;
-  background:
-    radial-gradient(circle at 100% 0,    var(--edge) 1.4px, transparent 1.6px),
-    radial-gradient(circle at 100% 100%, var(--edge) 1.4px, transparent 1.6px);
-  opacity: .7;
-}
+/* 侧栏不再做四角刻点：那是上一版的"雕刻感"，与简约取向冲突。
+   改为一条极淡的右缘投影，把侧栏与内容列分开，不出声。 */
+.app-nav { box-shadow: var(--sh-2); }
 
 /* 侧栏里的品牌 */
 .app-nav .nav-brand {
@@ -279,45 +281,55 @@ body[data-nav="side"] .app-nav {
 .app-nav .nav-brand .brand-glyph { height: 24px; transform: translateY(1px); }
 .app-nav .nav-brand .brand-art .ch { font-size: 21px; }
 .app-nav .nav-sub {
-  font-size: 11px; color: var(--ink-2); letter-spacing: .4px;
-  line-height: 1.45; margin: 0 0 11px; padding-bottom: 10px;
+  font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: .4px;
+  line-height: 1.45; margin: 0 0 var(--s-3); padding-bottom: var(--s-3);
   border-bottom: 1px solid var(--edge);
 }
 
 /* 导航项 */
 .app-nav .nav-item {
-  display: flex; align-items: center; gap: 9px;
+  display: flex; align-items: center; gap: var(--s-3);
   position: relative; z-index: 1;
-  padding: 8px 10px; border-radius: var(--r-sm);
-  color: var(--ink); text-decoration: none; font-size: 13.5px;
+  padding: var(--s-2) var(--s-3); border-radius: var(--r-sm);
+  color: var(--ink); text-decoration: none; font-size: var(--fs-md);
   border: 1px solid transparent;
-  transition: background .15s, border-color .15s, color .15s;
+  transition: background var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease),
+              transform var(--t-fast) var(--ease);
 }
 .app-nav .nav-item:hover {
-  border-color: var(--bronze);
-  background: color-mix(in srgb, var(--bronze) 11%, transparent);
+  border-color: color-mix(in srgb, var(--bronze) 45%, transparent);
+  background: color-mix(in srgb, var(--bronze) 9%, transparent);
 }
+.app-nav .nav-item:active { transform: translateY(1px); }
 .app-nav .nav-item .nav-ico {
   display: inline-flex; align-items: center; justify-content: center;
   width: 25px; height: 28px; flex: 0 0 auto;
-  background: linear-gradient(180deg, var(--bone2), var(--bone-lo));
-  border: 1px solid var(--edge); border-radius: 5px;
-  box-shadow: inset 0 0 0 1px var(--edge-in);
+  background: color-mix(in srgb, var(--bronze) 10%, var(--bone-hi));
+  border: 1px solid var(--edge); border-radius: var(--r-xs);
   color: var(--ink-2); font-size: 13px; font-weight: 700;
   clip-path: polygon(26% 0%, 74% 5%, 100% 26%, 94% 80%, 60% 100%, 20% 94%, 0% 64%, 8% 20%);
 }
 
 .app-nav .nav-label { letter-spacing: .5px; }
 
-/* 当前项：朱砂 */
+/* 当前项：左侧一道朱砂短条 + 淡朱砂底。
+   比上一版"整块描红"更克制，也更容易在多项之间一眼分出主次。 */
 .app-nav .nav-item.on {
-  border-color: var(--cinnabar);
-  background: color-mix(in srgb, var(--cinnabar) 13%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cinnabar) 45%, transparent);
+  border-color: color-mix(in srgb, var(--cinnabar) 30%, transparent);
+  background: color-mix(in srgb, var(--cinnabar) 9%, transparent);
+}
+.app-nav .nav-item.on::before {
+  content: '';
+  position: absolute; left: calc(var(--s-1) * -1); top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 18px;
+  background: var(--cinnabar); border-radius: 0 2px 2px 0;
 }
 .app-nav .nav-item.on .nav-ico {
-  color: #fdf3e6;
-  background: linear-gradient(180deg, var(--cinnabar-hi), var(--cinnabar));
+  color: #fdf4ea;
+  background: var(--cinnabar);
   border-color: color-mix(in srgb, var(--cinnabar) 60%, #000);
 }
 .app-nav .nav-item.on .nav-label { color: var(--ink); font-weight: 600; }
@@ -325,9 +337,10 @@ body[data-nav="side"] .app-nav {
 /* 侧栏底部：试玩版印章 + 版本 */
 .app-nav .nav-foot {
   position: relative; z-index: 1;
-  margin-top: auto; padding-top: 12px;
-  border-top: 1px dashed var(--edge);
-  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin-top: auto; padding-top: var(--s-3);
+  border-top: 1px solid var(--edge);
+  display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap;
+  opacity: .9;
 }
 .app-nav .nav-ver { font-size: 10.5px; color: var(--ink-soft); letter-spacing: .5px; }
 
@@ -335,9 +348,11 @@ body[data-nav="side"] .app-nav {
 body[data-nav="side"] .app-main { width: auto; }
 body[data-nav="side"] .wrap { padding-bottom: 34px; }
 body[data-nav="side"] .footer {
-  border-top: 0; padding: 4px 14px calc(20px + env(safe-area-inset-bottom));
-  text-align: left; opacity: .85;
+  border-top: 0; padding: var(--s-2) var(--s-4) calc(var(--s-5) + env(safe-area-inset-bottom));
+  text-align: left;
 }
+/* 宽屏玩法（地图/构字/BOSS）下页脚也放开限宽，与内容列对齐 */
+body[data-nav="side"] .app-shell.layout-wide .footer { max-width: none; }
 
 @media (min-width: 721px) {
   body[data-nav="side"] .app-shell {
