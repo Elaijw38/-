@@ -7,7 +7,7 @@
   'use strict';
 
   /* ---------- 品牌信息 ---------- */
-  App.BRAND = '甲骨造词记';
+  App.BRAND = '甲骨构字记';
   App.BRAND_SUB = '用甲骨文构件拼出汉字';
   App.BRAND_SEAL = '试玩版';
   App.BRAND_VERSION = '0.2';

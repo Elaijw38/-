@@ -37,11 +37,11 @@
     h1.appendChild(img);
     var art = App.el('span', 'brand-art');
     art.setAttribute('aria-hidden', 'true');
-    ['造', '词', '记'].forEach(function (ch) {
+    ['构', '字', '记'].forEach(function (ch) {
       art.appendChild(App.el('span', 'ch', ch));
     });
     h1.appendChild(art);
-    h1.appendChild(App.el('span', 'sr-only', '甲骨造词记'));
+    h1.appendChild(App.el('span', 'sr-only', '甲骨构字记'));
     left.appendChild(h1);
     /* 首页整块居中，副标题交给场景里的导语承担，这里不重复 */
     if (current.name !== 'home') {
@@ -101,11 +101,11 @@
     brand.appendChild(img);
     var art = App.el('span', 'brand-art');
     art.setAttribute('aria-hidden', 'true');
-    ['造', '词', '记'].forEach(function (ch) {
+    ['构', '字', '记'].forEach(function (ch) {
       art.appendChild(App.el('span', 'ch', ch));
     });
     brand.appendChild(art);
-    brand.appendChild(App.el('span', 'sr-only', '甲骨造词记'));
+    brand.appendChild(App.el('span', 'sr-only', '甲骨构字记'));
     /* 侧栏里的品牌可点回首页 */
     brand.style.cursor = 'pointer';
     brand.onclick = function () { go('home'); };
