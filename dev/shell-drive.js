@@ -48,6 +48,52 @@
       log('  已取消旧左侧功能栏: ' + flag(!q('.app-nav')));
 
       log('');
+      log('=== 一五、开始游戏 · 关卡展板 ===');
+      go('#/modes'); App.router.render();
+      var lv = qa('.lv');
+      log('  展板数: ' + lv.length + '（应等于可玩玩法数 ' + App.modes.playable().length + '）');
+      var center = q('.lv-center');
+      log('  主轴（.lv-center）: ' + (center ? txt(center.querySelector('.lv-name')) : '（无 X）')
+        + '（应是主玩法「殷商王邑」）');
+      lv.forEach(function (p, i) {
+        var no = txt(p.querySelector('.lv-no'));
+        var step = txt(p.querySelector('.lv-step'));
+        var nm = txt(p.querySelector('.lv-name'));
+        var g = p.querySelector('.lv-glyph');
+        var paths = g ? g.querySelectorAll('path').length : 0;
+        var cta = txt(p.querySelector('.lv-cta'));
+        log('    ' + no + '　' + step + '　' + nm
+          + '　字形 path ' + paths + ' 条　' + cta + '　→ ' + p.getAttribute('href'));
+      });
+      /* 展板上的字形必须是数据集里真有的——不能是编造的装饰字形 */
+      var lvChars = Object.keys({ 'wangyi-map': 1, 'bone-build': 1, 'boss-raid': 1 });
+      log('  三块都有编号/步骤/字形/进入: '
+        + flag(lv.length > 0 && lv.every(function (p) {
+            return p.querySelector('.lv-no') && p.querySelector('.lv-step')
+              && p.querySelector('.lv-glyph') && p.querySelector('.lv-cta');
+          })));
+      log('  主轴更宽更高: '
+        + flag(center && lv.every(function (p) {
+            if (p === center) { return true; }
+            return center.getBoundingClientRect().height > p.getBoundingClientRect().height
+              && center.getBoundingClientRect().width > p.getBoundingClientRect().width;
+          })));
+      log('  三块底边对齐（展墙式）: '
+        + flag(lv.length > 1 && (function () {
+            var bs = lv.map(function (p) { return Math.round(p.getBoundingClientRect().bottom); });
+            var lo = Math.min.apply(null, bs), hi = Math.max.apply(null, bs);
+            return hi - lo <= 2;
+          })()));
+      log('  链接指向真实玩法: '
+        + flag(lv.every(function (p) {
+            var h = p.getAttribute('href') || '';
+            var id = h.replace('#/play/', '');
+            return !!App.modes.get(id) && App.modes.get(id).status === 'ready';
+          })));
+      log('  横向溢出: ' + (document.documentElement.scrollWidth
+        > document.documentElement.clientWidth ? '有 X' : '无'));
+
+      log('');
       log('=== 二、路由与选中态 ===');
       [['#/home', '主页'], ['#/modes', '开始游戏'], ['#/atlas', '汉字图鉴'], ['#/howto', '玩法说明']]
         .forEach(function (x) {

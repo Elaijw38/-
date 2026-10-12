@@ -453,7 +453,8 @@
    与画布缩放、与渲染尺寸都脱钩，小图大图都实。 */
 .obsvg path, .pieceob path, .slotsvg path, .glyphone path, .obcomp-g path,
 .obglyph path, .dc-glyph path, .ac-glyph path, .as-glyph path,
-.wy-ref-glyph path, .bd-chipglyph path, .bo-beadglyph path, .bd-winglyph path {
+.wy-ref-glyph path, .bd-chipglyph path, .bo-beadglyph path, .bd-winglyph path,
+.lv-glyph path, .lv-comp path {
   /* 注意：**不要**把王邑拼字台的 .wy-stroke 放进来。
      那块 stage 是 252×252、viewBox 0 0 100 100（缩放 2.52），
      笔画本来就是 0.9×2.52≈2.3px，够清楚；
@@ -476,6 +477,9 @@
 .bo-beadglyph path      { stroke-width: 1.7px; }   /* 选关节点 34~44px */
 .bd-winglyph path       { stroke-width: 2.4px; }   /* 作战界面翼形 128px */
 .glyphone path          { stroke-width: 2.6px; }   /* 字卡整字 112px */
+/* 开始游戏 · 关卡展板上的字形（92~162px） */
+.lv-glyph path          { stroke-width: 2.8px; }
+.lv-comp path           { stroke-width: 1.8px; }
 .as-glyph path          { stroke-width: 2.8px; }   /* 图鉴详情 132px */
 /* 揭晓区/双人复盘里的字形小一号 */
 .reveal .obcomp-g path { stroke-width: 2px; }

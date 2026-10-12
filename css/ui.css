@@ -815,3 +815,357 @@ img { max-width: 100%; }
   .ach-grid { grid-template-columns: 1fr; }
   .cc-rankname { font-size: 17px; }
 }
+
+/* ============================================================================
+   开始游戏 · 关卡展板
+   ----------------------------------------------------------------------------
+   三块并排的竖向展板，像美术馆的三个展位：
+   编号 / 步骤 / 字形展台 / 玩法名 / 说明 / 进入。
+
+   悬停只改 transform 与 opacity——**不动 width/height/margin**，
+   所以不会跳版；.lv-row 留出足够内边距，scale(1.05) 也不会被裁。
+   ============================================================================ */
+.modes-scene .lead { max-width: 44em; }
+
+.lv-row {
+  /* 底边对齐：三块高度不同（中心板更高），
+     居中对齐会让三块的名字/说明各在不同高度，看着像"没对齐"。
+     贴着同一基线站，中心板自下而上高出——这才是展墙的层次。 */
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: clamp(14px, 2.4vw, 30px);
+  /* 上下留白：既给放大留余量，也是"展览"要的呼吸感 */
+  padding: clamp(24px, 4.5vh, 44px) 0 clamp(20px, 3.5vh, 34px);
+  margin: 0 auto;
+}
+
+.lv {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex; flex-direction: column;
+  width: clamp(208px, 20.5vw, 300px);
+  height: clamp(430px, 66vh, 560px);
+  padding: 18px 18px 16px;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  background:
+    linear-gradient(178deg,
+      var(--bone-hi) 0%,
+      color-mix(in srgb, var(--bone-hi) 64%, var(--bone)) 56%,
+      var(--bone-lo) 100%);
+  box-shadow: 0 1px 2px rgba(41, 35, 30, .10),
+              0 12px 28px -20px rgba(41, 35, 30, .60);
+  transform-origin: 50% 50%;
+  transition: transform .42s cubic-bezier(.22, .61, .36, 1),
+              box-shadow .42s cubic-bezier(.22, .61, .36, 1),
+              border-color .42s ease, opacity .42s ease;
+}
+/* 展板纸面：极淡的横纹，像考古档案纸 */
+.lv::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg,
+    color-mix(in srgb, var(--bronze) 8%, transparent) 0 1px,
+    transparent 1px 7px);
+  opacity: .45;
+}
+
+.lv:hover, .lv:focus-visible {
+  transform: scale(1.05);
+  z-index: 5;
+  border-color: color-mix(in srgb, var(--bronze) 58%, var(--edge));
+  box-shadow: 0 2px 4px rgba(41, 35, 30, .13),
+              0 26px 54px -22px rgba(41, 35, 30, .72);
+}
+.lv:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinnabar) 32%, transparent),
+              0 26px 54px -22px rgba(41, 35, 30, .72);
+}
+
+/* 第二块：视觉中心。更高更宽，顶部一道朱砂细线点题。 */
+.lv-center {
+  width: clamp(224px, 23.5vw, 348px);
+  height: clamp(470px, 72vh, 600px);
+  z-index: 2;
+  border-color: color-mix(in srgb, var(--bronze) 44%, var(--edge));
+  box-shadow: 0 1px 2px rgba(41, 35, 30, .12),
+              0 20px 44px -20px rgba(41, 35, 30, .68);
+}
+.lv-center::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg,
+    transparent, var(--cinnabar) 22%, var(--cinnabar) 78%, transparent);
+  opacity: .9;
+}
+
+/* 悬停某一块时其余轻微弱化——仍然清晰可见，不是"藏起来" */
+.lv-row:hover .lv { opacity: .70; }
+.lv-row:hover .lv:hover { opacity: 1; }
+/* 键盘聚焦同理，别让 focus 的那块被弱化 */
+.lv-row:focus-within .lv { opacity: .70; }
+.lv-row:focus-within .lv:focus-within { opacity: 1; }
+
+/* ---------- 顶部：编号 + 步骤 ---------- */
+.lv-top {
+  position: relative; z-index: 1;
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--edge) 72%, transparent);
+}
+.lv-no {
+  font-size: 12.5px; letter-spacing: 3px; color: var(--bronze-tint);
+  font-variant-numeric: tabular-nums;
+}
+.lv-center .lv-no { color: var(--cinnabar-tint); }
+.lv-step {
+  font-size: 11px; letter-spacing: 7px; color: var(--cinnabar-tint);
+  text-indent: 7px;   /* 补掉末字后多出的字距，右边界才齐 */
+}
+
+/* ---------- 中部：字形展台 ---------- */
+.lv-art {
+  position: relative; z-index: 1;
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: clamp(8px, 1.2vh, 14px);
+  margin: 12px 0;
+}
+/* 托盘：把主字形像拓片一样裱起来。细节行在它外面，不会压到边缘。 */
+.lv-plate {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(8px, 1.1vw, 14px);
+  border: 1px solid color-mix(in srgb, var(--edge) 66%, transparent);
+  border-radius: 2px;
+  background: radial-gradient(126% 92% at 50% 28%,
+    color-mix(in srgb, var(--bone-white) 94%, transparent),
+    color-mix(in srgb, var(--bone-lo) 52%, transparent));
+  box-shadow: inset 0 0 26px color-mix(in srgb, var(--bronze) 13%, transparent);
+  transition: border-color .42s ease, box-shadow .42s ease;
+}
+.lv:hover .lv-plate {
+  border-color: color-mix(in srgb, var(--bronze) 50%, var(--edge));
+  box-shadow: inset 0 0 30px color-mix(in srgb, var(--bronze) 18%, transparent);
+}
+.lv-glyph {
+  position: relative;
+  width: clamp(92px, 10.5vw, 146px);
+  height: clamp(92px, 10.5vw, 146px);
+  color: var(--glyph-line);
+  transition: transform .42s cubic-bezier(.22, .61, .36, 1);
+}
+.lv-center .lv-glyph { width: clamp(104px, 11.5vw, 162px); height: clamp(104px, 11.5vw, 162px); }
+.lv:hover .lv-glyph { transform: translateY(-5px) scale(1.05); }
+
+/* 第二块：构件拆解（悬停时收拢到位、加深） */
+.lv-break {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 7px;
+  opacity: .52; transform: translateY(5px);
+  transition: opacity .42s ease, transform .42s cubic-bezier(.22, .61, .36, 1);
+}
+.lv:hover .lv-break, .lv:focus-visible .lv-break { opacity: 1; transform: translateY(0); }
+.lv-comp {
+  width: clamp(26px, 3vw, 38px); height: clamp(26px, 3vw, 38px);
+  color: var(--glyph-line);
+}
+.lv-plus { font-size: 12px; color: var(--cinnabar-tint); line-height: 1; }
+
+/* 印章式细节：朱砂小印，悬停浮现 */
+.lv-seal {
+  position: relative; z-index: 1;
+  padding: 2px 7px;
+  font-size: 10px; letter-spacing: 2px;
+  color: var(--cinnabar);
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 52%, transparent);
+  border-radius: 2px;
+  opacity: 0; transform: translateY(4px);
+  transition: opacity .42s ease, transform .42s cubic-bezier(.22, .61, .36, 1);
+}
+.lv:hover .lv-seal, .lv:focus-visible .lv-seal { opacity: 1; transform: translateY(0); }
+
+/* 第三块：古今对照 + 一道时间轨迹 */
+.lv-evo {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 9px;
+}
+.lv-arrow {
+  font-size: 13px; color: var(--bronze);
+  transition: transform .42s cubic-bezier(.22, .61, .36, 1);
+}
+.lv:hover .lv-arrow { transform: translateX(4px); }
+.lv-modern {
+  font-size: clamp(26px, 3vw, 38px); line-height: 1; letter-spacing: 2px;
+  color: var(--ink); opacity: .46;
+  transition: opacity .42s ease;
+}
+.lv:hover .lv-modern { opacity: 1; }
+.lv-art:has(.lv-evo)::after {
+  content: ''; position: absolute; left: 8%; right: 8%; top: 74%; height: 1px;
+  background: linear-gradient(90deg, transparent,
+    color-mix(in srgb, var(--bronze) 50%, transparent), transparent);
+}
+
+/* 主玩法的"地图链"：五区各取一处真实实物的字形，每处顶着一个朱砂点位，
+   像地图上的标记。悬停时点位亮起、字形上浮——呼应"点亮地图"。 */
+.lv-chain {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(6px, 1vw, 12px);
+  margin-top: 2px;
+  padding-top: 8px;
+}
+.lv-chain::before {   /* 一条极淡的"地面线"，把它们串起来 */
+  content: ''; position: absolute; left: 4%; right: 4%; top: 12px; height: 1px;
+  background: linear-gradient(90deg, transparent,
+    color-mix(in srgb, var(--bronze) 45%, transparent) 20%,
+    color-mix(in srgb, var(--bronze) 45%, transparent) 80%, transparent);
+}
+.lv-pin {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: transform .42s cubic-bezier(.22, .61, .36, 1);
+}
+.lv-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--cinnabar);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cinnabar) 20%, transparent);
+  transition: box-shadow .42s ease, transform .42s ease;
+}
+.lv-ping {
+  width: clamp(20px, 2.3vw, 28px); height: clamp(20px, 2.3vw, 28px);
+  color: var(--glyph-line);
+}
+.lv:hover .lv-pin { transform: translateY(-3px); }
+.lv:hover .lv-dot {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cinnabar) 22%, transparent);
+}
+/* 逐个错开，像地图上逐点点亮 */
+.lv:hover .lv-pin:nth-child(2) { transition-delay: .04s; }
+.lv:hover .lv-pin:nth-child(3) { transition-delay: .08s; }
+.lv:hover .lv-pin:nth-child(4) { transition-delay: .12s; }
+.lv:hover .lv-pin:nth-child(5) { transition-delay: .16s; }
+
+@media (max-width: 760px) {
+  .lv-chain { display: none; }   /* 小屏展台只有 96px，链子放不下，字形为主 */
+}
+
+/* ---------- 底部：名称 + 说明 ---------- */
+.lv-body { position: relative; z-index: 1; }
+.lv-name {
+  margin: 0 0 3px; font-size: 20px; letter-spacing: 4px; color: var(--ink);
+}
+.lv-center .lv-name { font-size: 23px; }
+.lv-tag {
+  margin: 0 0 6px; font-size: 11.5px; letter-spacing: 1px; color: var(--bronze-tint);
+}
+.lv-desc {
+  margin: 0; font-size: 12px; line-height: 1.72; color: var(--ink-2);
+  /* 只做很轻的淡入：说明是必读信息，不能为了"逐渐显现"把它压到读不清 */
+  opacity: .9;
+  transition: opacity .42s ease;
+}
+.lv:hover .lv-desc { opacity: 1; }
+
+/* ---------- 脚：出处 + 进入 ---------- */
+.lv-foot {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 10px; padding-top: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--edge) 72%, transparent);
+}
+.lv-cap { font-size: 10px; color: var(--ink-soft); line-height: 1.4; }
+.lv-cta {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; letter-spacing: 1px; color: var(--cinnabar-tint);
+}
+.lv-cta-arrow { transition: transform .42s cubic-bezier(.22, .61, .36, 1); }
+.lv:hover .lv-cta-arrow { transform: translateX(4px); }
+
+/* 元信息收在展板下方一行，别挤掉留白 */
+.lv-meta {
+  margin: 0; text-align: center;
+  font-size: 11.5px; letter-spacing: .5px; color: var(--ink-soft);
+}
+
+/* 筹备中的展板 */
+.lv.pending { opacity: .66; cursor: default; }
+.lv.pending:hover { transform: none; }
+
+/* ---------- 手机/窄屏：纵向排列，且不依赖悬停 ----------
+   仍是横向小卡，但编号与「进入」绝对定位占两角，
+   中间只留"字形 + 文字"两栏——这样三块的高度才会齐平；
+   说明按行数截断（全文在玩法页里有），三块才一样高。 */
+@media (max-width: 760px) {
+  .lv-row {
+    flex-direction: column; align-items: stretch;
+    gap: 12px; padding: 2px 0 10px;
+  }
+  .lv, .lv-center {
+    width: 100%; height: auto;
+    flex-direction: row; align-items: flex-start; gap: 12px;
+    /* 上下各留出绝对定位那两行的位置 */
+    padding: 34px 14px 34px;
+    box-shadow: 0 1px 2px rgba(41, 35, 30, .1),
+                0 10px 22px -18px rgba(41, 35, 30, .6);
+  }
+  /* ① 编号 + 步骤：贴顶一行 */
+  .lv-top {
+    position: absolute; top: 9px; left: 14px; right: 14px;
+    border: none; padding: 0; gap: 8px;
+  }
+  .lv-step { letter-spacing: 4px; text-indent: 4px; }
+  /* ② 字形：左侧固定一栏 */
+  .lv-art {
+    flex: 0 0 auto; width: 78px; min-height: 78px; height: auto;
+    margin: 0; order: -1; gap: 4px;
+  }
+  /* 古今对照在窄栏里改成竖排：虎 ↓ 虎，比横排挤在 78px 里清楚 */
+  .lv-evo { flex-direction: column; gap: 1px; }
+  .lv-arrow { transform: rotate(90deg); font-size: 10px; line-height: 1; }
+  .lv:hover .lv-arrow { transform: rotate(90deg); }
+  .lv-plate { padding: 5px; }
+  .lv-glyph, .lv-center .lv-glyph { width: 64px; height: 64px; }
+  .lv-break, .lv-chain, .lv-seal { display: none; }
+  /* ③ 文字：右侧自适应一栏 */
+  .lv-body { flex: 1 1 auto; min-width: 0; }
+  .lv-name { font-size: 17px; letter-spacing: 3px; margin-bottom: 2px; }
+  .lv-center .lv-name { font-size: 18px; }
+  .lv-tag { font-size: 11px; margin-bottom: 4px; }
+  /* 不截断：说明是玩法介绍，截了就等于偷偷少给信息。
+     手机是纵向列表，几块高低不齐很正常，不值得用丢内容换整齐。 */
+  .lv-desc { font-size: 11.5px; line-height: 1.66; opacity: 1; }
+  /* ④ 出处 + 进入：贴底一行，「进入」靠右 */
+  .lv-foot {
+    position: absolute; left: 14px; right: 14px; bottom: 9px;
+    margin: 0; padding: 6px 0 0; gap: 8px;
+  }
+  .lv-cap { display: block; flex: 1 1 auto; min-width: 0; font-size: 9.5px; }
+  .lv-modern { font-size: 15px; opacity: 1; }
+  /* 触摸设备没有悬停，别把放大挂在上面 */
+  .lv:hover { transform: none; }
+  .lv:hover .lv-glyph { transform: none; }
+}
+
+/* 更窄的屏：字形再小一档，别把文字挤没 */
+@media (max-width: 400px) {
+  .lv, .lv-center { padding: 32px 12px 32px; gap: 10px; }
+  .lv-art { width: 66px; height: 66px; }
+  .lv-glyph, .lv-center .lv-glyph { width: 54px; height: 54px; }
+  .lv-name { font-size: 16px; }
+  .lv-center .lv-name { font-size: 17px; }
+  .lv-cap { display: none; }
+}
+
+/* 触摸设备（无悬停能力）：所有"悬停才显现"的信息直接可见 */
+@media (hover: none) {
+  .lv-break, .lv-seal { opacity: 1; transform: none; }
+  .lv-modern { opacity: 1; }
+  .lv-desc { opacity: 1; }
+  .lv-row:hover .lv, .lv-row:focus-within .lv { opacity: 1; }
+}

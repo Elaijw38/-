@@ -804,53 +804,162 @@
   };
 
   /* ---------- 场景：模式选择 ---------- */
-  function sceneModes() {
-    var wrap = App.el('div', 'scene');
-    wrap.appendChild(App.el('p', 'lead', '选一个玩法。每个玩法有各自的规则与节奏，但共用同一套字形数据与素材库。'));
+  /* ---------- 场景：开始游戏（关卡选择） ----------
+     三块并排的竖向展板，像美术馆的三个展位：编号 / 步骤 / 字形 / 名称 / 说明 / 进入。
 
-    var list = App.modes.playable();
-    var groupReady = App.el('div', 'mode-grid');
-    var groupPlan = App.el('div', 'mode-grid');
+     **顺序沿用 App.modes.playable() 的注册顺序**（甲骨构字 → 殷商王邑 → 构件讨伐），
+     不做重排——殷商王邑是主玩法，它本来就在中间，把中间那块做成视觉焦点即可。
 
-    list.forEach(function (m) {
-      var card = App.el('div', 'mode-card' + (m.status !== 'ready' ? ' pending' : ''));
-      var head = App.el('div', 'mc-head');
-      var ico = App.el('span', 'mc-icon', m.icon);
-      ico.style.background = m.accent;
-      head.appendChild(ico);
-      var ttl = App.el('div', 'mc-title');
-      ttl.appendChild(App.el('h3', null, m.name));
-      ttl.appendChild(App.el('span', 'mc-tagline', m.tagline));
-      head.appendChild(ttl);
-      if (m.status === 'planning') head.appendChild(App.el('span', 'mc-badge', '筹备中'));
-      if (m.status === 'wip') head.appendChild(App.el('span', 'mc-badge', '开发中'));
-      card.appendChild(head);
-      if (m.desc) card.appendChild(App.el('p', 'mc-desc', m.desc));
-      if (m.tags.length) {
-        var tg = App.el('div', 'mc-tags');
-        m.tags.forEach(function (t) { tg.appendChild(App.el('span', 'tag', t)); });
-        card.appendChild(tg);
+     面板上的甲骨字形**全部取自数据集里核实过的真字形**，没有一处编造的装饰文字：
+       甲骨构字  休 = 人＋木（字卡之一，释义「从人从木，人倚树而息」，两构件都有真字形）
+       殷商王邑  邑（在玩法名里，也是「人居器物」区第一处实物）
+                ＋ 五区各取一处真实实物的字形，串成一条"地图"
+       构件讨伐  虎（「终极 · 复繁字」一关；繁简同形，做古今对照不会歧义）
+
+     用到的实物字形是**按数据算出来的**（遍历 App.levels.map.zones，每区取第一处
+     有真字形的实物），不是写死的——换了关卡数据，这里会自动跟着变。 */
+  var LV_CENTER = 'wangyi-map';   /* 主玩法：放中间、做成焦点 */
+
+  var LV_SPEC = {
+    'bone-build': {
+      step: '构字', comps: ['人', '木'], seal: '从人从木',
+      cap: '休 · 人倚树而息'
+    },
+    'wangyi-map': {
+      step: '识形', char: '邑', chain: true,
+      seal: '61 处实物', cap: '邑 · 王邑 61 处实物'
+    },
+    'boss-raid': {
+      step: '溯源', char: '虎', modern: '虎',
+      cap: '虎 · 讨伐「终极 · 复繁字」'
+    }
+  };
+
+  /* 五区各取一处真实实物的字形（每区第一个有真字形的），用于"地图"那条链 */
+  function zoneGlyphs(skip) {
+    var out = [];
+    (((App.levels || {}).map || {}).zones || []).forEach(function (z) {
+      var objs = z.objects || [];
+      for (var i = 0; i < objs.length; i++) {
+        var c = objs[i].char;
+        if (c !== skip && App.hasGlyph(c) && out.indexOf(c) < 0) { out.push(c); break; }
       }
-      var players = m.maxPlayers > 1 ? (m.minPlayers + '—' + m.maxPlayers + ' 人') : '单人';
-      /* 声明了内容包才显示它的名字；没声明的就不显示，
-         不要写「无特殊数据」——那是把内部概念漏到界面上。 */
-      var packLabel = (m.data.packs && m.data.packs.length)
-        ? (m.data.packs[0].label || '') : '';
-      card.appendChild(App.el('div', 'mc-foot',
-        players + (packLabel ? '　·　' + packLabel : '')));
+    });
+    return out;
+  }
 
-      if (m.status === 'ready') {
-        card.onclick = function () { App.store.set('lastMode', m.id); go('play', { id: m.id }); };
+  function sceneModes() {
+    var wrap = App.el('div', 'scene modes-scene');
+    wrap.appendChild(App.el('p', 'lead',
+      '三个玩法共用同一套字形数据与素材库，各有各的节奏。'));
+
+    var row = App.el('div', 'lv-row');
+    var list = App.modes.playable().filter(function (m) { return m.status !== 'hidden'; });
+    var ready = list.filter(function (m) { return m.status === 'ready'; });
+    var pend = list.filter(function (m) { return m.status !== 'ready'; });
+
+    list.forEach(function (m, i) {
+      var spec = LV_SPEC[m.id] || {};
+      var isCenter = (m.id === LV_CENTER);
+      var ready = (m.status === 'ready');
+      var no = ('0' + (i + 1)).slice(-2);
+
+      var card = App.el(ready ? 'a' : 'div',
+        'lv' + (isCenter ? ' lv-center' : '') + (ready ? '' : ' pending'));
+      if (ready) {
+        card.href = '#/play/' + m.id;
+        card.onclick = function () { App.store.set('lastMode', m.id); };
       } else {
         card.onclick = function () { App.toast('「' + m.name + '」还在筹备中。'); };
       }
-      (m.status === 'ready' ? groupReady : groupPlan).appendChild(card);
+
+      /* —— 顶部：编号 + 步骤词（编辑式排版）—— */
+      var top = App.el('div', 'lv-top');
+      top.appendChild(App.el('span', 'lv-no', no));
+      top.appendChild(App.el('span', 'lv-step', spec.step || ''));
+      card.appendChild(top);
+
+      /* —— 中部：字形展台（这一块是主角）—— */
+      var art = App.el('div', 'lv-art');
+      /* 主字形装在一个"托盘"里——像把拓片裱起来。
+         细节行（构件拆解 / 地图链 / 古今对照）放在托盘**外面**，
+         否则会压在托盘边缘上。 */
+      var plate = App.el('div', 'lv-plate');
+      var g = spec.comps ? compSvgNode(spec.comps, 'lv-glyph')
+                         : glyphSvgNode(spec.char, 'lv-glyph');
+      if (g) { plate.appendChild(g); }
+      art.appendChild(plate);
+
+      /* 第三块：古今对照 + 时间轨迹 */
+      if (spec.modern) {
+        var evo = App.el('div', 'lv-evo');
+        evo.appendChild(App.el('span', 'lv-arrow', '→'));
+        evo.appendChild(App.el('span', 'lv-modern', spec.modern));
+        art.appendChild(evo);
+      }
+
+      /* 第一块：构件拆解 + 印章 */
+      if (spec.comps) {
+        var brk = App.el('div', 'lv-break');
+        spec.comps.forEach(function (c, k) {
+          if (k) { brk.appendChild(App.el('span', 'lv-plus', '＋')); }
+          var cg = glyphSvgNode(c, 'lv-comp');
+          if (cg) { brk.appendChild(cg); }
+        });
+        art.appendChild(brk);
+      }
+
+      /* 第二块（主玩法）：五区实物串成一条"地图"，每处一个朱砂点位 */
+      if (spec.chain) {
+        var chain = App.el('div', 'lv-chain');
+        zoneGlyphs(spec.char).forEach(function (c) {
+          var pin = App.el('span', 'lv-pin');
+          pin.appendChild(App.el('span', 'lv-dot'));
+          var cg = glyphSvgNode(c, 'lv-ping');
+          if (cg) { pin.appendChild(cg); }
+          chain.appendChild(pin);
+        });
+        if (chain.children.length) { art.appendChild(chain); }
+      }
+
+      if (spec.seal) { art.appendChild(App.el('span', 'lv-seal', spec.seal)); }
+      card.appendChild(art);
+
+      /* —— 底部：玩法名 + 一句话 + 说明 —— */
+      var body = App.el('div', 'lv-body');
+      body.appendChild(App.el('h3', 'lv-name', m.name));
+      if (m.tagline) { body.appendChild(App.el('p', 'lv-tag', m.tagline)); }
+      if (m.desc) { body.appendChild(App.el('p', 'lv-desc', m.desc)); }
+      card.appendChild(body);
+
+      /* —— 脚：出处小注 + 进入 —— */
+      var foot = App.el('div', 'lv-foot');
+      if (spec.cap) { foot.appendChild(App.el('span', 'lv-cap', spec.cap)); }
+      var cta = App.el('span', 'lv-cta');
+      cta.appendChild(App.el('span', null, ready
+        ? (isCenter ? '进入主玩法' : '进入') : '筹备中'));
+      cta.appendChild(App.el('span', 'lv-cta-arrow', '→'));
+      foot.appendChild(cta);
+      card.appendChild(foot);
+
+      row.appendChild(card);
     });
 
-    if (groupReady.children.length) wrap.appendChild(groupReady);
-    if (groupPlan.children.length) {
-      wrap.appendChild(App.el('h3', 'sec-title', '筹备中的玩法（已预留）'));
-      wrap.appendChild(groupPlan);
+    wrap.appendChild(row);
+
+    /* 人数/内容包这类元信息收在展板下方一行，别挤掉留白 */
+    var meta = App.el('p', 'lv-meta');
+    meta.textContent = ready.map(function (m) {
+      var players = m.maxPlayers > 1 ? (m.minPlayers + '—' + m.maxPlayers + ' 人') : '单人';
+      var pack = (m.data.packs && m.data.packs.length)
+        ? ('　' + (m.data.packs[0].label || '')) : '';
+      return m.name + '　' + players + pack;
+    }).join('　·　');
+    wrap.appendChild(meta);
+
+    if (pend.length) {
+      wrap.appendChild(App.el('p', 'lv-meta',
+        '筹备中的玩法：' + pend.map(function (m) { return m.name; }).join('、')));
     }
     return wrap;
   }
