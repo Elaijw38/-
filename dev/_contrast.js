@@ -31,12 +31,24 @@ function resolve(name, vars, depth) {
   if (v === undefined) return null;
   const alias = v.match(/^var\(\s*(--[a-z0-9-]+)\s*\)$/);
   if (alias) return resolve(alias[1], vars, depth + 1);
+  /* 面料分层用 color-mix() 混出"面中面"。
+     不认这个函数，审计就会漏检——而漏检比算错更危险。 */
+  const mix = v.match(
+    /^color-mix\(in srgb,\s*var\((--[a-z0-9-]+)\)\s*([\d.]+)%\s*,\s*var\((--[a-z0-9-]+)\)\s*\)$/);
+  if (mix) {
+    const ca = resolve(mix[1], vars, depth + 1), cb = resolve(mix[3], vars, depth + 1);
+    if (!ca || !cb) return null;
+    const p = parseFloat(mix[2]) / 100;
+    const out = rgb(ca).map((x, i) => Math.round(x * p + rgb(cb)[i] * (1 - p)));
+    return '#' + out.map(x => x.toString(16).padStart(2, '0')).join('');
+  }
   const m = v.match(/#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/);
   if (!m) return null;
   let h = m[1];
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   return '#' + h.toLowerCase();
 }
+/* rgb() 在 resolve() 里就被用到了，提到前面（函数声明会提升，但可读性更好） */
 function rgb(hex) {
   return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
 }
@@ -59,12 +71,16 @@ const pairs = [
   ['--on-dark-2', '--ink-deep', '深色面次要文字'],
   ['--ink',      '--bone',    '正文（.lead/.glyph/.info）'],
   ['--ink',      '--card',    '正文（卡片内）'],
+  ['--ink',      '--sheet',   '正文（纸面：卡片 / 展板 / 分区块）'],
+  ['--ink',      '--sheet-in','正文（内嵌托盘 / 面中面）'],
   ['--ink',      '--bone1',   '正文（构件格/比分板）'],
   ['--ink-2',    '--bone',    '次要文字（.mc-desc/.hc-note 说明）'],
   ['--ink-2',    '--card',    '次要文字（卡片内）'],
+  ['--ink-2',    '--sheet',   '次要文字（纸面）'],
   ['--ink-2',    '--bone1',   '次要文字（比分板/构件）'],
   ['--ink-soft', '--bone',    '最弱文字（.mc-foot 类型/字包）'],
   ['--ink-soft', '--bone1',   '最弱文字（.piece .n 构件名）'],
+  ['--ink-soft', '--sheet',   '最弱文字（纸面上的出处 / 注记）'],
   ['--cinnabar-tint', '--bone',  '朱砂文字（.prob）'],
   ['--cinnabar-tint', '--bone1', '朱砂文字（.rv .g-no）'],
   ['--cinnabar-tint', '--card',  '朱砂文字（.hc-icon 图标字）'],
@@ -77,6 +93,8 @@ const pairs = [
   ['--green-tint',  '--card',  '绿文字（.rv .g-ok 卡片内）'],
   ['--cinnabar-tint', '--bone', '朱砂文字（.rv .g-no 大字/题面）'],
   ['--glyph-line', '--bone1', '甲骨字形描边（.glyph.glyphob 构件字形）'],
+  ['--glyph-line', '--sheet',   '甲骨字形描边（纸面上的字形）'],
+  ['--glyph-line', '--sheet-in','甲骨字形描边（内嵌托盘上的字形）'],
   ['--cinnabar',  '--bone',   '大号朱砂（.panel.end .score 58px）'],
   ['--glyph-line', '--card',  '甲骨字形描边（卡片上的甲骨形）'],
   ['--green',     '--bone',   '绿（.rv .g-ok）'],

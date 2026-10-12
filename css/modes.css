@@ -558,7 +558,8 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   cursor: pointer; user-select: none;
   background: linear-gradient(180deg, var(--bone-hi), var(--bone-lo));
   border: 1px solid var(--edge);
-  box-shadow: inset 0 0 0 1px var(--edge-in), 0 1px 3px rgba(0, 0, 0, .22);
+  /* 内描线是发丝线，保留；外投影去掉 */
+  box-shadow: inset 0 0 0 1px var(--edge-in);
   clip-path: polygon(26% 2%, 76% 0%, 100% 24%, 93% 82%, 60% 100%, 20% 93%, 0% 62%, 7% 20%);
   transition: transform .08s, filter .12s;
 }
