@@ -5,8 +5,8 @@
 
    界面（本版重做）
      · 选关：**线性关卡**。21 关排成一条路径，逐关推进，通关即解锁下一关。
-     · 作战：**横版对战**。左侧预留「项目形象」位，右侧是 BOSS 形象，
-       上有 HUD（关卡 / 阶段 / 血量），下有提示、战报与操作。
+     · 作战：**横版对战**。左侧龟宝代表玩家，中间是动态观察提示，右侧是甲骨字形 BOSS；
+       上有阶段 HUD，下有构件选择、精简战报与操作。
      · 战斗逻辑与上一版完全一致，只换了排布与外观。
 
    三档 BOSS（与关卡顺序一致：一阶 6 → 二阶 6 → 终极 9）
@@ -373,6 +373,30 @@
       return { now: S.broken.length, all: pieceCount(), label: '拆解进度' };
     }
 
+    /* 龟宝用当前战况给出陪伴式提示：只提醒观察方向，不替玩家报答案。 */
+    function guibaoCue() {
+      var latest = S.log[0];
+      if (S.phase === 2) {
+        return { title: '换一种观察方法', text: '构件已经混在一起了。跟我改用笔画，把这个字形逐段看清。', tone: 'alert' };
+      }
+      if (S.phase === 3) {
+        if (latest && latest.kind === 'cut') {
+          return { title: '这段纹路断开了', text: '再观察整体轮廓，找一段清晰的线条继续拆解。', tone: 'action' };
+        }
+        return { title: '逐笔观察', text: '点选 Boss 身上一段清晰的纹路，看看它如何组成整个字形。', tone: 'action' };
+      }
+      if (latest && latest.kind === 'miss') {
+        return { title: '再观察一次', text: '这块不在它的构形里。别着急，看看整体轮廓，再试另一块。', tone: 'gentle' };
+      }
+      if (latest && latest.kind === 'break') {
+        return { title: '找到一块了', text: '留意形体留下的空缺，再想想还有什么部分组成它。', tone: 'success' };
+      }
+      if (isCompound()) {
+        return { title: '先看构形', text: '观察这个甲骨字形，判断它可能由哪些字形构件组成。', tone: 'action' };
+      }
+      return { title: '先看轮廓', text: '这是一个整体象形。点选一笔试着拆解，观察线条如何组合。', tone: 'action' };
+    }
+
     function renderFight(el) {
       var b = S.boss;
 
@@ -398,28 +422,47 @@
       hud.appendChild(ph);
       el.appendChild(hud);
 
-      /* —— 横版战场 —— */
+      /* —— 横版战场：龟宝是玩家化身，中央区域显示当前观察提示 —— */
       var field = App.el('div', 'bd-field' +
         (S.phase === 2 ? ' broken' : '') + (S.phase === 3 ? ' final' : '') +
         /* 合体 BOSS 阶段一：身上那块不可点，只能用构件池 */
         (isCompound() && S.phase === 1 ? ' pool-only' : ''));
+      field.setAttribute('role', 'group');
+      field.setAttribute('aria-label', '第 ' + (S.idx + 1) + ' 关战斗场景');
+      var cue = guibaoCue();
 
-      /* 左：项目形象预留位（后续换成本作形象立绘） */
-      var hero = App.el('div', 'bd-hero');
+      /* 左：龟宝代表玩家行动，显示真实拆解进度，不伪造玩家血量。 */
+      var hero = App.el('section', 'bd-hero');
       var mp = myProgress();
-      var hh = App.el('div', 'bd-side-head');
-      hh.appendChild(App.el('span', 'bd-side-name', '字趣'));
-      hh.appendChild(App.el('span', 'bd-side-role', mp.label + ' ' + mp.now + ' / ' + mp.all));
-      hero.appendChild(hh);
-      var hbar = App.el('span', 'bd-sidebar');
-      var hfill = App.el('i', 'bd-sidefill hero');
+      var heroHead = App.el('div', 'bd-player-head');
+      heroHead.appendChild(App.el('span', 'bd-player-kicker', '玩家化身'));
+      heroHead.appendChild(App.el('strong', 'bd-player-name', '龟宝'));
+      hero.appendChild(heroHead);
+
+      var avatarWrap = App.el('div', 'bd-hero-portrait mood-' + cue.tone);
+      var avatar = App.el('img', 'bd-avatar');
+      avatar.src = 'assets/guibao-side.png';
+      avatar.alt = '龟宝，正在代表玩家观察甲骨字形';
+      avatar.draggable = false;
+      avatarWrap.appendChild(avatar);
+      hero.appendChild(avatarWrap);
+
+      var progress = App.el('div', 'bd-player-progress');
+      var progressHead = App.el('div', 'bd-progress-head');
+      progressHead.appendChild(App.el('span', 'bd-progress-label', mp.label));
+      progressHead.appendChild(App.el('strong', 'bd-progress-value', mp.now + ' / ' + mp.all));
+      progress.appendChild(progressHead);
+      var hbar = App.el('span', 'bd-progress-track');
+      hbar.setAttribute('role', 'progressbar');
+      hbar.setAttribute('aria-label', mp.label);
+      hbar.setAttribute('aria-valuemin', '0');
+      hbar.setAttribute('aria-valuemax', String(mp.all));
+      hbar.setAttribute('aria-valuenow', String(mp.now));
+      var hfill = App.el('i', 'bd-progress-fill player');
       hfill.style.width = Math.round(mp.now / Math.max(1, mp.all) * 100) + '%';
       hbar.appendChild(hfill);
-      hero.appendChild(hbar);
-      var slot = App.el('div', 'bd-hero-slot');
-      slot.appendChild(App.el('span', 'bd-slot-tag', '项目形象'));
-      slot.appendChild(App.el('span', 'bd-slot-note', '预留位 · 后续替换为角色立绘'));
-      hero.appendChild(slot);
+      progress.appendChild(hbar);
+      hero.appendChild(progress);
       field.appendChild(hero);
 
       /* 中：远景（纯装饰，不接收指针事件，不挡 BOSS 的点击） */
@@ -431,8 +474,24 @@
       sky.appendChild(App.el('span', 'bd-hill h2'));
       field.appendChild(sky);
 
+      /* 龟宝的战斗提示随阶段、命中和误选变化；不依赖颜色传达信息。 */
+      var guide = App.el('section', 'bd-field-guide ' + cue.tone);
+      guide.setAttribute('aria-live', 'polite');
+      guide.setAttribute('aria-atomic', 'true');
+      guide.appendChild(App.el('span', 'bd-guide-kicker', '龟宝的观察提示'));
+      guide.appendChild(App.el('h3', 'bd-guide-title', cue.title));
+      guide.appendChild(App.el('p', 'bd-guide-copy', cue.text));
+      var guideFoot = App.el('div', 'bd-guide-foot');
+      guideFoot.appendChild(App.el('span', null,
+        S.phase === 3 ? '笔画终局' : (S.phase === 2 ? '阶段转换' : '观察与判断')));
+      guideFoot.appendChild(App.el('span', null, '不用抢时间，仔细看字形'));
+      guide.appendChild(guideFoot);
+      field.appendChild(guide);
+
       /* 右：BOSS 形象 */
       var bossSide = App.el('div', 'bd-boss bo-spoiler');
+      bossSide.setAttribute('role', 'group');
+      bossSide.setAttribute('aria-label', '甲骨字形 Boss');
       var bh = App.el('div', 'bd-side-head');
       /* BOSS 名同样不直说：先给一个「?」，指针落到 BOSS 一侧才浅浅浮出。
          副标题换成中性的笔画数——写 b.note 里那句（"水与止缺一不可"）等于报构件。 */
@@ -443,6 +502,11 @@
       bh.appendChild(App.el('span', 'bd-side-role', segOf(b) + ' 段笔画'));
       bossSide.appendChild(bh);
       var bbar = App.el('span', 'bd-sidebar');
+      bbar.setAttribute('role', 'progressbar');
+      bbar.setAttribute('aria-label', 'Boss 形体完整度');
+      bbar.setAttribute('aria-valuemin', '0');
+      bbar.setAttribute('aria-valuemax', '100');
+      bbar.setAttribute('aria-valuenow', String(Math.max(0, Math.round(S.hp))));
       var bfill = App.el('i', 'bd-sidefill boss');
       bfill.style.width = Math.max(0, S.hp) + '%';
       bbar.appendChild(bfill);
@@ -465,32 +529,9 @@
       /* 构件池：只有身上真有构件的那一档才给（其余档没有可挑的东西） */
       if (isCompound()) { renderPool(el); }
 
-      /* —— 提示 —— */
-      var tip = App.el('div', 'bd-tip');
-      if (S.phase === 1) {
-        if (isCompound()) {
-          tip.textContent = '从下面的构件池里挑一个构件砸上去'
-            + (S.miss ? '（误选 ' + S.miss + ' 次）' : '');
-        } else if (S.tier.id === 'elite') {
-          tip.textContent = '构件混同的图画型古字，没有能拆的部件——先斩它的笔画（'
-            + S.broken.length + ' / ' + pieceCount() + '）';
-        } else {
-          tip.textContent = '独体象形，身上没有构件可拆——点它的笔画，一笔一笔拆（'
-            + S.broken.length + ' / ' + pieceCount() + '）';
-        }
-      } else if (S.phase === 2) {
-        tip.textContent = isCompound()
-          ? '形体错乱、构件混同——构件打法失效了。点一下它，改用笔画。'
-          : '笔画糊成一片，这样拆下去没有尽头。点一下它，改用笔画。';
-      } else {
-        tip.textContent = '纯笔画体：一段一段斩断（' + S.cut.length + ' / ' + strokeTotal() + '）';
-        tip.className = 'bd-tip final';
-      }
-      el.appendChild(tip);
-
-      /* —— 战报 —— */
+      /* —— 精简战报：保留最近三次反馈，不盖过角色提示与操作区 —— */
       var logs = App.el('div', 'bd-logs');
-      S.log.forEach(function (l) {
+      S.log.slice(0, 3).forEach(function (l) {
         var row = App.el('div', 'bd-log ' + l.kind);
         row.appendChild(App.el('b', null, l.title));
         row.appendChild(App.el('span', null, l.text));
@@ -499,13 +540,13 @@
       el.appendChild(logs);
 
       /* —— 操作 —— */
-      var acts = App.el('div', 'wy-side');
+      var acts = App.el('div', 'bd-actions');
       if (S.phase === 2) {
-        var sw = App.el('button', 'btn primary', '改用笔画攻击');
+        var sw = App.el('button', 'btn primary', '和龟宝一起改用笔画');
         sw.onclick = function () { toPhase3(); };
         acts.appendChild(sw);
       }
-      var redo = App.el('button', 'btn sm', '重开这一关');
+      var redo = App.el('button', 'btn sm', '重来本关');
       redo.onclick = function () { enter(S.idx); };
       acts.appendChild(redo);
       el.appendChild(acts);
@@ -550,6 +591,8 @@
         var chip = App.el('button', 'bd-chip bo-spoiler' +
           (hit ? ' done' : '') + (S.phase === 1 ? '' : ' dead'));
         chip.setAttribute('aria-label', '构件 ' + c);
+        chip.setAttribute('aria-pressed', hit ? 'true' : 'false');
+        chip.disabled = S.phase !== 1 || hit;
 
         var sv = svgEl('svg');
         sv.setAttribute('viewBox', '0 0 ' + CV + ' ' + CV);

@@ -1597,7 +1597,7 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
    ----------------------------------------------------------------------------
    两屏：
      · 选关（.bo-bone）21 关沿甲骨片轮廓围成一圈，逐关推进；已通关那段描绿
-     · 作战（.bd-field）横版三段式：左＝项目形象预留位 / 中＝远景 / 右＝BOSS
+     · 作战（.bd-field）横版三段式：左＝龟宝玩家位 / 中＝观察提示 / 右＝甲骨字形 BOSS
 
    一条贯彻的规则：**甲骨形上不直接印现代字**。
    默认只见甲骨形，鼠标悬停 / 键盘聚焦 / 按住（触屏）时现代字才浅浅浮出；
@@ -2346,4 +2346,235 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   content: '';
   opacity: .11;
   pointer-events: none;
+}
+
+/* ============================================================================
+   BOSS 战 UI · 龟宝作为玩家化身
+   ============================================================================ */
+.scene.boss-raid .bd-hud {
+  max-width: 1240px;
+  margin-bottom: 13px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--bronze) 25%, var(--edge));
+}
+.scene.boss-raid .bd-hud .btn { min-height: 38px; }
+.scene.boss-raid .bd-phases { gap: 6px; }
+.scene.boss-raid .bd-phase { background: color-mix(in srgb, var(--bone-hi) 80%, transparent); }
+
+.scene.boss-raid .bd-field {
+  grid-template-columns: minmax(170px, 230px) minmax(180px, 1fr) minmax(245px, 350px);
+  grid-template-areas: "hero guide boss";
+  align-items: stretch;
+  gap: clamp(15px, 2.5vw, 32px);
+  min-height: 440px;
+  max-width: 1240px;
+  margin-bottom: 14px;
+  padding: 28px clamp(18px, 3vw, 38px) 68px;
+  border: 1px solid rgba(221, 187, 137, .34);
+  border-radius: 5px;
+  background:
+    radial-gradient(ellipse at 76% 45%, rgba(151, 72, 48, .22), transparent 37%),
+    radial-gradient(ellipse at 16% 77%, rgba(180, 142, 79, .12), transparent 33%),
+    linear-gradient(150deg, #30271f, #1d1916 67%, #25201a);
+  box-shadow: 0 20px 48px rgba(40, 25, 15, .2), inset 0 0 0 5px rgba(238, 216, 181, .025);
+}
+.scene.boss-raid .bd-ground {
+  height: 55px;
+  background: linear-gradient(180deg, rgba(123, 91, 54, .34), rgba(32, 25, 19, .96));
+  border-top-color: rgba(205, 164, 103, .4);
+}
+.scene.boss-raid .bd-sun {
+  right: 15%; top: 8%; width: 110px; height: 110px;
+  background: radial-gradient(circle, rgba(194, 112, 66, .2), transparent 72%);
+}
+.scene.boss-raid .bd-cloud { background: rgba(234, 218, 189, .08); }
+.scene.boss-raid .bd-hill { background: rgba(176, 143, 97, .1); }
+.scene.boss-raid .bd-hill.h1 { left: 19%; }
+.scene.boss-raid .bd-hill.h2 { left: 40%; }
+
+.scene.boss-raid .bd-hero {
+  grid-area: hero;
+  align-self: stretch;
+  min-width: 0;
+  justify-content: space-between;
+  padding: 4px 0 0;
+  color: #f0e0c5;
+}
+.bd-player-head { display: flex; align-items: baseline; gap: 9px; }
+.bd-player-kicker {
+  color: #c3a77d; font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+}
+.bd-player-name { color: #f3dfbc; font-family: inherit; font-size: 19px; font-weight: 500; }
+.bd-hero-portrait {
+  display: flex; flex: 1 1 auto; min-height: 250px; align-items: end; justify-content: center;
+  margin: -9px -16px -5px;
+  background: radial-gradient(ellipse at 53% 80%, rgba(204, 166, 103, .2), transparent 61%);
+  animation: bdGuibaoIdle 3.8s ease-in-out infinite;
+}
+.bd-avatar {
+  display: block; width: min(132%, 260px); max-width: none; max-height: 282px;
+  object-fit: contain; object-position: bottom center; transform: scaleX(-1);
+  filter: drop-shadow(0 12px 15px rgba(8, 7, 6, .3));
+  mix-blend-mode: screen;
+}
+.bd-player-progress {
+  position: relative; z-index: 1; padding: 9px 10px 10px;
+  background: rgba(16, 14, 12, .5); border: 1px solid rgba(226, 198, 155, .2);
+}
+.bd-progress-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.bd-progress-label { color: rgba(243, 225, 195, .73); font-size: 10px; }
+.bd-progress-value { color: #e9c88f; font-size: 10px; font-weight: 600; }
+.bd-progress-track { display: block; height: 5px; overflow: hidden; background: rgba(240, 219, 186, .14); }
+.bd-progress-fill { display: block; width: 0; height: 100%; transition: width .35s ease; }
+.bd-progress-fill.player { background: linear-gradient(90deg, #8f9b62, #d8ba7d); }
+
+.scene.boss-raid .bd-field-guide {
+  grid-area: guide;
+  position: relative; z-index: 1; align-self: center; min-width: 0;
+  padding: clamp(15px, 2vw, 24px);
+  color: #f1e3cb;
+  background: linear-gradient(145deg, rgba(240, 220, 188, .105), rgba(240, 220, 188, .035));
+  border: 1px solid rgba(226, 198, 155, .23);
+  border-left: 2px solid #c75b42;
+  box-shadow: 0 12px 30px rgba(5, 4, 3, .13);
+}
+.scene.boss-raid .bd-field-guide::before {
+  position: absolute; top: 24px; left: -7px; width: 12px; height: 12px;
+  background: #332720; border-left: 1px solid rgba(226, 198, 155, .23);
+  border-bottom: 1px solid rgba(226, 198, 155, .23); content: ''; transform: rotate(45deg);
+}
+.bd-guide-kicker { color: #dfa77b; font-size: 9px; letter-spacing: 2px; }
+.bd-guide-title { margin: 10px 0 8px; color: #faecd6; font-family: inherit; font-size: clamp(19px, 2vw, 26px); font-weight: 500; }
+.bd-guide-copy { min-height: 3.5em; margin: 0; color: rgba(245, 231, 208, .76); font-size: 12px; line-height: 1.8; }
+.bd-guide-foot {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 12px;
+  margin-top: 17px; padding-top: 10px; border-top: 1px solid rgba(226, 198, 155, .16);
+  color: rgba(234, 212, 179, .52); font-size: 9px;
+}
+.bd-field-guide.success { border-left-color: #a5a76c; }
+.bd-field-guide.success .bd-guide-kicker { color: #c3ca8c; }
+.bd-field-guide.alert { border-left-color: #df916e; }
+
+.scene.boss-raid .bd-boss {
+  grid-area: boss;
+  align-self: stretch; justify-content: end; min-width: 0;
+  padding: 4px 0 0; color: #f1e1c6;
+}
+.scene.boss-raid .bd-side-head { align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.scene.boss-raid .bd-side-name { color: #f2e2c7; font-family: inherit; font-size: 17px; }
+.scene.boss-raid .bd-ask { color: #dba77a; }
+.scene.boss-raid .bd-side-role { color: rgba(240, 221, 190, .58); font-size: 9px; }
+.scene.boss-raid .bd-sidebar { height: 6px; margin-bottom: 5px; background: rgba(239, 218, 185, .13); box-shadow: none; }
+.scene.boss-raid .bd-sidefill.boss { background: linear-gradient(90deg, #a54132, #dc7855); }
+.scene.boss-raid .bd-hpnum { color: #dfa27e; font-size: 9px; }
+.scene.boss-raid .bd-bodybox {
+  position: relative; min-height: 300px; flex: 1 1 auto; align-items: center; margin-top: 8px;
+  background: radial-gradient(ellipse at center, rgba(225, 183, 121, .11), transparent 66%);
+}
+.scene.boss-raid .bd-body { width: min(100%, 300px); height: 300px; color: #ead7b5; filter: drop-shadow(0 0 16px rgba(220, 176, 117, .12)); }
+.scene-wide .scene.boss-raid .bd-body { width: min(100%, 330px); height: 330px; }
+.scene.boss-raid .bd-body .bo-part:hover path,
+.scene.boss-raid .bd-body .bo-cut:hover path { stroke: #ef9b76; }
+.scene.boss-raid .bd-field.final .bd-body { color: #efb08e; }
+.scene.boss-raid .bd-field.broken .bd-field-guide { animation: bdGuideAlert .5s ease-out; }
+
+.scene.boss-raid .bd-pool {
+  max-width: 1240px; margin: 0 auto 14px; padding: 15px 18px 17px;
+  background: linear-gradient(155deg, #f4ead6, #e7d8bd);
+  border: 1px solid #b9a27c; border-top: 2px solid #a54a38; border-radius: 3px;
+  box-shadow: 0 11px 28px rgba(40, 25, 15, .11);
+}
+.scene.boss-raid .bd-pool-head { align-items: center; gap: 8px 13px; margin-bottom: 12px; }
+.scene.boss-raid .bd-pool-head b { color: #3d3025; font-family: inherit; font-size: 16px; letter-spacing: 1px; }
+.scene.boss-raid .bd-pool-note { color: #71583a; font-size: 10px; line-height: 1.55; }
+.scene.boss-raid .bd-pool-note.dead { color: #796b59; }
+.scene.boss-raid .bd-chip {
+  min-height: 64px; justify-content: center; padding: 5px 2px;
+  background: rgba(255, 251, 241, .76); border-color: #cfc0a4; border-radius: 2px;
+}
+.scene.boss-raid .bd-chip:hover,
+.scene.boss-raid .bd-chip:focus-visible { border-color: #a84432; box-shadow: 0 4px 13px rgba(85, 49, 30, .15); }
+.scene.boss-raid .bd-chip:focus-visible { outline: 2px solid #a84432; outline-offset: 2px; }
+.scene.boss-raid .bd-chip:disabled { cursor: not-allowed; }
+.scene.boss-raid .bd-chipglyph { width: 35px; height: 35px; }
+.scene.boss-raid .bd-chipname { color: #805e3d; font-size: 10px; }
+.scene.boss-raid .bd-pool-toggle { min-height: 34px; margin-left: auto; }
+
+.scene.boss-raid .bd-logs {
+  grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px;
+  max-width: 1240px; margin: 0 auto 12px;
+}
+.scene.boss-raid .bd-log {
+  min-width: 0; align-items: start; gap: 6px; padding: 8px 10px;
+  color: #514435; background: rgba(232, 218, 193, .62); border-left-width: 2px;
+  font-size: 9px; line-height: 1.55;
+}
+.scene.boss-raid .bd-log b { font-size: 9px; }
+.scene.boss-raid .bd-log span { color: #655743; }
+.scene.boss-raid .bd-actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 9px; margin: 0 auto 8px; }
+.scene.boss-raid .bd-actions .btn { min-height: 40px; }
+.scene.boss-raid .bd-actions .btn.primary { background: var(--cinnabar); border-color: var(--cinnabar); }
+
+@keyframes bdGuibaoIdle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes bdGuibaoCheer { 0%, 100% { transform: translateY(0) scale(1); } 45% { transform: translateY(-11px) scale(1.035); } }
+@keyframes bdGuibaoReassure { 0%, 100% { transform: translateX(0) rotate(0); } 35% { transform: translateX(-2px) rotate(-1deg); } 70% { transform: translateX(2px) rotate(1deg); } }
+@keyframes bdGuideAlert { from { box-shadow: 0 0 0 4px rgba(223, 145, 110, .15); } to { box-shadow: 0 12px 30px rgba(5, 4, 3, .13); } }
+.bd-hero-portrait.mood-success { animation: bdGuibaoCheer .55s ease-out; }
+.bd-hero-portrait.mood-gentle { animation: bdGuibaoReassure .48s ease-out; }
+.bd-hero-portrait.mood-alert { animation: bdGuibaoReassure .48s ease-out; }
+
+@media (max-width: 1024px) {
+  .scene.boss-raid .bd-field { grid-template-columns: minmax(145px, 185px) minmax(170px, 1fr) minmax(205px, 270px); gap: 14px; }
+  .bd-hero-portrait { min-height: 210px; }
+  .bd-avatar { max-height: 240px; }
+  .scene.boss-raid .bd-bodybox { min-height: 260px; }
+  .scene.boss-raid .bd-body,
+  .scene-wide .scene.boss-raid .bd-body { width: min(100%, 250px); height: 250px; }
+}
+@media (max-width: 760px) {
+  .scene.boss-raid .bd-hud { align-items: flex-start; margin-bottom: 10px; }
+  .scene.boss-raid .bd-hud-left { gap: 7px; }
+  .scene.boss-raid .bd-phases { width: 100%; }
+  .scene.boss-raid .bd-phase { flex: 1 1 auto; justify-content: center; padding: 6px 7px; font-size: 9px; }
+  .scene.boss-raid .bd-field {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "hero boss" "guide guide";
+    align-items: end; gap: 9px 14px; min-height: 0; padding: 17px 14px 57px;
+  }
+  .scene.boss-raid .bd-hero,
+  .scene.boss-raid .bd-boss { min-width: 0; }
+  .bd-player-kicker { font-size: 8px; }
+  .bd-player-name { font-size: 16px; }
+  .bd-hero-portrait { min-height: 145px; max-height: 175px; margin: 0 -8px -2px; }
+  .bd-avatar { width: 125%; max-height: 180px; }
+  .bd-player-progress { padding: 7px; }
+  .bd-progress-label, .bd-progress-value { font-size: 9px; }
+  .scene.boss-raid .bd-side-head { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .scene.boss-raid .bd-side-name { font-size: 15px; }
+  .scene.boss-raid .bd-side-role { font-size: 8px; }
+  .scene.boss-raid .bd-bodybox { min-height: 155px; margin-top: 3px; }
+  .scene.boss-raid .bd-body,
+  .scene-wide .scene.boss-raid .bd-body { width: min(100%, 160px); height: 160px; }
+  .scene.boss-raid .bd-field-guide { padding: 13px 14px; }
+  .scene.boss-raid .bd-field-guide::before { top: -7px; left: 22%; transform: rotate(135deg); }
+  .bd-guide-title { margin: 7px 0 5px; font-size: 19px; }
+  .bd-guide-copy { min-height: 0; font-size: 11px; }
+  .bd-guide-foot { margin-top: 10px; padding-top: 8px; }
+  .scene.boss-raid .bd-pool { padding: 12px 10px; }
+  .scene.boss-raid .bd-poolgrid { grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 5px; }
+  .scene.boss-raid .bd-chip { min-height: 58px; }
+  .scene.boss-raid .bd-chipglyph { width: 30px; height: 30px; }
+  .scene.boss-raid .bd-logs { grid-template-columns: 1fr; }
+  .scene.boss-raid .bd-log { padding: 7px 9px; }
+  .scene.boss-raid .bd-actions { align-items: stretch; flex-direction: column; }
+  .scene.boss-raid .bd-actions .btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bd-hero-portrait,
+  .bd-hero-portrait.mood-success,
+  .bd-hero-portrait.mood-gentle,
+  .bd-hero-portrait.mood-alert,
+  .scene.boss-raid .bd-field.broken .bd-field-guide { animation: none; }
+  .scene.boss-raid .bd-chip,
+  .scene.boss-raid .bd-progress-fill { transition: none; }
 }
