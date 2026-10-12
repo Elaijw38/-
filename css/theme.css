@@ -690,3 +690,18 @@ input[type="range"]::-moz-range-thumb {
      早先为了"减弱动效"给首页标题去掉 background-image，
      结果文字是透明的、底色没了，标题直接消失。 */
 }
+
+/* 页面地面上的王邑图卷水印：只在内容留白处出现，不干扰阅读 */
+body::before {
+  position: fixed;
+  z-index: 0;
+  top: 78px;
+  right: -72px;
+  width: min(64vw, 900px);
+  height: calc(100vh - 78px);
+  background: url('../assets/wangyi-atlas.svg') right center / contain no-repeat;
+  content: '';
+  opacity: .075;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}

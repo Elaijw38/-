@@ -62,18 +62,18 @@
   App.modes.register({
     id: 'bone-build',
     name: '甲骨构字',
-    tagline: '用甲骨文构件拼出汉字',
-    desc: '翻出契文，判断它由哪几个构件拼成。拼对即入库、得甲骨片；双人模式下对手可在倒计时里抢答质问。',
+    tagline: '龟宝带你识形、学构件',
+    desc: '跟着龟宝认识甲骨文材料与占卜记录，再用真字形构件完成几道轻松入门练习。无倒计时、可求提示，答后查看字卡说明。',
     icon: '构',
     accent: 'var(--gold)',
-    tags: ['单人', '双人', '计时', '考验构形'],
-    minPlayers: 1, maxPlayers: 2,
+    tags: ['认识甲骨文', '拼构件', '龟宝讲字'],
+    minPlayers: 1, maxPlayers: 1,
     status: 'ready',
     data: {
       packs: [{ type: 'cards', role: 'main', label: '字包' }],
       assets: []
     },
-    mount: mount
+    mount: mountIntro
   });
 
   /* ---------- 进度落盘 ----------
@@ -98,6 +98,292 @@
   function learnedCount() {
     var p = App.store.get(PROGRESS_KEY, null);
     return (p && p.done) ? p.done.length : 0;
+  }
+
+  /* ---------- 第一关：龟宝带路的甲骨文入门课 ----------
+     保留真实字包与构件数据，但把面向玩家的首关改成低压力教学流程：
+     五道常见构件练习、无计时、随时求助；每题都把字卡说明和一条甲骨知识
+     放在同一屏里。旧版自由对战实现保留在下方，便于后续需要时再做成进阶玩法。 */
+  function mountIntro(host, ctx) {
+    var U = App;
+    var pack = ctx.primaryPack;
+    var introCanvas = (App.glyphs && App.glyphs.canvas) || 100;
+    var root = U.el('div', 'scene bone-intro-course');
+    host.appendChild(root);
+    if (!pack || !pack.data) {
+      root.appendChild(U.el('p', 'lead', '没有可用的字包。'));
+      return;
+    }
+
+    var cards = pack.data.cards || [];
+    var pieces = pack.data.pieces || [];
+    var pieceNames = pieces.map(function (p) { return p.n; });
+    var lessonFacts = [
+      { title: '甲骨文刻在哪里？', body: '甲骨文刻写在龟甲和兽骨上；这些材料把商代人的文字留到了今天。' },
+      { title: '占卜怎样留下记录？', body: '商代人灼烧龟甲或兽骨，观察形成的兆纹；相关占问也会被写在甲骨上。' },
+      { title: '甲骨文记录什么？', body: '卜辞会谈到天气、收成、祭祀、狩猎等事务。字形之外，也能读到当时人关心的生活。' },
+      { title: '先看构件，再看今字', body: '拼字时留意部件的形状与关系。不同字形有变化，现代字只是对照入口。' },
+      { title: '什么是“组合示意”？', body: '本课用字形数据中已收录的真构件做拼合练习；合体字的拼合图不冒充原甲骨上的完整刻形。' }
+    ];
+    var state = { deck: [], index: 0, selected: [], choices: [], choiceIndex: -1, hint: false };
+
+    function clear() { U.clearNode(root); }
+    function glyph(name, cls) {
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + introCanvas + ' ' + introCanvas);
+      svg.setAttribute('class', cls || 'bb-intro-glyph');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.innerHTML = U.glyphSvg ? (U.glyphSvg(name, 'currentColor') || '') : '';
+      return svg;
+    }
+    function shuffled(list) {
+      var out = list.slice();
+      for (var i = out.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = out[i]; out[i] = out[j]; out[j] = t;
+      }
+      return out;
+    }
+    function guideArt(cls, alt) {
+      var img = U.el('img', cls);
+      img.src = 'assets/guibao-front.png';
+      img.alt = alt || '龟宝';
+      img.loading = 'eager';
+      return img;
+    }
+
+    function renderCover() {
+      clear();
+      var cover = U.el('section', 'bb-intro-cover');
+      var copy = U.el('div', 'bb-cover-copy');
+      copy.appendChild(U.el('p', 'bb-eyebrow', '第一关 · 甲骨识形入门'));
+      copy.appendChild(U.el('h1', 'bb-cover-title', '和龟宝一起，\n读懂第一片甲骨'));
+      copy.appendChild(U.el('p', 'bb-cover-lead',
+        '从龟甲、兽骨和占卜记录开始，亲手拼出几个常见字的构件。答错可以再试，龟宝会给你线索。'));
+      var promise = U.el('div', 'bb-course-promise');
+      ['5 次轻松练习', '没有倒计时', '每题都有知识讲解'].forEach(function (label, i) {
+        var item = U.el('span', 'bb-promise-item');
+        item.appendChild(U.el('b', null, '0' + (i + 1)));
+        item.appendChild(U.el('span', null, label));
+        promise.appendChild(item);
+      });
+      copy.appendChild(promise);
+      var start = U.el('button', 'btn primary bb-start', '跟龟宝开始入门 →');
+      start.onclick = begin;
+      copy.appendChild(start);
+      cover.appendChild(copy);
+      var portrait = U.el('div', 'bb-cover-portrait');
+      portrait.appendChild(guideArt('bb-guibao-cover', '背着行囊的龟宝，甲骨文入门向导'));
+      portrait.appendChild(U.el('span', 'bb-portrait-seal', '甲骨小向导'));
+      cover.appendChild(portrait);
+      root.appendChild(cover);
+      var firstFact = U.el('aside', 'bb-cover-fact');
+      firstFact.appendChild(U.el('span', 'bb-fact-kicker', '开课前 · 认识材料'));
+      firstFact.appendChild(U.el('p', null,
+        '甲骨文是商代刻写在龟甲、兽骨上的文字。它既记录占问，也把商代事务留在了骨片上。'));
+      root.appendChild(firstFact);
+    }
+
+    function begin() {
+      var valid = poolFor('easy', cards).filter(function (c) {
+        var need = String(c.w || '').split('+').filter(Boolean);
+        return need.length && need.every(function (n) { return pieceNames.indexOf(n) >= 0; });
+      });
+      if (!valid.length) {
+        U.toast('入门字卡暂不可用，请检查字包里的构件数据。');
+        return;
+      }
+      state.deck = shuffled(valid).slice(0, Math.min(5, valid.length));
+      state.index = 0;
+      state.selected = [];
+      state.choiceIndex = -1;
+      renderQuestion(null, true);
+    }
+
+    function buildFact(card) {
+      var fact = lessonFacts[Math.min(state.index, lessonFacts.length - 1)];
+      var box = U.el('aside', 'bb-live-fact');
+      var guide = U.el('img', 'bb-fact-guibao');
+      guide.src = 'assets/guibao-side.png';
+      guide.alt = '龟宝';
+      box.appendChild(guide);
+      var copy = U.el('div', 'bb-fact-copy');
+      copy.appendChild(U.el('span', 'bb-fact-kicker', '龟宝的小课堂 · 0' + (state.index + 1)));
+      copy.appendChild(U.el('b', null, fact.title));
+      copy.appendChild(U.el('p', null, fact.body));
+      box.appendChild(copy);
+      return box;
+    }
+
+    function renderQuestion(message, scrollTop) {
+      clear();
+      var card = state.deck[state.index];
+      if (!card) { renderFinish(); return; }
+      state.hint = false;
+      var need = String(card.w || '').split('+').filter(Boolean);
+      if (state.choiceIndex !== state.index) {
+        var distractors = shuffled(pieces.filter(function (p) {
+          return need.indexOf(p.n) < 0 && p.n;
+        })).slice(0, Math.max(4, 6 - need.length));
+        state.choices = shuffled(need.map(function (n) {
+          return pieces.filter(function (p) { return p.n === n; })[0];
+        }).concat(distractors).filter(Boolean));
+        state.choiceIndex = state.index;
+      }
+
+      var top = U.el('div', 'bb-lesson-top');
+      var back = U.el('button', 'btn sm bb-course-back', '← 退出入门课');
+      back.onclick = renderCover;
+      top.appendChild(back);
+      var progress = U.el('span', 'bb-lesson-progress');
+      progress.textContent = '入门练习  ' + (state.index + 1) + ' / ' + state.deck.length;
+      top.appendChild(progress);
+      root.appendChild(top);
+
+      var lesson = U.el('section', 'bb-lesson-panel');
+      lesson.appendChild(U.el('p', 'bb-eyebrow', '先观察，再动手'));
+      lesson.appendChild(U.el('h2', 'bb-question-title', '这个字由哪些构件组成？'));
+      lesson.appendChild(U.el('p', 'bb-question-note', '点选下方的甲骨构件；需要几个构件，就选几个。'));
+      var cardFace = U.el('div', 'bb-question-card');
+      cardFace.appendChild(U.el('span', 'bb-question-label', '今字题面'));
+      cardFace.appendChild(U.el('strong', 'bb-question-char', card.g));
+      cardFace.appendChild(U.el('span', 'bb-question-sub', '找出它的构件组合'));
+      lesson.appendChild(cardFace);
+
+      var choiceHead = U.el('div', 'bb-choice-head');
+      choiceHead.appendChild(U.el('h3', null, '从构件台选字形'));
+      choiceHead.appendChild(U.el('span', null, need.length + ' 个构件'));
+      lesson.appendChild(choiceHead);
+      var choices = U.el('div', 'bb-intro-choices');
+      state.choices.forEach(function (part) {
+        var btn = U.el('button', 'bb-intro-choice');
+        btn.type = 'button';
+        btn.setAttribute('aria-pressed', state.selected.indexOf(part.n) >= 0 ? 'true' : 'false');
+        btn.appendChild(glyph(part.n, 'bb-choice-glyph'));
+        btn.appendChild(U.el('span', 'bb-choice-name', part.n));
+        btn.onclick = function () {
+          var at = state.selected.indexOf(part.n);
+          if (at >= 0) state.selected.splice(at, 1);
+          else if (state.selected.length < need.length) state.selected.push(part.n);
+          renderQuestion(message);
+        };
+        if (state.selected.indexOf(part.n) >= 0) btn.classList.add('selected');
+        choices.appendChild(btn);
+      });
+      lesson.appendChild(choices);
+      lesson.appendChild(buildFact(card));
+
+      var verdict = U.el('div', 'bb-intro-verdict' + (message && message.kind ? ' ' + message.kind : ''));
+      if (message && message.text) verdict.textContent = message.text;
+      var actions = U.el('div', 'bb-intro-actions');
+      var hint = U.el('button', 'btn bb-hint-btn', '请龟宝给线索');
+      hint.onclick = function () {
+        var missing = need.filter(function (n) { return state.selected.indexOf(n) < 0; })[0];
+        if (!missing) {
+          renderQuestion({ kind: 'note', text: '你已经选够了，试着提交看看。' });
+          return;
+        }
+        var name = missing;
+        state.hint = true;
+        state.selected.push(name);
+        renderQuestion({ kind: 'note', text: '龟宝提示：其中一个构件是「' + name + '」，可以把它加进构件槽。' });
+      };
+      actions.appendChild(hint);
+      var submitBtn = U.el('button', 'btn primary', '拼好，听龟宝讲解');
+      submitBtn.onclick = function () {
+        var ok = state.selected.length === need.length && need.every(function (n) {
+          return state.selected.indexOf(n) >= 0;
+        });
+        if (!ok) {
+          renderQuestion({ kind: 'no', text: '还差一点。你可以调整构件，或请龟宝给一条线索。' });
+          return;
+        }
+        markLearned(card.g);
+        renderTeach(card, need);
+      };
+      actions.appendChild(submitBtn);
+      lesson.appendChild(verdict);
+      lesson.appendChild(actions);
+      root.appendChild(lesson);
+      if (scrollTop) window.scrollTo(0, 0);
+    }
+
+    function renderTeach(card, need) {
+      clear();
+      var fact = lessonFacts[Math.min(state.index, lessonFacts.length - 1)];
+      var top = U.el('div', 'bb-lesson-top');
+      var back = U.el('button', 'btn sm bb-course-back', '← 回到这一题');
+      back.onclick = function () { renderQuestion(); };
+      top.appendChild(back);
+      top.appendChild(U.el('span', 'bb-lesson-progress', '龟宝讲字 · 0' + (state.index + 1)));
+      root.appendChild(top);
+
+      var panel = U.el('section', 'bb-teach-panel');
+      var portrait = U.el('div', 'bb-teach-portrait');
+      portrait.appendChild(guideArt('bb-teach-guibao', '龟宝正在为你讲解甲骨文'));
+      portrait.appendChild(U.el('span', 'bb-portrait-seal', '学会一个字'));
+      panel.appendChild(portrait);
+
+      var content = U.el('div', 'bb-teach-content');
+      content.appendChild(U.el('p', 'bb-eyebrow', '构件拼成 · 项目字卡释义'));
+      content.appendChild(U.el('h2', 'bb-teach-title', '认识「' + card.g + '」'));
+      content.appendChild(U.el('p', 'bb-teach-meaning', card.mean || '先记住这次拼出的构件。'));
+      var composition = U.el('div', 'bb-teach-composition');
+      composition.appendChild(U.el('span', 'bb-compose-label', '构件组合示意'));
+      need.forEach(function (name, i) {
+        if (i) composition.appendChild(U.el('span', 'bb-compose-plus', '＋'));
+        var part = U.el('span', 'bb-compose-part');
+        part.appendChild(glyph(name, 'bb-compose-glyph'));
+        part.appendChild(U.el('span', 'bb-compose-name', name));
+        composition.appendChild(part);
+      });
+      content.appendChild(composition);
+      var note = U.el('aside', 'bb-teach-fact');
+      note.appendChild(U.el('b', null, fact.title));
+      note.appendChild(U.el('p', null, fact.body));
+      content.appendChild(note);
+      panel.appendChild(content);
+      root.appendChild(panel);
+
+      var actions = U.el('div', 'bb-teach-actions');
+      var more = U.el('span', 'bb-teach-count', '已学会 ' + Math.min(state.index + 1, state.deck.length) + ' / ' + state.deck.length + ' 个字形');
+      actions.appendChild(more);
+      var next = U.el('button', 'btn primary', state.index + 1 >= state.deck.length ? '完成第一课 →' : '继续学下一个 →');
+      next.onclick = function () {
+        state.index += 1;
+        state.selected = [];
+        if (state.index >= state.deck.length) renderFinish();
+        else renderQuestion(null, true);
+      };
+      actions.appendChild(next);
+      root.appendChild(actions);
+      window.scrollTo(0, 0);
+    }
+
+    function renderFinish() {
+      clear();
+      var finish = U.el('section', 'bb-course-finish');
+      var portrait = U.el('div', 'bb-finish-portrait');
+      portrait.appendChild(guideArt('bb-guibao-finish', '完成入门课的龟宝'));
+      finish.appendChild(portrait);
+      var copy = U.el('div', 'bb-finish-copy');
+      copy.appendChild(U.el('p', 'bb-eyebrow', '第一关 · 完成'));
+      copy.appendChild(U.el('h1', 'bb-cover-title', '你已经会看构件了'));
+      copy.appendChild(U.el('p', 'bb-cover-lead',
+        '龟宝带你认识了甲骨文的材料与记录方式，也一起拼了 ' + state.deck.length + ' 个字形。接下来可以去第二关，在王邑小地图里继续探索。'));
+      copy.appendChild(U.el('p', 'bb-finish-summary', '本地已收集 ' + learnedCount() + ' 个构字字形'));
+      var nextMap = U.el('a', 'btn primary bb-start', '进入第二关 · 点亮王邑 →');
+      nextMap.href = '#/play/wangyi-map';
+      copy.appendChild(nextMap);
+      var replay = U.el('button', 'btn bb-replay', '再上一遍入门课');
+      replay.onclick = renderCover;
+      copy.appendChild(replay);
+      finish.appendChild(copy);
+      root.appendChild(finish);
+      window.scrollTo(0, 0);
+    }
+
+    renderCover();
   }
 
   /* ============================================================

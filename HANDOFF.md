@@ -49,8 +49,8 @@ python -m http.server 8099
 
 | id | 名称 | 一句话 | 备注 |
 |---|---|---|---|
-| `bone-build` | 甲骨构字 | 用甲骨文构件拼出汉字 | 34 张字卡，2—4 人 |
-| `wangyi-map` | 殷商王邑 | 点实物、拼甲骨文、点亮地图 | **主玩法**，61 处实物 |
+| `bone-build` | 甲骨构字 | 龟宝带玩家认识甲骨文，再完成构件入门练习 | **第一关**，单人、无倒计时，5 次练习；每题伴随甲骨知识与答后讲解 |
+| `wangyi-map` | 殷商王邑 | 学习主题小地图，点亮对应王邑区域并解锁下一幅 | **主玩法**，5 幅主题框架；61 个现有字形学习点，主题待用户提供 |
 | `boss-raid` | 构件讨伐 | 拆字为武、组构为招 | 21 关线性，横版对战 |
 
 **数据规模**：73 个甲骨字形 · 37 构件 · 34 字卡 · 61 王邑实物 · 21 讨伐关 → 图鉴 **102 字 / 153 条目**
@@ -95,10 +95,10 @@ git show wip-jade-gold-rejected:css/theme.css | head -80
 
 1. **不推送远程**，除非用户明确说「推」。其余时间最多提交到本地。
 2. **不覆盖用户未提交的修改**。动手前先 `git status`。
-3. **不擅自改玩法设定** —— 名称、解锁规则、题目数据、流程一律不动。
+3. **只按用户明确授权改玩法** —— 当前用户已明确授权第一关改为龟宝引导的单人入门课，边拼字边学甲骨知识；第二关改为主题小地图逐幅解锁，完成一幅点亮王邑总图对应区域。五个主题先沿用现有数据分区作可替换占位，收到用户主题后再替换名称与教学内容；字形数据与历史事实不编造，第三关 Boss 流程保留。这个决定覆盖此前对第一、二关“玩法流程不动”的旧要求。
 4. **绝不编造甲骨字形。** 字形一律取自 `App.glyphs.parts`（73 个）；合体字数据集里没有整字甲骨形（这是真实情况），退用构件并排组合，并**标明「组合示意」**。
 5. **甲骨形上不直接印现代字** —— 默认隐藏，悬停 / `:focus-visible` / `:active` 才显现。（这条用户强调过两次，我曾"为了可用性"妥协成半透明，被纠正。）
-6. **署名必须保留**：字形数据 CC BY 4.0（Qing-sheng Li & Yu-lin Bian；镜像 `github.com/zhouyongh/hanzi-glyphs-svg`）/ 首页骨片照 CC0（Gary Todd）/ 王邑底图 Agnes AI 生成。三处：首页右下、页脚、README。
+6. **署名必须保留**：字形数据 CC BY 4.0（Qing-sheng Li & Yu-lin Bian；镜像 `github.com/zhouyongh/hanzi-glyphs-svg`）/ 首页骨片照 CC0（Gary Todd）/ 当前王邑总图为项目原创学习示意（非考古复原），仓库保留的旧版底图由 Agnes AI 生成。页面与 README 均须准确区分新旧地图来源。
 7. 用户**极其简短**，讨厌反问，要看到"真的改了 + 真的测了"。汇报要**诚实**：不确定的说不确定，自己犯的错要讲。
 
 ---
@@ -266,7 +266,8 @@ js/core/
   _data.js                73 字形的几何（由 dev/_gen_glyph_parts.py 生成，勿手改）
   data.js / packs.js      构件池、字卡、内容包
 js/modes/                 bone-build.js / wangyi-map.js / boss-raid.js
-assets/                   oracle-bone.jpg(首页骨片照) wangyi-map.jpg(王邑底图)
+assets/                   oracle-bone.jpg(首页骨片照) wangyi-map.jpg(旧版 Agnes 底图)
+                          wangyi-atlas.svg(当前原创王邑总图) guibao-front/side/back.png(龟宝设定图)
                           paper.png(纸纹，浅色面上用) bone.png(骨材质，页底用)
 dev/                      51 个自查工具（见「五」）
 README.md                 给读者看的项目文档（含素材授权、设计令牌说明）

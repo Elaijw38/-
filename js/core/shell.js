@@ -243,9 +243,8 @@
     var st = App.atlas.stats();
     var daily = App.atlas.daily();
 
-    /* ================= 首屏：一屏大图 =================
-       骨片居中放大，标题与 CTA 在下方居中，整块占满一屏；
-       再往下滚（或点底部的「下滑看玩法」）才是「选择你的玩法」。 */
+    /* ================= 首屏：数字文物展厅 =================
+       真实骨片影像、真实甲骨字形与龟宝引路标记组成第一屏。 */
     var hero = App.el('section', 'hero');
     var hin = App.el('div', 'hero-in');   /* 只装文字，背景在它下面 */
 
@@ -260,24 +259,45 @@
     hero.appendChild(bg);
     hero.appendChild(App.el('div', 'hero-veil'));
 
+    var relic = App.el('div', 'hero-relic');
+    relic.setAttribute('aria-hidden', 'true');
+    relic.appendChild(App.el('span', 'hero-relic-ring'));
+    var relicGlyph = glyphSvgNode('虎', 'hero-rune');
+    if (relicGlyph) { relic.appendChild(relicGlyph); }
+    relic.appendChild(App.el('span', 'hero-relic-mark', '虎 · 甲骨字形'));
+    hero.appendChild(relic);
+
     var hb = App.el('div', 'hero-body');
-    hb.appendChild(App.el('p', 'hero-kicker', '甲骨文 · 汉字文化互动'));
-    hb.appendChild(App.el('h1', 'hero-title', '三千年前的汉字，等你来发现'));
+    hb.appendChild(App.el('p', 'hero-kicker', '甲骨文互动叙事　/　CULTURAL GAME LAB'));
+    hb.appendChild(App.el('h1', 'hero-title', '从一片卜骨，\n读懂汉字的来处'));
     hb.appendChild(App.el('p', 'hero-lead',
-      '看字形 · 猜字义 · 解构汉字的起源。把甲骨文的字形本身做成玩法，'
-      + '每一个字都能追到它由哪些构件拼成、刻在哪一片卜辞上。'));
+      '亲手拼出甲骨字形，点亮殷商王邑，最后迎战构件 Boss。把三千年前的文字，'
+      + '从展柜里的知识，变成一场可以亲自参与的探索。'));
 
     var cta = App.el('div', 'hero-cta');
     var b1 = App.el('a', 'btn primary lg hero-main');
     b1.href = '#/modes';
-    b1.appendChild(App.el('span', null, '开始探索'));
+    b1.appendChild(App.el('span', null, '进入甲骨世界'));
     b1.appendChild(App.el('span', 'hero-arrow', '→'));
     cta.appendChild(b1);
-    var b2 = App.el('a', 'btn lg hero-ghost', '先看图鉴');
+    var b2 = App.el('a', 'btn lg hero-ghost', '翻阅字形档案');
     b2.href = '#/atlas';
     cta.appendChild(b2);
     hb.appendChild(cta);
-    hb.appendChild(App.el('p', 'hero-trust', '无需注册 · 即点即玩 · 进度存在本机'));
+    hb.appendChild(App.el('p', 'hero-trust', '辨形 → 构字 → 点亮王邑 → 迎战 Boss'));
+    var guide = App.el('a', 'hero-guide');
+    guide.href = '#/play/bone-build';
+    guide.setAttribute('aria-label', '跟龟宝从第一关认识甲骨字形与构件');
+    var guideMascot = App.el('img', 'hero-guide-mascot');
+    guideMascot.src = 'assets/guibao-front.png';
+    guideMascot.alt = '龟宝，甲骨文入门向导';
+    guide.appendChild(guideMascot);
+    var guideCopy = App.el('span', 'hero-guide-copy');
+    guideCopy.appendChild(App.el('b', null, '龟宝带你入门'));
+    guideCopy.appendChild(App.el('span', null, '第 01 关 · 先认字形与构件'));
+    guide.appendChild(guideCopy);
+    guide.appendChild(App.el('span', 'hero-guide-arrow', '→'));
+    hb.appendChild(guide);
     hin.appendChild(hb);
 
     hero.appendChild(hin);
@@ -320,13 +340,13 @@
         li.appendChild(App.el('span', null, x[1]));
         band.appendChild(li);
       });
-    wrap.appendChild(band);
+    hero.appendChild(band);
 
     /* ================= 核心玩法 ================= */
     var sec1 = App.el('section', 'home-sec');
     sec1.id = 'playSection';
-    sec1.appendChild(sectionHead('一条线，走完甲骨文',
-      '先认出字形，再拆开构件，最后拼成字——三个玩法是同一条路上的三步',
+    sec1.appendChild(sectionHead('三步，开启甲骨探索',
+      '从认字形，到点亮王邑，再迎战 Boss 终局',
       '#/modes', '全部玩法 →'));
     /* 主线：给每张卡排上步骤号，卡之间用一条贯穿的细线串起来。
        顺序仍按 App.modes.playable() 的注册顺序，**不重排**——
@@ -335,15 +355,25 @@
     App.modes.playable().forEach(function (m, i) {
       var spec = LV_SPEC[m.id] || {};
       var isMain = (m.id === LV_CENTER);
+      var isStart = (m.id === LV_START);
       var card = App.el('a',
-        'play-card' + (isMain ? ' pc-main' : ''));
+        'play-card' + (isMain ? ' pc-main' : '') + (isStart ? ' pc-start' : ''));
       card.href = '#/play/' + m.id;
 
       var step = App.el('div', 'pc-step');
       step.appendChild(App.el('b', null, ('0' + (i + 1)).slice(-2)));
       step.appendChild(App.el('span', null, spec.step || ''));
       if (isMain) { step.appendChild(App.el('span', 'pc-mainflag', '主玩法')); }
+      if (isStart) { step.appendChild(App.el('span', 'pc-startflag', '推荐起点')); }
       card.appendChild(step);
+
+      var art = App.el('div', 'pc-art');
+      var artGlyph = spec.comps ? compSvgNode(spec.comps, 'pc-art-glyph')
+                                : glyphSvgNode(spec.char, 'pc-art-glyph');
+      if (artGlyph) { art.appendChild(artGlyph); }
+      if (spec.comps) { art.appendChild(App.el('span', 'pc-art-note', '构件组合示意')); }
+      else if (spec.char) { art.appendChild(App.el('span', 'pc-art-note', '甲骨字形')); }
+      card.appendChild(art);
 
       var head = App.el('div', 'pc-head');
       var ico = App.el('span', 'pc-icon', m.icon);
@@ -355,7 +385,9 @@
       head.appendChild(ttl);
       card.appendChild(head);
 
-      if (m.desc) card.appendChild(App.el('p', 'pc-desc', m.desc));
+      if (m.desc || spec.summary) {
+        card.appendChild(App.el('p', 'pc-desc', spec.summary || m.desc));
+      }
       if (m.tags && m.tags.length) {
         var tg = App.el('div', 'pc-tags');
         m.tags.forEach(function (x) { tg.appendChild(App.el('span', 'tag', x)); });
@@ -832,7 +864,7 @@
     [
       ['甲骨字形', 'Oracle Bone Glyphs: Parametric Vector Dataset v0.3，'
         + '数据 CC BY 4.0、代码 MIT，本项目做缩放、配色与合成。'],
-      ['底图', '殷商王邑图卷由 Agnes AI 生成，无第三方水印。'],
+      ['底图', '当前王邑总图由项目原创绘制，是学习用的聚落意象示意，并非考古复原；仓库保留的旧版底图由 Agnes AI 生成。'],
       ['说明', '字形用于识字对照，不代表原简拓片的笔迹；'
         + '概不外推为学术结论，教学演示用途。']
     ].forEach(function (x) {
@@ -875,10 +907,9 @@
 
   /* ---------- 场景：模式选择 ---------- */
   /* ---------- 场景：开始游戏（关卡选择） ----------
-     三块并排的竖向展板，像美术馆的三个展位：编号 / 步骤 / 字形 / 名称 / 说明 / 进入。
-
-     **顺序沿用 App.modes.playable() 的注册顺序**（甲骨构字 → 殷商王邑 → 构件讨伐），
-     不做重排——殷商王邑是主玩法，它本来就在中间，把中间那块做成视觉焦点即可。
+     三段学习路线：认识甲骨字形 → 探索王邑实物 → 挑战进阶 Boss。
+     **顺序沿用 App.modes.playable() 的注册顺序**（甲骨构字 → 殷商王邑 → 构件讨伐）。
+     三关都可以进入；编号表达推荐学习顺序，不新增解锁限制。
 
      面板上的甲骨字形**全部取自数据集里核实过的真字形**，没有一处编造的装饰文字：
        甲骨构字  休 = 人＋木（字卡之一，释义「从人从木，人倚树而息」，两构件都有真字形）
@@ -888,20 +919,27 @@
 
      用到的实物字形是**按数据算出来的**（遍历 App.levels.map.zones，每区取第一处
      有真字形的实物），不是写死的——换了关卡数据，这里会自动跟着变。 */
-  var LV_CENTER = 'wangyi-map';   /* 主玩法：放中间、做成焦点 */
+  var LV_CENTER = 'wangyi-map';  /* 首页仍标出目前的主玩法 */
+  var LV_START = 'bone-build';   /* 第 01 关：从甲骨字形和构件入门 */
 
   var LV_SPEC = {
     'bone-build': {
-      step: '构字', comps: ['人', '木'], seal: '从人从木',
-      cap: '休 · 人倚树而息'
+      step: '知识入门', comps: ['人', '木'], seal: '从人从木',
+      cap: '休 · 人倚树而息',
+      summary: '跟龟宝边拼构件边听甲骨知识；无倒计时，答错可重试，完成 5 次入门练习。',
+      action: '开始第一课'
     },
     'wangyi-map': {
-      step: '识形', char: '邑', chain: true,
-      seal: '61 处实物', cap: '邑 · 王邑 61 处实物'
+      step: '实物探索', char: '邑', chain: true,
+      seal: '5 幅主题小地图', cap: '61 个甲骨字形 · 完成一图，点亮一域',
+      summary: '从主题小地图学习甲骨字形；学完一个分区，就点亮大地图上的对应王邑。',
+      action: '进入王邑地图'
     },
     'boss-raid': {
-      step: '溯源', char: '虎', modern: '虎',
-      cap: '虎 · 讨伐「终极 · 复繁字」'
+      step: '进阶 Boss', char: '虎', modern: '虎',
+      cap: '21 关 · 分阶段挑战',
+      summary: '推进 21 关线性 Boss 战：拆构件、破防，再进入笔画终局。',
+      action: '挑战 Boss'
     }
   };
 
@@ -923,31 +961,52 @@
     var sh = sheet();
     wrap.appendChild(sh);
     var host = sh;
-    host.appendChild(App.el('p', 'lead',
-      '三个玩法共用同一套字形数据与素材库，各有各的节奏。'));
+    var intro = App.el('div', 'lv-intro');
+    var introCopy = App.el('div', 'lv-intro-copy');
+    introCopy.appendChild(App.el('p', 'lv-kicker', '识字 · 探索 · 讨伐'));
+    introCopy.appendChild(App.el('h1', 'lv-title', '从认字形，到挑战终局'));
+    introCopy.appendChild(App.el('p', 'lv-lead',
+      '第 01 关认识甲骨字形与构件，第 02 关沿王邑实物找字，第 03 关迎战进阶 Boss。'));
+    intro.appendChild(introCopy);
+
+    var guide = App.el('aside', 'lv-guide');
+    guide.setAttribute('aria-label', '龟宝的路线提示');
+    var guideMark = App.el('span', 'lv-guide-mark');
+    var guideMascot = App.el('img', 'lv-guide-mascot');
+    guideMascot.src = 'assets/guibao-side.png';
+    guideMascot.alt = '侧身前行的龟宝';
+    guideMark.appendChild(guideMascot);
+    guide.appendChild(guideMark);
+    var guideCopy = App.el('div', 'lv-guide-copy');
+    guideCopy.appendChild(App.el('span', 'lv-guide-name', '龟宝 · 甲骨小向导'));
+    guideCopy.appendChild(App.el('p', 'lv-guide-note',
+      '先上入门课，再进入五幅主题小地图；学会一片，王邑大地图就亮起一域。'));
+    guide.appendChild(guideCopy);
+    intro.appendChild(guide);
+    host.appendChild(intro);
 
     var row = App.el('div', 'lv-row');
+    row.setAttribute('aria-label', '三段学习路线');
     var list = App.modes.playable().filter(function (m) { return m.status !== 'hidden'; });
     var ready = list.filter(function (m) { return m.status === 'ready'; });
     var pend = list.filter(function (m) { return m.status !== 'ready'; });
 
     list.forEach(function (m, i) {
       var spec = LV_SPEC[m.id] || {};
-      var isCenter = (m.id === LV_CENTER);
+      var isStart = (m.id === LV_START);
+      var isBoss = (m.id === 'boss-raid');
       var ready = (m.status === 'ready');
       var no = ('0' + (i + 1)).slice(-2);
 
       var card = App.el(ready ? 'a' : 'div',
-        'lv' + (isCenter ? ' lv-center' : '') + (ready ? '' : ' pending'));
+        'lv' + (isStart ? ' lv-start' : '') + (isBoss ? ' lv-boss' : '') +
+        (ready ? '' : ' pending'));
       if (ready) {
         card.href = '#/play/' + m.id;
         card.onclick = function () { App.store.set('lastMode', m.id); };
       } else {
         card.onclick = function () { App.toast('「' + m.name + '」还在筹备中。'); };
       }
-
-      /* 裱框：内圈细线 + 四角角标（拓片装裱的样子） */
-      card.appendChild(App.el('span', 'lv-frame'));
 
       /* —— 顶部：编号 + 步骤词（编辑式排版）—— */
       var top = App.el('div', 'lv-top');
@@ -1005,7 +1064,9 @@
       var body = App.el('div', 'lv-body');
       body.appendChild(App.el('h3', 'lv-name', m.name));
       if (m.tagline) { body.appendChild(App.el('p', 'lv-tag', m.tagline)); }
-      if (m.desc) { body.appendChild(App.el('p', 'lv-desc', m.desc)); }
+      if (spec.summary || m.desc) {
+        body.appendChild(App.el('p', 'lv-desc', spec.summary || m.desc));
+      }
       card.appendChild(body);
 
       /* —— 脚：出处小注 + 进入 —— */
@@ -1013,10 +1074,13 @@
       if (spec.cap) { foot.appendChild(App.el('span', 'lv-cap', spec.cap)); }
       var cta = App.el('span', 'lv-cta');
       cta.appendChild(App.el('span', null, ready
-        ? (isCenter ? '进入主玩法' : '进入') : '筹备中'));
+        ? (spec.action || '进入') : '筹备中'));
       cta.appendChild(App.el('span', 'lv-cta-arrow', '→'));
       foot.appendChild(cta);
       card.appendChild(foot);
+      card.setAttribute('aria-label',
+        no + '，' + (spec.step || '') + '，' + m.name + '。' +
+        (spec.summary || m.tagline || ''));
 
       row.appendChild(card);
     });

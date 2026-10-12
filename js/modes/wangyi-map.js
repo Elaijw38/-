@@ -92,12 +92,294 @@
       App.clearNode(root);
       if (S.view === 'compose' && S.sel) { renderCompose(root); return; }
       if (S.view === 'done' && S.sel) { renderDone(root); return; }
+      if (S.view === 'zone' && S.zone) { renderZoneMap(root); return; }
       if (S.view === 'quiz') { renderQuizEntry(root); return; }
       renderMap(root);
     }
 
-    /* ---------- 地图（灰底 + 点亮层 + 隐形热区） ---------- */
+    function zoneCounts(p, z) {
+      var total = (z.objects || []).length;
+      var done = Math.min(total, doneList(p, z.id).length);
+      return { total: total, done: done, clear: total > 0 && done >= total };
+    }
+    function zoneOpenAt(index, p) {
+      if (index <= 0) return true;
+      for (var i = 0; i < index; i++) {
+        if (!zoneCounts(p, MAP.zones[i]).clear) return false;
+      }
+      return true;
+    }
+    function zonePoint(index) {
+      return [
+        { x: 50, y: 18 },
+        { x: 16, y: 48 },
+        { x: 84, y: 42 },
+        { x: 29, y: 79 },
+        { x: 51, y: 51 }
+      ][index] || { x: 52 + (index % 3) * 12, y: 30 + Math.floor(index / 3) * 24 };
+    }
+    function openZone(z, index) {
+      var p = progress();
+      if (!zoneOpenAt(index, p)) {
+        App.toast('先完成上一幅小地图，再解锁这里。');
+        return;
+      }
+      S.zone = z;
+      S.view = 'zone';
+      render();
+    }
+
+    /* ---------- 第二关：王邑总图 · 小地图解锁 ---------- */
     function renderMap(el) {
+      var p = progress();
+      var total = objectTotal();
+      var learned = doneTotal(p);
+      var clearCount = 0;
+      (MAP.zones || []).forEach(function (z) { if (zoneCounts(p, z).clear) clearCount += 1; });
+
+      var hero = App.el('section', 'wy-world-intro');
+      var copy = App.el('div', 'wy-world-copy');
+      copy.appendChild(App.el('p', 'wy-episode', '第二关 · 殷商王邑 · 地图探索主线'));
+      copy.appendChild(App.el('h2', 'wy-world-title', '读完一幅小地图，\n让整座王邑亮起一域'));
+      copy.appendChild(App.el('p', 'wy-world-lead',
+        '每幅小地图是一段甲骨识字旅程。完成本图的字形学习，王邑总图就会点亮对应区域，并打开下一幅地图。'));
+      var guide = App.el('aside', 'wy-world-guide');
+      var mascot = App.el('img', 'wy-world-mascot');
+      mascot.src = 'assets/guibao-side.png';
+      mascot.alt = '龟宝背着行囊，带你探索王邑';
+      guide.appendChild(mascot);
+      var guideCopy = App.el('span', 'wy-world-guide-copy');
+      guideCopy.appendChild(App.el('b', null, '龟宝 · 王邑向导'));
+      guideCopy.appendChild(App.el('span', null, '从一片卜骨出发，把知识变成地图上的灯火。'));
+      guide.appendChild(guideCopy);
+      hero.appendChild(copy);
+      hero.appendChild(guide);
+      el.appendChild(hero);
+
+      var overview = App.el('section', 'wy-world-overview');
+      var status = App.el('div', 'wy-world-status');
+      var statusCopy = App.el('div', 'wy-world-status-copy');
+      statusCopy.appendChild(App.el('span', 'wy-status-kicker', '王邑复明进度'));
+      statusCopy.appendChild(App.el('strong', 'wy-status-count', clearCount + ' / ' + MAP.zones.length + ' 域已点亮'));
+      var meter = App.el('span', 'wy-world-meter');
+      var meterFill = App.el('i', 'wy-world-meter-fill');
+      meterFill.style.width = (MAP.zones.length ? clearCount / MAP.zones.length * 100 : 0) + '%';
+      meter.appendChild(meterFill);
+      statusCopy.appendChild(meter);
+      status.appendChild(statusCopy);
+      status.appendChild(App.el('span', 'wy-world-wordcount', learned + ' / ' + total + ' 个字形已学'));
+      overview.appendChild(status);
+
+      var board = App.el('div', 'wy-world-board');
+      var art = App.el('img', 'wy-world-art');
+      art.src = 'assets/wangyi-atlas.svg';
+      art.alt = '重新绘制的殷商王邑地图：外郭、河道、田畦、内城与宫室';
+      board.appendChild(art);
+
+      (MAP.zones || []).forEach(function (z, i) {
+        var point = zonePoint(i);
+        var counts = zoneCounts(p, z);
+        var unlocked = zoneOpenAt(i, p);
+        var glow = App.el('span', 'wy-region-light' + (counts.clear ? ' on' : ''));
+        glow.style.left = point.x + '%';
+        glow.style.top = point.y + '%';
+        board.appendChild(glow);
+
+        var pin = App.el(unlocked ? 'button' : 'div',
+          'wy-world-pin' + (counts.clear ? ' lit' : '') + (!unlocked ? ' locked' : ''));
+        pin.style.left = point.x + '%';
+        pin.style.top = point.y + '%';
+        if (unlocked) {
+          pin.type = 'button';
+          pin.onclick = function () { openZone(z, i); };
+          pin.setAttribute('aria-label', '打开小地图 ' + (i + 1) + '：' + z.name + '，已学 ' + counts.done + ' / ' + counts.total);
+        } else {
+          pin.setAttribute('aria-label', '小地图 ' + (i + 1) + '：' + z.name + '，完成上一幅地图后解锁');
+        }
+        pin.appendChild(App.el('b', 'wy-pin-num', ('0' + (i + 1)).slice(-2)));
+        pin.appendChild(App.el('span', 'wy-pin-name', z.name));
+        pin.appendChild(App.el('span', 'wy-pin-progress', counts.clear ? '已点亮' : (unlocked ? counts.done + ' / ' + counts.total : '待解锁')));
+        board.appendChild(pin);
+      });
+      overview.appendChild(board);
+
+      var key = App.el('div', 'wy-world-key');
+      key.appendChild(App.el('span', null, '小地图完成后点亮总图上的一域'));
+      var reset = App.el('button', 'btn sm wy-reset', '重置王邑进度');
+      reset.onclick = function () {
+        if (!window.confirm('确定重置第二关的地图进度？')) return;
+        App.store.del(STORE_KEY);
+        render();
+      };
+      key.appendChild(reset);
+      overview.appendChild(key);
+      el.appendChild(overview);
+
+      var listHead = App.el('div', 'wy-smallmap-heading');
+      listHead.appendChild(App.el('div', 'wy-smallmap-heading-copy'));
+      listHead.lastChild.appendChild(App.el('p', 'wy-episode', '小地图 · 可替换主题框架'));
+      listHead.lastChild.appendChild(App.el('h3', null, '从第一片地图开始探索'));
+      listHead.lastChild.appendChild(App.el('p', null, '当前沿用项目已有的字形分区与释义；你之后给出主题时，可以替换分区名称和教学内容。'));
+      el.appendChild(listHead);
+
+      var cards = App.el('div', 'wy-zone-grid');
+      (MAP.zones || []).forEach(function (z, i) {
+        var counts = zoneCounts(p, z);
+        var unlocked = zoneOpenAt(i, p);
+        var zoneCard = App.el(unlocked ? 'button' : 'div',
+          'wy-zone-card' + (counts.clear ? ' clear' : '') + (!unlocked ? ' locked' : ''));
+        if (unlocked) {
+          zoneCard.type = 'button';
+          zoneCard.onclick = function () { openZone(z, i); };
+        }
+        zoneCard.appendChild(App.el('span', 'wy-zone-no', '0' + (i + 1)));
+        zoneCard.appendChild(App.el('span', 'wy-zone-topic', unlocked ? (counts.clear ? '已学完 · 区域已点亮' : '小地图 · 主题可替换') : '完成上一幅地图后解锁'));
+        zoneCard.appendChild(App.el('strong', 'wy-zone-name', z.name));
+        zoneCard.appendChild(App.el('span', 'wy-zone-note', z.note || '在小地图里观察字形并完成构字练习。'));
+        var zoneMeter = App.el('span', 'wy-zone-meter');
+        var zoneFill = App.el('i', 'wy-zone-fill');
+        zoneFill.style.width = (counts.total ? counts.done / counts.total * 100 : 0) + '%';
+        zoneMeter.appendChild(zoneFill);
+        zoneCard.appendChild(zoneMeter);
+        zoneCard.appendChild(App.el('span', 'wy-zone-count', counts.done + ' / ' + counts.total + ' 字形'));
+        zoneCard.appendChild(App.el('span', 'wy-zone-action', unlocked ? (counts.clear ? '回看小地图 →' : '进入小地图 →') : '🔒'));
+        cards.appendChild(zoneCard);
+      });
+      el.appendChild(cards);
+
+      if (clearCount === MAP.zones.length && MAP.zones.length) {
+        var allDone = App.el('aside', 'wy-all-lit');
+        var backMascot = App.el('img', 'wy-all-lit-mascot');
+        backMascot.src = 'assets/guibao-back.png';
+        backMascot.alt = '龟宝展示背甲上点亮的纹样';
+        allDone.appendChild(backMascot);
+        allDone.appendChild(App.el('strong', null, '王邑全图已点亮'));
+        allDone.appendChild(App.el('span', null, '五幅小地图全部完成，龟宝陪你把整座王邑重新照亮。'));
+        el.appendChild(allDone);
+      }
+    }
+
+    function renderZoneMap(el) {
+      var p = progress();
+      var zone = S.zone;
+      var zones = MAP.zones || [];
+      var index = zones.indexOf(zone);
+      if (index < 0) { S.view = 'map'; renderMap(el); return; }
+      var counts = zoneCounts(p, zone);
+      var unlocked = zoneOpenAt(index, p);
+      if (!unlocked) { S.view = 'map'; renderMap(el); return; }
+
+      var top = App.el('div', 'wy-zone-topline');
+      var back = App.el('button', 'btn sm wy-back-map', '← 返回王邑大地图');
+      back.onclick = function () { S.view = 'map'; S.sel = null; render(); };
+      top.appendChild(back);
+      top.appendChild(App.el('span', 'wy-episode', '小地图 ' + ('0' + (index + 1)).slice(-2) + ' / ' + zones.length));
+      el.appendChild(top);
+
+      var hero = App.el('section', 'wy-zone-hero');
+      var mini = App.el('div', 'wy-mini-map');
+      var miniArt = App.el('img', null);
+      miniArt.src = 'assets/wangyi-atlas.svg';
+      miniArt.alt = '';
+      miniArt.setAttribute('aria-hidden', 'true');
+      mini.appendChild(miniArt);
+      var miniSeal = App.el('span', 'wy-mini-seal', ('0' + (index + 1)).slice(-2));
+      mini.appendChild(miniSeal);
+      mini.appendChild(App.el('span', 'wy-mini-name', zone.name));
+      hero.appendChild(mini);
+
+      var heroCopy = App.el('div', 'wy-zone-copy');
+      heroCopy.appendChild(App.el('p', 'wy-episode', '主题学习 · 当前主题可替换'));
+      heroCopy.appendChild(App.el('h2', null, zone.name));
+      heroCopy.appendChild(App.el('p', null, zone.note || '在这幅小地图里观察甲骨字形，完成本区的构字练习。'));
+      heroCopy.appendChild(App.el('p', 'wy-theme-note', '小地图主题与讲解内容先沿用现有分区；你后续给出主题后，可在这套结构里直接替换。'));
+      var progressLine = App.el('div', 'wy-zone-progressline');
+      progressLine.appendChild(App.el('strong', null, counts.done + ' / ' + counts.total));
+      progressLine.appendChild(App.el('span', null, counts.clear ? '本幅已学完 · 大地图区域已点亮' : '完成本幅所有字形，点亮大地图上的对应区域'));
+      heroCopy.appendChild(progressLine);
+      hero.appendChild(heroCopy);
+
+      var guide = App.el('aside', 'wy-zone-guide');
+      var mascot = App.el('img', null);
+      mascot.src = 'assets/guibao-side.png';
+      mascot.alt = '龟宝在小地图旁陪你识字';
+      guide.appendChild(mascot);
+      var guideText = App.el('span', null);
+      guideText.appendChild(App.el('b', null, counts.clear ? '这一片王邑亮起来了！' : '先从一枚字形开始'));
+      guideText.appendChild(App.el('span', null, counts.clear ? '你可以回到总图，继续下一幅小地图。' : '观察甲骨形，拼好笔画，再看字卡说明。'));
+      guide.appendChild(guideText);
+      hero.appendChild(guide);
+      el.appendChild(hero);
+
+      if (!counts.clear) {
+        var nextObj = null;
+        (zone.objects || []).some(function (obj) {
+          if (!isDone(p, zone.id, obj.char)) { nextObj = obj; return true; }
+          return false;
+        });
+        if (nextObj) {
+          var continueBar = App.el('div', 'wy-continue-bar');
+          continueBar.appendChild(App.el('span', null, '继续本幅小地图的学习'));
+          var continueBtn = App.el('button', 'btn primary', '学习下一个字 · ' + nextObj.char + ' →');
+          continueBtn.onclick = function () {
+            S.sel = nextObj.char;
+            S.placed = [];
+            S.pool = shuffle(range(App.glyphStrokeCount(nextObj.char)));
+            S.view = 'compose';
+            render();
+          };
+          continueBar.appendChild(continueBtn);
+          el.appendChild(continueBar);
+        }
+      } else {
+        var clearPanel = App.el('div', 'wy-zone-clear');
+        clearPanel.appendChild(App.el('span', 'wy-clear-seal', '域已复明'));
+        clearPanel.appendChild(App.el('strong', null, '「' + zone.name + '」小地图完成'));
+        var nextZone = zones[index + 1];
+        if (nextZone) {
+          var nextZoneBtn = App.el('button', 'btn primary', '已点亮一域 · 解锁下一幅 →');
+          nextZoneBtn.onclick = function () { S.zone = nextZone; S.view = 'zone'; render(); };
+          clearPanel.appendChild(nextZoneBtn);
+        } else {
+          clearPanel.appendChild(App.el('span', null, '五幅小地图已全部开放并完成。'));
+        }
+        el.appendChild(clearPanel);
+      }
+
+      var gridHead = App.el('div', 'wy-object-heading');
+      gridHead.appendChild(App.el('h3', null, '本幅字形 · 逐枚认识'));
+      gridHead.appendChild(App.el('span', null, zone.objects.length + ' 个学习点'));
+      el.appendChild(gridHead);
+      var grid = App.el('div', 'wy-object-grid');
+      (zone.objects || []).forEach(function (obj, i) {
+        var done = isDone(p, zone.id, obj.char);
+        var item = App.el('button', 'wy-object-card' + (done ? ' done' : ''));
+        item.type = 'button';
+        item.onclick = function () {
+          S.sel = obj.char;
+          S.zone = zone;
+          S.view = 'compose';
+          S.placed = [];
+          S.pool = shuffle(range(App.glyphStrokeCount(obj.char)));
+          render();
+        };
+        item.appendChild(App.el('span', 'wy-object-no', ('0' + (i + 1)).slice(-2)));
+        var glyph = svgEl('svg');
+        glyph.setAttribute('viewBox', '0 0 ' + CV + ' ' + CV);
+        glyph.setAttribute('class', 'wy-object-glyph');
+        glyph.setAttribute('aria-hidden', 'true');
+        if (App.hasGlyph(obj.char)) glyph.innerHTML = App.glyphSvg(obj.char, 'currentColor');
+        item.appendChild(glyph);
+        item.appendChild(App.el('span', 'wy-object-char', obj.char));
+        item.appendChild(App.el('span', 'wy-object-meaning', obj.meaning || '观察字形，试着拼出它。'));
+        item.appendChild(App.el('span', 'wy-object-action', done ? '已学 · 再练一次' : '开始学习 →'));
+        grid.appendChild(item);
+      });
+      el.appendChild(grid);
+    }
+
+    /* ---------- 旧版直点地图保留作回退实现 ---------- */
+    function renderLegacyMap(el) {
       var p = progress();
       var total = objectTotal();
       var dn = doneTotal(p);
@@ -295,8 +577,8 @@
       var p = progress();
       var already = zone && isDone(p, zone.id, ch);
 
-      var back = App.el('button', 'btn sm', '← 回到地图');
-      back.onclick = function () { S.view = 'map'; render(); };
+      var back = App.el('button', 'btn sm', '← 回到本幅小地图');
+      back.onclick = function () { S.view = 'zone'; render(); };
       el.appendChild(back);
 
       var head = App.el('div', 'wy-head');
@@ -315,7 +597,9 @@
       var refInfo = App.el('div', 'wy-ref-info');
       refInfo.appendChild(App.el('div', 'wy-ref-mean', (S.zone && S.zone.name) || ''));
       var o0 = null;
-      flatObjects().forEach(function (it) { if (it.obj.char === ch) { o0 = it.obj; } });
+      flatObjects().forEach(function (it) {
+        if (it.obj.char === ch && zone && it.zone.id === zone.id) { o0 = it.obj; }
+      });
       refInfo.appendChild(App.el('div', 'wy-ref-desc', (o0 && o0.meaning) || ''));
       if (already) { refInfo.appendChild(App.el('div', 'wy-ref-done', '✓ 已点亮')); }
       refBox.appendChild(refInfo);
@@ -467,7 +751,7 @@
         }
         markDone(zone.id, ch);
         verdict.className = 'verdict ok';
-        verdict.textContent = '✔ 拼成了「' + ch + '」！地图上这一块亮起来了。';
+        verdict.textContent = '✔ 拼成了「' + ch + '」！它已记入本幅小地图。';
         var nx = App.el('button', 'btn primary', '看看释义');
         nx.onclick = function () { S.view = 'done'; render(); };
         verdict.appendChild(nx);
@@ -489,10 +773,12 @@
       var ch = S.sel;
       var zone = S.zone;
       var o = null;
-      flatObjects().forEach(function (it) { if (it.obj.char === ch) { o = it.obj; } });
+      flatObjects().forEach(function (it) {
+        if (it.obj.char === ch && zone && it.zone.id === zone.id) { o = it.obj; }
+      });
 
-      var back = App.el('button', 'btn sm', '← 回到地图');
-      back.onclick = function () { S.view = 'map'; S.sel = null; render(); };
+      var back = App.el('button', 'btn sm', '← 回到本幅小地图');
+      back.onclick = function () { S.view = 'zone'; S.sel = null; render(); };
       el.appendChild(back);
 
       var card = App.el('div', 'wy-card');
@@ -524,18 +810,15 @@
 
       var bar = App.el('div', 'wy-side');
 
-      /* 下一处：同区优先（本来就在这一片看），本区点完了再跨区找。
-         一个都找不到说明整幅画都点亮了，就不摆这个按钮。 */
+      /* 完成一字后仍留在当前小地图，直到本区学完才点亮总图并解锁下一幅。 */
       var p0 = progress();
       var nextIt = null;
-      var all = flatObjects();
-      var same = all.filter(function (it) { return it.zone.id === (zone && zone.id); });
-      var look = same.concat(all);
-      for (var q = 0; q < look.length; q++) {
-        if (!isDone(p0, look[q].zone.id, look[q].obj.char)) { nextIt = look[q]; break; }
+      var same = flatObjects().filter(function (it) { return it.zone.id === (zone && zone.id); });
+      for (var q = 0; q < same.length; q++) {
+        if (!isDone(p0, same[q].zone.id, same[q].obj.char)) { nextIt = same[q]; break; }
       }
       if (nextIt) {
-        var nx2 = App.el('button', 'btn primary', '下一处 →');
+        var nx2 = App.el('button', 'btn primary', '继续本幅小地图 →');
         nx2.onclick = function () {
           S.zone = nextIt.zone;
           S.sel = nextIt.obj.char;
@@ -547,9 +830,14 @@
         bar.appendChild(nx2);
       }
 
-      var nxt = App.el('button', 'btn sm', '回到地图');
-      nxt.onclick = function () { S.view = 'map'; S.sel = null; render(); };
+      var nxt = App.el('button', 'btn sm', '回到小地图');
+      nxt.onclick = function () { S.view = 'zone'; S.sel = null; render(); };
       bar.appendChild(nxt);
+      if (zone && zoneCounts(p0, zone).clear) {
+        var clearZone = App.el('button', 'btn primary', '本幅学完 · 查看点亮区域 →');
+        clearZone.onclick = function () { S.view = 'zone'; S.sel = null; render(); };
+        bar.appendChild(clearZone);
+      }
       var again = App.el('button', 'btn sm', '再拼一次');
       again.onclick = function () {
         S.placed = []; S.pool = shuffle(range(App.glyphStrokeCount(ch)));
@@ -605,13 +893,11 @@
   App.modes.register({
     id: 'wangyi-map',
     name: '殷商王邑',
-    tagline: '点实物、拼甲骨文、点亮地图',
-    desc: '一张三千年前的王邑图卷，初始是灰的。点画上的实物，' +
-        '上面给出甲骨文原字，下面给出笔画，拖到正确位置拼出来——' +
-        '拼成一个字，地图上那一块就亮起来。',
+    tagline: '走进主题小地图，逐域点亮王邑总图',
+    desc: '先在主题小地图里逐枚认识甲骨字形并拼回原字；完成一幅小地图，王邑总图对应的区域便会亮起，并解锁下一幅。',
     icon: '邑',
     accent: 'var(--bronze)',
-    tags: ['拖拽构字', '61 个实物', '点亮地图'],
+    tags: ['小地图解锁', '61 个学习点', '点亮大地图'],
     /* 主打玩法：占满整个界面（侧栏让位、去掉内容列 900px 限宽） */
     layout: 'wide',
     minPlayers: 1, maxPlayers: 1,

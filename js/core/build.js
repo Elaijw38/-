@@ -86,12 +86,15 @@
     /* 清掉可能残留的临时类（例如上一次异常退出时留下的） */
     if (document.body.classList) document.body.classList.remove('challenging');
 
-    /* 首次访问给一句引导 */
+    /* 首次访问给一句引导；模式页已有明确路线，toast 会盖住关卡入口。 */
     if (!App.store.get('seen', false)) {
       App.store.set('seen', true);
-      setTimeout(function () {
-        App.toast('欢迎来到字趣。先选一个玩法开始吧。', 4200);
-      }, 700);
+      var initialRoute = String(location.hash || '').replace(/^#\/?/, '').split('/')[0];
+      if (initialRoute !== 'modes') {
+        setTimeout(function () {
+          App.toast('欢迎来到字趣。先选一个玩法开始吧。', 4200);
+        }, 700);
+      }
     }
 
     App.router.start();
