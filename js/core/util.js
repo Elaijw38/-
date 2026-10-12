@@ -32,22 +32,27 @@
      全部键统一前缀 ziqu.，避免与其他站点/应用冲突。
      所有读写都包在 try/catch 里：无痕模式、iframe、配额满都可能抛错。 */
   App.STORE_PREFIX = 'ziqu.';
+  /* 试玩重置：新一轮进度改用独立存档键。旧存档保留在本地，设置和内容包继续沿用。 */
+  var FRESH_PROGRESS_KEYS = { bonebuild: true, wangyi: true, bossraid: true, achieved: true };
+  function storeKey(key) {
+    return App.STORE_PREFIX + (FRESH_PROGRESS_KEYS[key] ? 'progress-reset-20261012.' : '') + key;
+  }
   App.store = {
     get: function (key, fallback) {
       try {
-        var raw = localStorage.getItem(App.STORE_PREFIX + key);
+        var raw = localStorage.getItem(storeKey(key));
         if (raw == null) return fallback;
         return JSON.parse(raw);
       } catch (e) { return fallback; }
     },
     set: function (key, val) {
       try {
-        localStorage.setItem(App.STORE_PREFIX + key, JSON.stringify(val));
+        localStorage.setItem(storeKey(key), JSON.stringify(val));
         return true;
       } catch (e) { return false; }
     },
     del: function (key) {
-      try { localStorage.removeItem(App.STORE_PREFIX + key); return true; }
+      try { localStorage.removeItem(storeKey(key)); return true; }
       catch (e) { return false; }
     },
     /* 本地存储是否可用（无痕模式常不可用） */
