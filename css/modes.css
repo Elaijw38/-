@@ -794,13 +794,23 @@
   .wy-world-mascot { width: 66px; height: 82px; }
   .wy-world-status { align-items: start; flex-direction: column; gap: 9px; }
   .wy-world-status-copy { width: 100%; }
-  .wy-world-board { aspect-ratio: 1.45; }
-  .wy-world-art { object-fit: cover; object-position: center; }
-  .wy-world-pin { width: 72px; min-height: 47px; padding: 3px 4px; }
+  /* 手机端必须**保住地图原始比例**（底图 viewBox 是 0 0 1800 1010）。
+     原来这里写的是 aspect-ratio: 1.45 + object-fit: cover，
+     两者叠加会把地图左右裁掉，边上的据点跟着被裁出画面外。
+     改成与 viewBox 完全一致的比例，并让图 contain 完整显示。 */
+  .wy-world-board { aspect-ratio: 1800 / 1010; padding: 6px; }
+  .wy-world-art { object-fit: contain; }
+  /* 据点缩小以便放得下，同时保住可点性：
+     宽度收到 64px（横向不再互相压住），高度保持 48px ≥ 44px 触控下限。
+     地图缩到手机宽后据点之间余量很小，64px 是"名字还读得出、彼此不重叠"的一档。 */
+  .wy-world-pin { width: 64px; min-height: 48px; padding: 4px 4px; }
+  /* 锁定的据点现在**也能点**（点了会说明要先完成哪幅地图），
+     所以指针要恢复成可点，不能再是 default。 */
+  .wy-world-pin.locked { cursor: pointer; }
+  .wy-region-light { width: 58px; }
   .wy-pin-num { font-size: 9px; }
   .wy-pin-name { font-size: 9px; }
   .wy-pin-progress { font-size: 7px; }
-  .wy-region-light { width: 74px; }
   .wy-world-key { align-items: flex-start; flex-direction: column; }
   .wy-smallmap-heading { align-items: flex-start; flex-direction: column; gap: 0; }
   .wy-zone-grid { grid-template-columns: 1fr; gap: 8px; }
@@ -2269,7 +2279,38 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 
 @media (max-width: 760px) {
   .modes-scene .sheet { padding: 22px 16px 18px; }
-  .modes-scene .lv-intro { gap: 16px; }
+
+  /* 手机排版：介绍区必须回到**单列**。
+     这里踩过一个坑，记下来：上面第 209 行那个 760px 断点**已经**写了
+     `grid-template-columns: 1fr`，但它被本文件**更靠后**的
+     `.modes-scene .lv-intro`（深色主题那段，约 2128 行，没有媒体查询包裹）
+     用同样的权重覆盖回了 `minmax(0,1fr) minmax(240px,315px)`。
+     结果在 360px 宽的手机上，左列只剩几十像素，
+     中文标题被挤成一字一行。
+     所以修正要写在**最后生效的这个 760px 规则里**，并且把向导栏明确排到
+     标题与简介下方（单列后它自然落到第三行，这里用 order 再钉死一次）。 */
+  .modes-scene .lv-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
+    padding-bottom: 18px;
+  }
+  .modes-scene .lv-intro-copy,
+  .modes-scene .lv-guide,
+  .modes-scene .lv-guide-copy,
+  .modes-scene .lv-title,
+  .modes-scene .lv-lead { min-width: 0; }
+  .modes-scene .lv-title {
+    /* 中文自然横排换行：不要 anywhere（会逐字断行），
+       也不要 nowrap（会顶出横向滚动） */
+    overflow-wrap: break-word;
+    word-break: normal;
+    line-break: strict;
+    letter-spacing: .04em;
+  }
+  .modes-scene .lv-lead { overflow-wrap: break-word; }
+  .modes-scene .lv-intro-copy { order: 1; }
+  .modes-scene .lv-guide { order: 2; }
+
   .modes-scene .lv-title { font-size: clamp(30px, 8vw, 40px); }
   .modes-scene .lv-row { gap: 0; padding: 10px 0 4px; }
   .modes-scene .lv-row::before { display: none; }
@@ -2290,6 +2331,33 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .modes-scene .lv-break { gap: 3px; }
   .modes-scene .lv-seal { font-size: 8px; }
   .modes-scene .lv:hover { transform: none; }
+
+  /* 卡片内容一律 min-width:0 —— 否则 grid 子项的最小内容宽度会把卡片撑开，
+     中文在这种窄格里就会逐字竖排或顶出横向溢出。
+     第 269 / 277 / 282 行已经给 .lv-body/.lv-foot/.lv-cap 加过，
+     这里补齐剩下的几处，保证整张卡里没有漏网的。 */
+  .modes-scene .lv,
+  .modes-scene .lv-center,
+  .modes-scene .lv-top,
+  .modes-scene .lv-art,
+  .modes-scene .lv-body,
+  .modes-scene .lv-foot,
+  .modes-scene .lv-name,
+  .modes-scene .lv-tag,
+  .modes-scene .lv-desc,
+  .modes-scene .lv-cap,
+  .modes-scene .lv-cta,
+  .modes-scene .lv-meta { min-width: 0; }
+  .modes-scene .lv-name,
+  .modes-scene .lv-tag,
+  .modes-scene .lv-desc,
+  .modes-scene .lv-cap {
+    /* 中文自然横排换行。用 anywhere 会变成逐字竖排（就是这次要修的现象），
+       用 nowrap 会横向溢出，所以只允许在词/字之间正常断行。 */
+    overflow-wrap: break-word;
+    word-break: normal;
+    line-break: strict;
+  }
 }
 
 /* 三关并列：沿用首页的三列节奏，王邑探索作为中间主展台 */

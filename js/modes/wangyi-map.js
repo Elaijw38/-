@@ -185,16 +185,29 @@
         glow.style.top = point.y + '%';
         board.appendChild(glow);
 
-        var pin = App.el(unlocked ? 'button' : 'div',
+        /* 据点：已解锁的可进入；**锁定的也能点**——点了要说清楚
+            "需要先完成哪一幅地图"，而不是一个没反应的死块。
+            （原来锁定时渲染成 div 且无 onclick，点上去毫无反馈。） */
+        var pin = App.el('button',
           'wy-world-pin' + (counts.clear ? ' lit' : '') + (!unlocked ? ' locked' : ''));
         pin.style.left = point.x + '%';
         pin.style.top = point.y + '%';
+        pin.type = 'button';
         if (unlocked) {
-          pin.type = 'button';
           pin.onclick = function () { openZone(z, i); };
           pin.setAttribute('aria-label', '打开小地图 ' + (i + 1) + '：' + z.name + '，已学 ' + counts.done + ' / ' + counts.total);
         } else {
-          pin.setAttribute('aria-label', '小地图 ' + (i + 1) + '：' + z.name + '，完成上一幅地图后解锁');
+          /* 找出**第一幅**还没学完的小地图：它才是真正的解锁前置。 */
+          var blocker = null;
+          for (var bi = 0; bi < i; bi++) {
+            if (!zoneCounts(p, MAP.zones[bi]).clear) { blocker = { z: MAP.zones[bi], i: bi }; break; }
+          }
+          var blockerName = blocker ? ('「' + blocker.z.name + '」') : '上一幅地图';
+          pin.setAttribute('aria-label', '小地图 ' + (i + 1) + '：' + z.name +
+            '，尚未解锁。需要先完成 ' + blockerName);
+          pin.onclick = function () {
+            App.toast('先完成' + blockerName + '小地图，这里才会解锁。', 3600);
+          };
         }
         pin.appendChild(App.el('b', 'wy-pin-num', ('0' + (i + 1)).slice(-2)));
         pin.appendChild(App.el('span', 'wy-pin-name', z.name));
@@ -215,37 +228,12 @@
       overview.appendChild(key);
       el.appendChild(overview);
 
-      var listHead = App.el('div', 'wy-smallmap-heading');
-      listHead.appendChild(App.el('div', 'wy-smallmap-heading-copy'));
-      listHead.lastChild.appendChild(App.el('p', 'wy-episode', '小地图 · 可替换主题框架'));
-      listHead.lastChild.appendChild(App.el('h3', null, '从第一片地图开始探索'));
-      listHead.lastChild.appendChild(App.el('p', null, '当前沿用项目已有的字形分区与释义；你之后给出主题时，可以替换分区名称和教学内容。'));
-      el.appendChild(listHead);
-
-      var cards = App.el('div', 'wy-zone-grid');
-      (MAP.zones || []).forEach(function (z, i) {
-        var counts = zoneCounts(p, z);
-        var unlocked = zoneOpenAt(i, p);
-        var zoneCard = App.el(unlocked ? 'button' : 'div',
-          'wy-zone-card' + (counts.clear ? ' clear' : '') + (!unlocked ? ' locked' : ''));
-        if (unlocked) {
-          zoneCard.type = 'button';
-          zoneCard.onclick = function () { openZone(z, i); };
-        }
-        zoneCard.appendChild(App.el('span', 'wy-zone-no', '0' + (i + 1)));
-        zoneCard.appendChild(App.el('span', 'wy-zone-topic', unlocked ? (counts.clear ? '已学完 · 区域已点亮' : '小地图 · 主题可替换') : '完成上一幅地图后解锁'));
-        zoneCard.appendChild(App.el('strong', 'wy-zone-name', z.name));
-        zoneCard.appendChild(App.el('span', 'wy-zone-note', z.note || '在小地图里观察字形并完成构字练习。'));
-        var zoneMeter = App.el('span', 'wy-zone-meter');
-        var zoneFill = App.el('i', 'wy-zone-fill');
-        zoneFill.style.width = (counts.total ? counts.done / counts.total * 100 : 0) + '%';
-        zoneMeter.appendChild(zoneFill);
-        zoneCard.appendChild(zoneMeter);
-        zoneCard.appendChild(App.el('span', 'wy-zone-count', counts.done + ' / ' + counts.total + ' 字形'));
-        zoneCard.appendChild(App.el('span', 'wy-zone-action', unlocked ? (counts.clear ? '回看小地图 →' : '进入小地图 →') : '🔒'));
-        cards.appendChild(zoneCard);
-      });
-      el.appendChild(cards);
+      /* 注意：这里**不再**追加小地图卡片列表。
+         第二关首页以大地图为唯一选图入口——五幅小地图通过地图上的据点进入，
+         下方再排一遍同样的五张卡是重复导航（见需求「五、范围」）。
+         原来那段 .wy-smallmap-heading + .wy-zone-grid 已移除；
+         小地图本身的样式与进入逻辑仍在 renderZoneMap 里，没有动。
+         开始游戏页（sceneModes）的三关入口是另一种导航，保留。 */
 
       if (clearCount === MAP.zones.length && MAP.zones.length) {
         var allDone = App.el('aside', 'wy-all-lit');
