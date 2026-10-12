@@ -78,9 +78,12 @@
             return center.getBoundingClientRect().height > p.getBoundingClientRect().height
               && center.getBoundingClientRect().width > p.getBoundingClientRect().width;
           })));
+      /* 用 offsetTop/offsetHeight 量对齐，**不要用 getBoundingClientRect**：
+         后者包含 transform，而滚动显现动画会把元素平移 16px，
+         测到的会是动画中间态，而不是布局。对齐是布局属性。 */
       log('  三块底边对齐（展墙式）: '
         + flag(lv.length > 1 && (function () {
-            var bs = lv.map(function (p) { return Math.round(p.getBoundingClientRect().bottom); });
+            var bs = lv.map(function (p) { return p.offsetTop + p.offsetHeight; });
             var lo = Math.min.apply(null, bs), hi = Math.max.apply(null, bs);
             return hi - lo <= 2;
           })()));

@@ -287,7 +287,11 @@ img { max-width: 100%; }
 .play-card {
   position: relative; display: flex; flex-direction: column;
   padding: var(--s-5); text-decoration: none; color: inherit;
-  background: var(--sheet);
+  background-color: var(--sheet);
+  background-image: var(--fiber);
+  background-size: 200px 200px;
+  background-blend-mode: multiply;
+  box-shadow: var(--sh-1);
   border: 1px solid var(--edge); border-radius: var(--r);
   box-shadow: var(--sh-1);
   transition: transform var(--t-base) var(--ease),
@@ -339,7 +343,11 @@ img { max-width: 100%; }
 }
 .daily-card, .collect-card {
   padding: var(--s-5);
-  background: var(--sheet);
+  background-color: var(--sheet);
+  background-image: var(--fiber);
+  background-size: 200px 200px;
+  background-blend-mode: multiply;
+  box-shadow: var(--sh-1);
   border: 1px solid var(--edge); border-radius: var(--r);
   box-shadow: var(--sh-1);
 }
@@ -747,6 +755,78 @@ img { max-width: 100%; }
 }
 
 /* ============================================================================
+   首页玩法区 · 主线
+   ----------------------------------------------------------------------------
+   三张卡之间用一条贯穿的细线串起来。线在卡片**背后**（z-index 更低），
+   卡片是不透明的，所以线只在卡与卡的缝隙里露出来——
+   视觉上正是"把三张卡连成一条路径"，而不是三块孤立的卡。
+   ============================================================================ */
+.play-grid { position: relative; }
+.play-grid::before {
+  content: ''; position: absolute; z-index: 0;
+  left: 6%; right: 6%; top: 37px; height: 1px;
+  background: linear-gradient(90deg,
+    transparent, color-mix(in srgb, var(--bronze) 55%, transparent) 8%,
+    color-mix(in srgb, var(--bronze) 55%, transparent) 92%, transparent);
+}
+.play-card { z-index: 1; }
+
+/* 步骤号：骑在主线上的那颗方牌 */
+.pc-step {
+  display: flex; align-items: center; gap: var(--s-2);
+  margin: 0 0 var(--s-4);
+  font-size: var(--fs-xs); letter-spacing: 3px; color: var(--bronze-tint);
+}
+.pc-step b {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex: 0 0 auto;
+  background: var(--sheet);
+  border: 1px solid var(--edge);
+  box-shadow: var(--sh-1);
+  font-weight: 500; font-size: var(--fs-xs); letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--t-base) var(--ease), color var(--t-base) var(--ease);
+}
+/* 主玩法那颗点用朱砂描边：它是这条线上的中枢 */
+.pc-main .pc-step b {
+  border-color: color-mix(in srgb, var(--cinnabar) 70%, var(--edge));
+  color: var(--cinnabar-tint);
+}
+.pc-mainflag {
+  margin-left: auto;
+  padding: 1px 6px;
+  font-size: var(--fs-micro); letter-spacing: 2px;
+  color: var(--cinnabar);
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 45%, transparent);
+}
+
+/* ============================================================================
+   滚动显现
+   ----------------------------------------------------------------------------
+   隐藏态只在 html.js-motion 下生效——由 JS 自己挂这个类。
+   这样万一脚本没跑起来，内容仍是正常可见的，不会"白屏"。
+   ============================================================================ */
+/* 注意类名带 mo- 前缀：theme.css 里已经有一个 .rv（玩法"复盘"块，
+   带骨白底色）。当时直接叫 .rv 撞了名，每个标记元素都被涂成白底——
+   往老项目加状态类之前，务必先搜一遍这个名字有没有人用过。 */
+html.js-motion .mo-rv {
+  opacity: 0;
+  transform: translateY(16px);
+}
+html.js-motion .mo-rv.mo-in {
+  opacity: 1;
+  transform: none;
+  transition: opacity .62s cubic-bezier(.22, .61, .36, 1),
+              transform .62s cubic-bezier(.22, .61, .36, 1);
+}
+/* 首屏元素与兜底：直接到位，没有任何过渡期 */
+html.js-motion .mo-now { transition: none !important; }
+/* 减少动态偏好：直接给终态 */
+@media (prefers-reduced-motion: reduce) {
+  html.js-motion .mo-rv { opacity: 1; transform: none; }
+}
+
+/* ============================================================================
    评级与成就墙
    ----------------------------------------------------------------------------
    评级是"收集度 → 称号"，成就是 14 项具体目标。
@@ -854,7 +934,7 @@ img { max-width: 100%; }
   height: clamp(430px, 66vh, 560px);
   padding: 18px 18px 16px;
   border: 1px solid var(--edge);
-  border-radius: 3px;
+  border-radius: 0;
   color: var(--ink);
   text-decoration: none;
   cursor: pointer;
@@ -865,6 +945,26 @@ img { max-width: 100%; }
               box-shadow .42s cubic-bezier(.22, .61, .36, 1),
               border-color .42s ease, opacity .42s ease;
 }
+
+/* 裱框：内圈一道细线 + 四角角标。拓片装裱的样子，
+   也让"这是一件展品"这件事在版面上成立。 */
+.lv-frame {
+  position: absolute; inset: 7px; pointer-events: none; z-index: 1;
+  border: 1px solid color-mix(in srgb, var(--bronze) 22%, transparent);
+  background:
+    linear-gradient(var(--mark), var(--mark)) left  top    / 12px 1px,
+    linear-gradient(var(--mark), var(--mark)) left  top    / 1px 12px,
+    linear-gradient(var(--mark), var(--mark)) right top    / 12px 1px,
+    linear-gradient(var(--mark), var(--mark)) right top    / 1px 12px,
+    linear-gradient(var(--mark), var(--mark)) left  bottom / 12px 1px,
+    linear-gradient(var(--mark), var(--mark)) left  bottom / 1px 12px,
+    linear-gradient(var(--mark), var(--mark)) right bottom / 12px 1px,
+    linear-gradient(var(--mark), var(--mark)) right bottom / 1px 12px;
+  background-repeat: no-repeat;
+  --mark: color-mix(in srgb, var(--bronze) 62%, transparent);
+  transition: border-color .42s ease;
+}
+.lv:hover .lv-frame { border-color: color-mix(in srgb, var(--bronze) 42%, transparent); }
 /* 面板上不再叠横纹。
    背景已经有两层纹样（甲骨字形底纹 + 纸纹），面板上再加一层横纹，
    等于同一块地方讲三遍——装饰该退后，让字形和文字占舞台。 */
@@ -873,6 +973,7 @@ img { max-width: 100%; }
   transform: scale(1.05);
   z-index: 5;
   /* 悬停的"抬升"不靠阴影，靠描边加深 + 托盘提亮（见 .lv:hover .lv-plate） */
+  box-shadow: var(--sh-2), 0 26px 54px -26px rgba(41, 35, 30, .5);
 }
 .lv:focus-visible {
   outline: none;
@@ -886,6 +987,7 @@ img { max-width: 100%; }
   height: clamp(470px, 72vh, 600px);
   z-index: 2;
   border-color: color-mix(in srgb, var(--bronze) 44%, var(--edge));
+  box-shadow: var(--sh-2), 0 18px 44px -20px rgba(41, 35, 30, .44);
 }
 .lv-center::after {
   content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
@@ -934,7 +1036,7 @@ img { max-width: 100%; }
   display: flex; align-items: center; justify-content: center;
   padding: clamp(8px, 1.1vw, 14px);
   border: 1px solid color-mix(in srgb, var(--edge) 66%, transparent);
-  border-radius: 2px;
+  border-radius: 0;
   /* 托盘是"面中面"：比纸面暗一档，才读得出是嵌进去的一块 */
   background: var(--sheet-in);
   box-shadow: inset 0 0 26px color-mix(in srgb, var(--bronze) 13%, transparent);
@@ -975,7 +1077,7 @@ img { max-width: 100%; }
   font-size: 10px; letter-spacing: 2px;
   color: var(--cinnabar);
   border: 1px solid color-mix(in srgb, var(--cinnabar) 52%, transparent);
-  border-radius: 2px;
+  border-radius: 0;
   opacity: 0; transform: translateY(4px);
   transition: opacity .42s ease, transform .42s cubic-bezier(.22, .61, .36, 1);
 }

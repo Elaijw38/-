@@ -95,6 +95,12 @@
   --sheet-in:  color-mix(in srgb, var(--bone-hi) 42%, var(--bone));
   --sheet-in2: var(--bone-lo);      /* 最深一层：留给需要明显压深的地方 */
 
+  /* —— 纸张纤维 ——
+     一层极淡的噪点，让"纸面"有物质的颗粒感，而不是一块纯色。
+     纯 CSS 变量，不额外请求文件。 */
+  --fiber: url("../assets/paper.png");   /* 纸纹，由 dev/_gen_paper.py 生成 */
+  --fiber-op: .055;   /* 压得很低：是"手感"，不是"花纹" */
+
   /* —— 罫线：两份美术馆规范里，层次几乎是 1px 罫线撑起来的 —— */
   --rule:      1px solid var(--edge);
   --rule-in:   1px solid var(--edge-in);
@@ -124,14 +130,19 @@
   --r-lg: 0;
   --r-pill: 999px;
 
-  /* —— 层次：不用阴影 ——
-     两份美术馆规范的 box-shadow 声明数都是 0：中之岛靠 1px 罫线 #808080 +
-     面色（#ededed / #f7f7f7），森美术馆靠"服务器的浓淡"。
-     所以这里把浮起阴影全部置空，层次交给「面色 + 罫线」。
-     注意：`0 0 0 Npx` 这类**光环**（焦点环、状态环）是语义，不在此列，保持原样。 */
-  --sh-1: none;
-  --sh-2: none;
-  --shadow: none;
+  /* —— 层次：纸放在骨版上 ——
+     美术馆规范里阴影声明数为 0，但那是因为**展品照在承担视觉重量**；
+     本站内容是字与线，完全不靠阴影会显得寡淡、像后台。
+     所以保留"有分寸"的两层：
+       第一层 `0 1px 0` 是**接触影**（贴在底边的一道发丝暗边）——给重量
+       第二层是很散的**落影**，范围大、透明度低——给落地感
+     合计比早期的两层浮起阴影轻得多。
+     `0 0 0 Npx` 这类**光环**（焦点环、状态环）是语义，不在此列。 */
+  --sh-1: 0 1px 0 rgba(41, 35, 30, .05),
+          0 7px 18px -13px rgba(41, 35, 30, .38);
+  --sh-2: 0 1px 0 rgba(41, 35, 30, .06),
+          0 12px 30px -18px rgba(41, 35, 30, .46);
+  --shadow: var(--sh-2);
 
   /* 只有真正的浮层（模态 / 轻提示 / 下拉）需要投影才立得住。
      这是全站唯一一处阴影，且只用在"确实浮在内容之上"的东西上。 */
@@ -215,7 +226,10 @@ body {
     var(--ob-pattern),
     var(--bone-grain);
   background-repeat: repeat, repeat;
-  background-position: 0 0, 0 0;
+  /* 底纹随指针轻微位移（由 motion.js 写 --bg-x/--bg-y，缓动到位）。
+     幅度只有几像素——是"纸有厚度"，不是"背景在飘"。 */
+  background-position: var(--bg-x, 0px) var(--bg-y, 0px),
+                       var(--bg-x, 0px) var(--bg-y, 0px);
   background-size: 860px 860px, 180px 180px;
   background-attachment: fixed, fixed;
 }

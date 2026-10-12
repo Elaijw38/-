@@ -303,13 +303,25 @@
     /* ================= 核心玩法 ================= */
     var sec1 = App.el('section', 'home-sec');
     sec1.id = 'playSection';
-    sec1.appendChild(sectionHead('选择你的玩法',
-      '三个玩法共用同一套字形数据与素材库，各有各的节奏',
+    sec1.appendChild(sectionHead('一条线，走完甲骨文',
+      '先认出字形，再拆开构件，最后拼成字——三个玩法是同一条路上的三步',
       '#/modes', '全部玩法 →'));
+    /* 主线：给每张卡排上步骤号，卡之间用一条贯穿的细线串起来。
+       顺序仍按 App.modes.playable() 的注册顺序，**不重排**——
+       王邑是主玩法，它天然落在中间，正好是这条线的中枢。 */
     var grid = App.el('div', 'play-grid');
-    App.modes.playable().forEach(function (m) {
-      var card = App.el('a', 'play-card');
+    App.modes.playable().forEach(function (m, i) {
+      var spec = LV_SPEC[m.id] || {};
+      var isMain = (m.id === LV_CENTER);
+      var card = App.el('a',
+        'play-card' + (isMain ? ' pc-main' : ''));
       card.href = '#/play/' + m.id;
+
+      var step = App.el('div', 'pc-step');
+      step.appendChild(App.el('b', null, ('0' + (i + 1)).slice(-2)));
+      step.appendChild(App.el('span', null, spec.step || ''));
+      if (isMain) { step.appendChild(App.el('span', 'pc-mainflag', '主玩法')); }
+      card.appendChild(step);
 
       var head = App.el('div', 'pc-head');
       var ico = App.el('span', 'pc-icon', m.icon);
@@ -873,6 +885,9 @@
         card.onclick = function () { App.toast('「' + m.name + '」还在筹备中。'); };
       }
 
+      /* 裱框：内圈细线 + 四角角标（拓片装裱的样子） */
+      card.appendChild(App.el('span', 'lv-frame'));
+
       /* —— 顶部：编号 + 步骤词（编辑式排版）—— */
       var top = App.el('div', 'lv-top');
       top.appendChild(App.el('span', 'lv-no', no));
@@ -1150,6 +1165,10 @@
     else scene = sceneHome();
     root.appendChild(scene);
     window.scrollTo(0, 0);
+    /* 动效必须在**场景已经挂进 DOM 之后**再挂：
+       早一步调用时 root 里还是上一页（或空的），一个元素都选不到——
+       这个坑踩过，滚动显现整块失效却毫无报错。 */
+    if (App.motion) { App.motion.arm(root); }
     App.emit('route', r);
   }
 
