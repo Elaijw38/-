@@ -1144,8 +1144,15 @@ img { max-width: 100%; }
   .lv-foot {
     position: absolute; left: 14px; right: 14px; bottom: 9px;
     margin: 0; padding: 6px 0 0; gap: 8px;
+    /* 靠 margin-right:auto 把出处把「进入」顶到右边。
+       不能只靠 space-between：出处一旦被隐藏，只剩一个子元素，
+       它就会被推到最左边（390px 下踩到过）。 */
+    justify-content: flex-start;
   }
-  .lv-cap { display: block; flex: 1 1 auto; min-width: 0; font-size: 9.5px; }
+  .lv-cap {
+    display: block; min-width: 0; margin-right: auto;
+    font-size: 9.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .lv-modern { font-size: 15px; opacity: 1; }
   /* 触摸设备没有悬停，别把放大挂在上面 */
   .lv:hover { transform: none; }
@@ -1159,8 +1166,8 @@ img { max-width: 100%; }
   .lv-glyph, .lv-center .lv-glyph { width: 54px; height: 54px; }
   .lv-name { font-size: 16px; }
   .lv-center .lv-name { font-size: 17px; }
-  .lv-cap { display: none; }
 }
+
 
 /* 触摸设备（无悬停能力）：所有"悬停才显现"的信息直接可见 */
 @media (hover: none) {
