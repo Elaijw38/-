@@ -53,15 +53,15 @@ ws.addEventListener('open', async () => {
   }
   const expr = "JSON.stringify((function(){var b=getComputedStyle(document.body);" +
     "var de=document.documentElement;return {" +
-    "bgImage:(b.backgroundImage||'').indexOf('bone.png')>=0," +
+    "bgImage:(b.backgroundImage||'').indexOf('paper.png')>=0," +
     "bgBlend:b.backgroundBlendMode," +
     "bgSize:b.backgroundSize," +
     "bgColor:b.backgroundColor," +
     "docW:de.scrollWidth, winW:window.innerWidth," +
     "overflowX:de.scrollWidth-window.innerWidth," +
-    "obLen:((getComputedStyle(de).getPropertyValue('--ob-pattern'))||'').length," +
     "sheets:document.querySelectorAll('.sheet').length," +
     "atlasCards:document.querySelectorAll('.atlas-card').length," +
+    "atlasGroups:document.querySelectorAll('.atlas-sec').length," +
     "sceneKids:document.querySelector('#sceneRoot')?document.querySelector('#sceneRoot').children.length:-1," +
     /* 拓片上的字形：SVG 的 stroke-width 是**表现属性**，CSS 应当盖得住它。
        这里把 CSS 计算值与属性值都取回来，确认真的盖住了，别靠猜。 */
@@ -106,12 +106,12 @@ for line in (r.stdout or "").splitlines():
     if line.startswith("INFO:"):
         info = json.loads(line[5:])
         print("  路由 %s   视口 %dx%d" % (info["route"], W, H))
-        print("  骨材质层生效=%s   blend=%s" % (info["bgImage"], info["bgBlend"]))
-        print("  底色 %s   size=%s" % (info["bgColor"], info["bgSize"]))
+        print("  纸纹层生效=%s   blend=%s" % (info["bgImage"], info["bgBlend"]))
+        print("  地色 %s   size=%s" % (info["bgColor"], info["bgSize"]))
         print("  横向溢出 %dpx（doc %d / win %d）"
               % (info["overflowX"], info["docW"], info["winW"]))
-        print("  刻辞底纹 %d 字符   .sheet=%d   .atlas-card=%d   #sceneRoot子元素=%d"
-              % (info["obLen"], info["sheets"], info["atlasCards"], info["sceneKids"]))
+        print("  .sheet=%d   .atlas-card=%d   .atlas-sec=%d   #sceneRoot子元素=%d"
+              % (info["sheets"], info["atlasCards"], info["atlasGroups"], info["sceneKids"]))
         g = info.get("glyph")
         if g:
             print("  拓片字形：宽 %dpx  CSS stroke-width=%s（属性 %s，计算后 %s）"

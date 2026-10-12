@@ -47,43 +47,27 @@ img { max-width: 100%; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 var(--s-5) var(--s-7); }
 
 /* ============================================================================
-   骨版：内容所载的那块面
+   版面：内容所载的那块面
    ----------------------------------------------------------------------------
-   页底是"地"——带斑驳、骨纹、虫蛀孔与刻辞的骨面（见 body 的背景与
-   assets/bone.png）。正文若直接落在上面，字与刻辞会互相干扰，
-   所以内容统一装进一块**浅色骨版**：像从骨面上取下来的一版，
-   而不是网页里的一张卡片。
+   地是平的骨色。内容装在一块**比地更亮一档**的面上，
+   只用 1px 罫线分界——这是三家美术馆一致的层次做法
+   （中之岛「面色は使わない、1px 罫で分ける」；MOT 用 #ffffff/#f1f1f1/#dddddd 四段面）。
 
-   · 边界不走圆角矩形，用 clip-path 切出不规则的骨版残边（见第 5 条）。
-   · 版上有两层：内圈的刻线（.sheet-in），以及贯穿全版的兆纹分隔线。
+   我上一版用 clip-path 切了"骨版残边"，那是**过**：
+   不规则边界要和别的不规则边界对位才有意义，单切一块只会显脏。
    ============================================================================ */
 .sheet {
   position: relative;
-  padding: var(--s-7) var(--s-6) var(--s-6);
-  background-color: var(--bone-white);
+  padding: var(--s-7) var(--s-7) var(--s-6);
+  background-color: var(--sheet);
   background-image: var(--fiber);
   background-size: 220px 220px;
   background-blend-mode: multiply;
-  box-shadow: var(--sh-3), inset 0 0 0 1px var(--edge);
-  /* 骨版残边：四角四边各自不齐，幅度很小（1~2%），
-     读起来是"一块骨"而不是"一张歪掉的卡片" */
-  clip-path: polygon(
-    0% 1.6%, 34% 0%, 71% .8%, 100% 1.4%,
-    99.4% 37%, 100% 68%, 99.2% 98.4%,
-    64% 100%, 33% 99.1%, 0% 99.6%,
-    .6% 62%, 0% 33%);
+  border: 1px solid var(--edge);
+  border-radius: 0;
 }
-/* 内圈刻线：骨器上常见的界限刻痕，贴着边退进来一点 */
-.sheet-in {
-  position: absolute; inset: 7px;
-  border: 1px solid var(--edge-in);
-  clip-path: polygon(
-    0% 2.2%, 40% 0%, 76% 1.2%, 100% 2%,
-    99% 40%, 100% 70%, 98.8% 98%,
-    60% 100%, 30% 98.8%, 0% 99.2%,
-    1% 60%, 0% 30%);
-  pointer-events: none;
-}
+/* 内圈刻线去掉：一层罫线已经够分界，两层只是噪音 */
+.sheet-in { display: none; }
 
 /* ============================================================================
    固定顶栏
@@ -310,18 +294,17 @@ img { max-width: 100%; }
    ============================================================================ */
 /* 分区：用 1px 罫线分，而不是靠色块或大空白。
    分区间距拉到 --s-8，一屏一个阅读任务。
-   罫线之上再叠一道**兆**（灼烧裂纹）——甲骨独有的痕迹，
-   让分区线本身就是"甲骨"的，而不是任意一条灰色的线。 */
+
+   这里原先叠过一道"兆"（灼烧裂纹）当装饰。撤掉了：
+   三家美术馆的分区线都是**素净的 1px 罫**，叠纹样只是噪音。
+   （兆本身是好题材，但它该当**结构**用——比如真的按兆裂把版面劈成几块——
+   而不是在罫线上描一条 12px 的小波浪，那是装饰。） */
 .home-sec {
   margin-bottom: 0;
   padding: var(--s-8) 0;
   border-top: var(--rule);
-  background-image: var(--crack);
-  background-repeat: repeat-x;
-  background-position: left top;
-  background-size: var(--crack-size);
 }
-.home-sec:first-of-type { border-top: 0; padding-top: var(--s-5); background-image: none; }
+.home-sec:first-of-type { border-top: 0; padding-top: var(--s-5); }
 .home-sec > .sec-head { margin-top: 0; }
 
 /* 玩法入口卡 */
@@ -329,26 +312,21 @@ img { max-width: 100%; }
   display: grid; gap: var(--s-4);
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
+/* 玩法入口卡：**不用卡片**。
+   它们已经在一块浅色版面上，再加一层同色的卡片就是"盒子套盒子"，
+   层次反而糊掉（三家美术馆的展品卡也都是 background: transparent、
+   无边框无阴影，靠 1px 罫与留白分）。所以这里退成透明，
+   只用一条上罫线分栏。 */
 .play-card {
   position: relative; display: flex; flex-direction: column;
-  padding: var(--s-5); text-decoration: none; color: inherit;
-  background-color: var(--sheet);
-  background-image: var(--fiber);
-  background-size: 200px 200px;
-  background-blend-mode: multiply;
-  box-shadow: var(--sh-1);
-  border: 1px solid var(--edge); border-radius: var(--r);
-  box-shadow: var(--sh-1);
-  transition: transform var(--t-base) var(--ease),
-              box-shadow var(--t-base) var(--ease),
-              border-color var(--t-base) var(--ease);
+  padding: var(--s-5) 0 0;
+  text-decoration: none; color: inherit;
+  background: none; border: 0; border-top: 1px solid var(--edge);
+  border-radius: 0;
+  transition: border-color var(--t-base) var(--ease);
 }
-.play-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--sh-3);
-  border-color: color-mix(in srgb, var(--bronze) 55%, var(--edge));
-}
-.play-card:active { transform: translateY(-1px); }
+.play-card:hover { border-top-color: var(--cinnabar); }
+.play-card:active { opacity: .86; }
 .pc-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); }
 .pc-icon {
   display: inline-flex; align-items: center; justify-content: center;
@@ -386,15 +364,12 @@ img { max-width: 100%; }
   display: grid; gap: var(--s-4);
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
 }
+/* 每日一字 / 我的收集：同样退成透明分栏，只留上罫线 */
 .daily-card, .collect-card {
-  padding: var(--s-5);
-  background-color: var(--sheet);
-  background-image: var(--fiber);
-  background-size: 200px 200px;
-  background-blend-mode: multiply;
-  box-shadow: var(--sh-1);
-  border: 1px solid var(--edge); border-radius: var(--r);
-  box-shadow: var(--sh-1);
+  padding: var(--s-5) 0 0;
+  background: none;
+  border: 0; border-top: 1px solid var(--edge);
+  border-radius: 0;
 }
 .dc-head {
   display: flex; align-items: baseline; justify-content: space-between;
@@ -491,48 +466,61 @@ img { max-width: 100%; }
 .atlas-count { margin: 0 0 var(--s-3); font-size: var(--fs-sm); color: var(--ink-soft); }
 
 /* —— 拓片集 ——
-   甲骨本来就是靠**墨拓**出版的：把纸覆在骨上，扑墨，凹处（刻辞）留白，
-   于是字形是**反白**的。所以图鉴不做"白底卡片阵列"，做**一张张拓片**：
-   墨底 + 字形反白 + 右下朱笔写今字。
-   这样密度与识别度同时解决：153 张铺满一页，远看是一整张拓本，近看字字分明。 */
-.atlas-grid {
-  display: grid; gap: var(--s-2);
-  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+   甲骨本来就是靠**墨拓**出版的：纸覆在骨上扑墨，凹处（刻辞）留白，
+   于是字形是**反白**的。所以图鉴不做"白底卡片阵列"，做**拓片**：
+   墨底 + 字形反白 + 下方朱笔写今字。
+
+   但**密度要克制**。上一版把 153 张铺成 11 列一整面墙，
+   结果是读者"安静的调性一下散了"（文化机构站的实测结论，
+   [集赞：文化机构官网首页排了十一件展品](https://www.jizankeji.com/zhishi/551.html)）：
+   分不清哪块是信息、哪块是装饰。现在按档位分组、组间留大空，
+   每张拓片给足白边，让墨色落在白上——这才是拓本的样子。 */
+.atlas-grid { display: block; }
+.atlas-sec { margin-top: var(--s-9); }
+.atlas-sec:first-child { margin-top: var(--s-6); }
+/* 组标题：像拓本的目录行——名称 + 条数，一条细罫收口 */
+.atlas-group {
+  display: flex; align-items: baseline; gap: var(--s-3);
+  padding-bottom: var(--s-2); margin-bottom: var(--s-4);
+  border-bottom: 1px solid var(--edge);
+}
+.ag-name { font-size: 17px; letter-spacing: 4px; color: var(--ink); }
+.ag-n { font-size: 12.5px; letter-spacing: 1px; color: var(--ink-soft); }
+
+.atlas-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: var(--s-4) var(--s-3);
 }
 .atlas-card {
-  position: relative;
   display: flex; flex-direction: column; align-items: center;
-  padding: var(--s-2) 5px var(--s-2);
-  /* 拓墨：不是纯黑，是压进纸里的墨——带一点暖褐 */
-  background-color: var(--rub);
-  background-image: radial-gradient(circle at 32% 26%,
-    color-mix(in srgb, var(--rub-2) 90%, transparent) 0%,
-    var(--rub) 72%);
-  border: 1px solid color-mix(in srgb, var(--ink) 60%, var(--pit));
-  border-radius: var(--r-xs);
+  padding: 0;
+  background: none; border: 0; border-radius: 0;
   cursor: pointer;
-  transition: transform var(--t-fast) var(--ease),
-              box-shadow var(--t-fast) var(--ease),
-              border-color var(--t-fast) var(--ease);
 }
-.atlas-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--sh-2);
-  border-color: var(--cinnabar);
-}
-/* 已解锁：拓片本身完整，边线鎏（青铜）里透一点朱，像盖过印 */
-.atlas-card.got { border-color: color-mix(in srgb, var(--cinnabar) 45%, var(--pit)); }
+/* 拓片本体：墨底 + 反白字形。用伪元素画，卡片本身保持透明，
+   这样"墨"是**落在纸上的一个印**，而不是一个网页盒子。 */
 .ac-ob {
-  position: relative; display: flex; align-items: center; justify-content: center;
-  width: 100%; height: 46px;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 1 / 1;
+  background-color: var(--rub);
+  background-image: radial-gradient(circle at 34% 28%,
+    color-mix(in srgb, var(--rub-2) 88%, transparent) 0%, var(--rub) 74%);
+  border-radius: 0;
+  transition: transform var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease);
+}
+.atlas-card:hover .ac-ob {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px var(--cinnabar);
 }
 /* 拓片上的字形是反白的（墨底白字）。
-   线宽**不在这里定**：字形的 stroke-width 走 modes.css 里那一组
-   non-scaling-stroke 口径（见 .ac-glyph path）。这里只给尺寸与颜色。 */
-.ac-glyph { width: 42px; height: 42px; color: var(--glyph-rub); }
-/* 未解锁：拓片架上的空位，淡一档但**仍要读得清**——这是字形，不是纯装饰。
-   原先把整个 .ac-ob 压到 .55，反白字直接糊没了。 */
-.atlas-card:not(.got) .ac-glyph { opacity: .72; }
+   线宽**不在这里定**：走 modes.css 里那组 non-scaling-stroke 口径
+   （见 .ac-glyph path）。这里只给尺寸与颜色。 */
+.ac-glyph { width: 56px; height: 56px; color: var(--glyph-rub); }
+/* 未解锁：拓片架空着，字形淡一档但**仍要读得清**——这是字形，不是纯装饰。 */
+.atlas-card:not(.got) .ac-glyph { opacity: .68; }
 .atlas-card:hover .ac-glyph,
 .atlas-card:focus-visible .ac-glyph,
 .atlas-card:active .ac-glyph { opacity: 1; }
@@ -541,24 +529,24 @@ img { max-width: 100%; }
    避免让人误以为这就是该字的甲骨写法 */
 .ac-glyph.composed { opacity: .9; }
 .ac-ob:has(.composed) {
-  border: 1px dashed color-mix(in srgb, var(--on-dark-3) 70%, transparent);
-  border-radius: var(--r-xs);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-dark-3) 60%, transparent);
 }
 .as-composednote {
   font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: 1px;
 }
-/* 朱笔今字：拓本上标注"这是哪个字"的惯例 */
+/* 朱笔今字：拓本上标注"这是哪个字"的惯例。放在拓片**下方**，
+   让墨色落在纸上，而不是把字压进墨里。 */
 .ac-rub {
-  font-size: var(--fs-xs); line-height: 1.5; letter-spacing: 1px;
-  color: color-mix(in srgb, var(--cinnabar-hi) 88%, var(--bone));
-  font-variant-numeric: tabular-nums;
+  margin-top: var(--s-2);
+  font-size: 13px; line-height: 1.4; letter-spacing: 2px;
+  color: var(--cinnabar-tint);
 }
-.atlas-card:not(.got) .ac-rub { color: var(--on-dark-3); }
+.atlas-card:not(.got) .ac-rub { color: var(--ink-soft); }
 /* 与游戏里一致：现代字默认**不印在甲骨形上**，悬停/聚焦才浮出。
    浮出的是压在字形上的一个小签，不是把字形盖掉。 */
 .ac-char {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  padding: 1px 6px; border-radius: var(--r-xs);
+  padding: 1px 6px; border-radius: 0;
   font-size: var(--fs-md); font-weight: 700; color: var(--bone-white);
   background: color-mix(in srgb, var(--rub) 86%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--cinnabar) 70%, transparent);
@@ -568,11 +556,12 @@ img { max-width: 100%; }
 .atlas-card:hover .ac-char,
 .atlas-card:focus-visible .ac-char,
 .atlas-card:active .ac-char { opacity: 1; }
+/* 档位标签：只有"组合示意"这类卡片自身的信息才出现。
+   固定占位，免得有的卡有、有的没有，把整行的高度打乱。 */
 .ac-kind {
-  font-size: 10px; letter-spacing: .5px;
-  color: var(--on-dark-3);
+  margin-top: 2px; min-height: 15px;
+  font-size: 10.5px; letter-spacing: 1px; color: var(--ink-soft);
 }
-.atlas-card.got .ac-kind { color: color-mix(in srgb, var(--on-dark-2) 92%, transparent); }
 
 /* 详情浮层：宽屏居中弹窗，窄屏铺满（.overlay/.edbox 在 theme.css 里统一定义） */
 .atlas-sheet { max-width: 620px; }

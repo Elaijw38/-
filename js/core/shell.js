@@ -563,6 +563,41 @@
     var grid = App.el('div', 'atlas-grid');
     wrap.appendChild(grid);
 
+    /* 表头：分「组」渲染，而不是一口气铺 153 个一样的格子。
+       用户对上一版的评价是"素、空白多"；但把 153 张铺成一整面墙是**过**，
+       不是"大胆"——读者分不清哪块是信息、哪块是装饰。
+       所以按真实存在的档位（构件 / 合体字 / 王邑实物 / 讨伐字形）分组，
+       每组一个标题 + 条数，组间留大空。筛选与检索时退回平铺。 */
+    function groupLabel(id, n) {
+      var lab = App.el('div', 'atlas-group');
+      lab.appendChild(App.el('span', 'ag-name', kindName(id)));
+      lab.appendChild(App.el('span', 'ag-n', n + ' 条'));
+      return lab;
+    }
+
+    function entryCard(e, learn) {
+      var got = !!learn[e.char];
+      var card = App.el('button', 'atlas-card' + (got ? ' got' : ''));
+      card.setAttribute('aria-label', '甲骨文「' + e.char + '」，点击查看详情');
+      var box = App.el('div', 'ac-ob');
+      var isComposed = !e.hasGlyph && (e.comps || []).length > 0;
+      var g = anyGlyphNode(e, 'ac-glyph' + (isComposed ? ' composed' : ''));
+      if (g) box.appendChild(g);
+      else box.appendChild(App.el('span', 'ac-noglyph', '无字形'));
+      /* 与游戏里一致：现代字默认不印在甲骨形上，
+         指针落上去或键盘聚焦才浅浅浮出 */
+      box.appendChild(App.el('span', 'ac-char', e.char));
+      card.appendChild(box);
+      card.appendChild(App.el('span', 'ac-rub', got ? e.char : '—'));
+      /* 档位标签：分组标题已经写了档位名（"构件 37 条"），
+         卡片上再重复一遍"构件"是纯噪音。这里只保留**卡片自身**的信息：
+         合体字没有整字甲骨形、只能并置构件，必须标"组合示意"
+         （HANDOFF 约束 4：绝不把构件组合冒充成整字字形）。 */
+      if (isComposed) card.appendChild(App.el('span', 'ac-kind', '组合示意'));
+      card.onclick = function () { openAtlasDetail(e); };
+      return card;
+    }
+
     function paint() {
       Array.prototype.forEach.call(tabs.children, function (b) {
         var k = b.getAttribute('data-kind') || 'all';
@@ -589,26 +624,23 @@
           : '没有匹配的字。换个关键词，或点上面的「全部」。'));
         return;
       }
-      list.forEach(function (e) {
-        var got = !!learn[e.char];
-        var card = App.el('button', 'atlas-card' + (got ? ' got' : ''));
-        card.setAttribute('aria-label', '甲骨文「' + e.char + '」，点击查看详情');
-        var box = App.el('div', 'ac-ob');
-        var isComposed = !e.hasGlyph && (e.comps || []).length > 0;
-        var g = anyGlyphNode(e, 'ac-glyph' + (isComposed ? ' composed' : ''));
-        if (g) box.appendChild(g);
-        else box.appendChild(App.el('span', 'ac-noglyph', '无字形'));
-        /* 与游戏里一致：现代字默认不印在甲骨形上，
-           指针落上去或键盘聚焦才浅浅浮出 */
-        box.appendChild(App.el('span', 'ac-char', e.char));
-        card.appendChild(box);
-        /* 拓片上写今字的位置：像旧拓本在拓片旁用朱笔标注"某字"。
-           未解锁时只留一个短横，不写内容——拓片架上本就没这张。 */
-        card.appendChild(App.el('span', 'ac-rub', got ? e.char : '—'));
-        card.appendChild(App.el('span', 'ac-kind',
-          kindName(e.kind) + (isComposed ? '　组合' : '')));
-        card.onclick = function () { openAtlasDetail(e); };
-        grid.appendChild(card);
+      /* 分组的条件：看全部、且没有检索词。检索/筛选时平铺更好用。 */
+      var grouped = atlasFilter.kind === 'all' && !q;
+      if (!grouped) {
+        var flat = App.el('div', 'atlas-strip');
+        list.forEach(function (e) { flat.appendChild(entryCard(e, learn)); });
+        grid.appendChild(flat);
+        return;
+      }
+      App.atlas.KINDS.forEach(function (k) {
+        var inK = list.filter(function (e) { return e.kind === k.id; });
+        if (!inK.length) return;
+        var sec = App.el('section', 'atlas-sec');
+        sec.appendChild(groupLabel(k.id, inK.length));
+        var stripEl = App.el('div', 'atlas-strip');
+        inK.forEach(function (e) { stripEl.appendChild(entryCard(e, learn)); });
+        sec.appendChild(stripEl);
+        grid.appendChild(sec);
       });
     }
 

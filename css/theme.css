@@ -64,11 +64,12 @@
   --rub-2:      #221a10;   /* 拓片稍亮处（拓包没压到的地方） */
 
   /* —— 描边 ——
-     原色 #c9bda3 在骨白底上只有 1.53，框几乎看不见。
-     骨面上的刻线本来就该读得出来，所以压深一档到青铜系；
-     仍是"非文字"，不参与 AA 判定，但得真的看得见。 */
-  --edge:       #b3a480;   /* 外描边 */
-  --edge-in:    #ded1b4;   /* 内描线 */
+     三家美术馆的实测规范里，罫线一律是**中性灰**（中之岛 #808080、
+     MOT #dddddd/#cccccc、森 #ebebeb），没有一家用暖色描边。
+     原先的青铜暖描边压在骨白上会把整个页面"染黄"，
+     加上骨材质与刻辞底纹，就是越看越浑。改成中性冷灰。 */
+  --edge:       #c2bcae;   /* 外描边（中性灰，压骨面） */
+  --edge-in:    #e4ded1;   /* 内描线 */
 
   /* —— 语义色 —— */
   --green:      #3f6b4a;
@@ -114,34 +115,17 @@
 
   /* —— 纸面纤维 ——
      一层极淡的噪点，让"纸面"有物质的颗粒感，而不是一块纯色。
-     只用在浅色纸面上（卡片 / 展板 / 编辑器）。 */
+     只用在浅色纸面上（版面 / 卡片 / 编辑器）。
+     注意：**不要**把它铺到页面地上当"材质"——三家美术馆的地都是平的，
+     地上叠纹理只会让整页发浑（走过一次弯路，见 body 的注释）。 */
   --fiber: url("../assets/paper.png");   /* 纸纹，由 dev/_gen_paper.py 生成 */
   --fiber-op: .055;   /* 压得很低：是"手感"，不是"花纹" */
 
-  /* —— 骨面材质 ——
-     斑驳 + 骨纹 + 虫蛀孔，由 dev/_gen_bone.py 生成（512 无缝平铺）。
-     这是"骨"之所以是骨、而不是一张米色纸的关键，铺在整页的地上。
-     它平均把底色压暗约 7.6%，所以 **--bone 不必再为它调暗**。 */
-  --bone-tex: url("../assets/bone.png");
-  --bone-tex-size: 440px 440px;
-
-  /* —— 罫线：两份美术馆规范里，层次几乎是 1px 罫线撑起来的 —— */
+  /* —— 罫线：层次几乎全靠它 ——
+     三家美术馆一致的层次做法：面色浓淡 + 1px 罫线，不用阴影。 */
   --rule:      1px solid var(--edge);
   --rule-in:   1px solid var(--edge-in);
   --rule-soft: 1px solid color-mix(in srgb, var(--edge) 62%, transparent);
-
-  /* —— 兆：灼烧裂纹作分区线 ——
-     甲骨**独有**的视觉符号：灼烧后骨面裂开的一道主纹 + 一道旁支。
-     它比任何装饰都贴题，而且这里的斜线是**抽象的叉线，不是字**，
-     所以不涉及"编造甲骨字形"（见 HANDOFF 约束 4）。
-
-     做法与踩过的坑：**不要**再走 CSS 内联 feTurbulence/复杂 SVG 那条路
-     （历史上 backgroundImage 恒为 none）。这里用最简单的 path +
-     stroke-opacity，data URI 只转义 # 和 <，别的字符都可直接出现在 URI 里。
-     另外：这只是**叠在**原有 1px 罫线之上的纹理层，
-     万一解析失败，罫线仍在，分区读得出来——不会退化成一个没有分界的页面。 */
-  --crack: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='12'%3E%3Cg fill='none' stroke='%236b5f45' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='miter'%3E%3Cpath d='M0 -1 L18 1.5 L35 -1 L52 .5 L70 2 L88 -1 L107 1 L124 -1.5 L142 3 L160 -1 L178 1 L196 -1 L214 2.5 L232 -1 L250 1 L268 -1 L280 .5' stroke-opacity='.32'/%3E%3Cpath d='M70 2 L75 6 M142 3 L148 7.5 M52 .5 L47 4 M214 2.5 L220 6 M107 1 L112 -3.5 M178 1 L173 -3' stroke-opacity='.24'/%3E%3C/g%3E%3C/svg%3E");
-  --crack-size: 280px 12px;
 
   /* —— 间距刻度（4 的倍数，全站统一）—— */
   --s-1: 4px;
@@ -167,23 +151,21 @@
   --r-lg: 0;
   --r-pill: 999px;
 
-  /* —— 层次：纸放在骨版上 ——
-     美术馆规范里阴影声明数为 0，但那是因为**展品照在承担视觉重量**；
-     本站内容是字与线，完全不靠阴影会显得寡淡、像后台。
-     所以保留"有分寸"的两层：
-       第一层 `0 1px 0` 是**接触影**（贴在底边的一道发丝暗边）——给重量
-       第二层是很散的**落影**，范围大、透明度低——给落地感
-     合计比早期的两层浮起阴影轻得多。
+  /* —— 层次：不用阴影 ——
+     中之岛 `box-shadow` 声明 **0 件**；MOT 与森的实测同样几乎全是 none，
+     层次靠"面色的浓淡 + 1px 罫线"做（白 → 薄灰 → 灰 → 黑 四段）。
+     我上一版给卡片加了接触影 + 落影两层，结果每个块都在"浮"，
+     一屏十几个浮块，页面就吵。这里全部归零，只留浮层的投影。
+
      `0 0 0 Npx` 这类**光环**（焦点环、状态环）是语义，不在此列。 */
-  --sh-1: 0 1px 0 rgba(41, 35, 30, .05),
-          0 7px 18px -13px rgba(41, 35, 30, .38);
-  --sh-2: 0 1px 0 rgba(41, 35, 30, .06),
-          0 12px 30px -18px rgba(41, 35, 30, .46);
-  --shadow: var(--sh-2);
+  --sh-1: none;
+  --sh-2: none;
+  --shadow: none;
 
   /* 只有真正的浮层（模态 / 轻提示 / 下拉）需要投影才立得住。
-     这是全站唯一一处阴影，且只用在"确实浮在内容之上"的东西上。 */
-  --sh-3:      0 12px 34px -12px rgba(41, 35, 30, .30);
+     这是全站唯一一处阴影，且只用在"确实浮在内容之上"的东西上
+     —— MOT 也是这么处理的：模态用暗幕，其余一律没有影。 */
+  --sh-3:      0 18px 44px -16px rgba(41, 35, 30, .34);
   --sh-overlay: var(--sh-3);
 
   /* —— 动效 ——
@@ -234,8 +216,8 @@ html[data-theme="bone"] {
   /* 注意：这个块的选择器是 html[data-theme="bone"]，**权重高于 :root**，
      所以 :root 里改 --edge 是没用的，必须同时改这里。
      （踩过一次：只在 :root 改了描边色，页面上毫无变化。） */
-  --edge:     #b3a480;
-  --edge-in:  #ded1b4;
+  --edge:     #c2bcae;
+  --edge-in:  #e4ded1;
   --patina:   #b9a480;
   --patina-2: #9d8763;
   --pit:      #8a7754;
@@ -268,22 +250,16 @@ body {
   /* 数字等宽：分数、进度、关卡号对齐时才不会跳 */
   font-variant-numeric: tabular-nums;
   background-color: var(--bone);
-  /* 地上三层，自下而上：竖向明暗（骨面本就不匀）→ 骨材质（斑驳/骨纹/虫蛀）
-     → 真字形刻辞底纹。骨材质走 multiply，才像"长在骨里"而不是"贴了张图"。 */
-  background-image:
-    var(--ob-pattern),
-    var(--bone-tex),
-    linear-gradient(184deg,
-      #efe6d2 0%, var(--bone) 34%, #e6dac1 70%, #ded1b4 100%);
-  background-repeat: repeat, repeat, no-repeat;
-  /* 底纹随指针轻微位移（由 motion.js 写 --bg-x/--bg-y，缓动到位）。
-     幅度只有几像素——是"骨有厚度"，不是"背景在飘"。 */
-  background-position: var(--bg-x, 0px) var(--bg-y, 0px),
-                       var(--bg-x, 0px) var(--bg-y, 0px),
-                       50% 0;
-  background-size: 860px 860px, var(--bone-tex-size), 100% 100%;
-  background-attachment: fixed, fixed, fixed;
-  background-blend-mode: normal, multiply, normal;
+  /* 地：**平的**。
+     三家美术馆的实测规范里，中之岛是纯白 #ffffff 平底，MOT 与森也都是白底——
+     没有一家给页面地色加材质。原因很直接：地和内容在抢注意力时，
+     读者就再也分不清哪个是"信息"、哪个是"装饰"。
+     我上一版给地上叠了四层（竖向渐变 + 骨材质 + 刻辞 + 兆纹），
+     结果整页发浑、越改越脏。这里全部撤掉，只留一层极淡的纸纹手感。 */
+  background-image: var(--fiber);
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  background-blend-mode: multiply;
 }
 
 /* 正文段落两端对齐。中文等宽，两端对齐不会像西文那样把字间拉出空洞；
