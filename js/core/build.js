@@ -116,7 +116,7 @@
     for (c = 0; c < cols; c++) {
       var lx = (colW * (c + 0.5)).toFixed(1);
       body += '<path d="M' + lx + ' 36 L' + lx + ' ' + (PAT_TILE - 36) +
-        '" stroke="#6b5f45" stroke-opacity=".12" stroke-width="1" fill="none"/>';
+        '" stroke="#6b5f45" stroke-opacity=".15" stroke-width="1" fill="none"/>';
     }
 
     /* 字形：竖列自上而下 */
@@ -136,9 +136,11 @@
         var cx = colW * (c + 0.5) - size / 2 + (patRand(n + 100) - 0.5) * 16;
         var cy = (PAT_TILE / rows) * (r + 0.5) - size / 2 + (patRand(n + 200) - 0.5) * 18;
         var ds = g.pieces.map(function (p) { return p.d; }).join(' ');
+        /* 加深到真的看得见：原先是 .10~.19，压在纸面上几乎等于没有，
+           于是整页就是"一片空白"（用户的评价）。刻辞本来就该读得出来。 */
         body += '<g transform="translate(' + cx.toFixed(1) + ',' + cy.toFixed(1) +
           ') scale(' + k.toFixed(4) + ')" opacity="' +
-          (0.10 + patRand(n + 300) * 0.09).toFixed(3) + '">' +
+          (0.20 + patRand(n + 300) * 0.14).toFixed(3) + '">' +
           '<g transform="' + g.transform + '">' +
           '<path d="' + ds + '" fill="none" stroke="#5d5340" stroke-width="' + sw +
           '" stroke-linecap="round" stroke-linejoin="round"/></g></g>';
@@ -154,7 +156,7 @@
         ' L' + (+mx + len * 0.18).toFixed(0) + ' ' + (+my + len).toFixed(0) +
         ' M' + mx + ' ' + my +
         ' L' + (+mx - len * 0.42).toFixed(0) + ' ' + (+my + len * 0.78).toFixed(0) +
-        '" fill="none" stroke="#6b5f45" stroke-opacity=".15" stroke-width="1.1"/>';
+        '" fill="none" stroke="#6b5f45" stroke-opacity=".19" stroke-width="1.1"/>';
     }
 
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + PAT_TILE +
@@ -165,17 +167,11 @@
 
   function injectPattern() {
     /* 底纹由真字形实时合成（见 buildPatternURI）。
-       骨纹那层只留极淡的丝缕，不能跟字形抢——字形才是主角。 */
-    var seed = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">' +
-      '<g fill="none" stroke="#8a7a5e" stroke-opacity=".10" stroke-width="1">' +
-      '<path d="M0 30h180"/><path d="M0 92h180"/><path d="M0 154h180"/>' +
-      '<path d="M34 0v180"/><path d="M96 0v180"/><path d="M158 0v180"/>' +
-      '</g></svg>');
+       骨纹/斑驳那一层已改由 assets/bone.png 承担（见 dev/_gen_bone.py），
+       所以这里不再另发一张 SVG 网格——两层纹理叠在一起只会互相糊掉。 */
     var ob = App.OB_PATTERN || buildPatternURI();
     document.documentElement.style.setProperty('--ob-pattern',
       ob ? ('url("' + ob + '")') : 'none');
-    document.documentElement.style.setProperty('--bone-grain', 'url("' + seed + '")');
   }
 
   /* ---------- 启动 ---------- */

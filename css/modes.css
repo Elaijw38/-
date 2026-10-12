@@ -468,7 +468,13 @@
    画布 0.9 单位——渲染 56px 时只有 0.5px，等于看不见。） */
 .piece .g .pieceob path { stroke-width: 1.7px; }   /* 构件台 18~34px */
 .slot .slotsvg path     { stroke-width: 1.7px; }   /* 放置槽 30px */
-.ac-glyph path          { stroke-width: 1.9px; }   /* 图鉴卡片 46~56px */
+/* 图鉴拓片（42px）：
+   原先 1.9px，是给"骨白纸面上的深墨字"定的。
+   改成墨底反白之后，同样粗细会发虚——反白线在暗底上视觉重量天然更轻，
+   所以加粗到 2.4px，且**这里就是唯一口径**：
+   ui.css 里再写一条 .ac-glyph path 是没用的，本文件在 index.html 里后加载，
+   同权重下后者胜（踩过一次）。 */
+.ac-glyph path          { stroke-width: 2.4px; }   /* 图鉴拓片 42px */
 .obglyph path           { stroke-width: 2.2px; }
 .obcomp-g path          { stroke-width: 2.4px; }   /* 字卡构件 64px */
 .dc-glyph path          { stroke-width: 2.4px; }   /* 每日一字 84~104px */

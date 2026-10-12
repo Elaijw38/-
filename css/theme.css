@@ -52,9 +52,23 @@
   --bronze:     #8c8066;
   --bronze-hi:  #a79a7d;
 
-  /* —— 描边 —— */
-  --edge:       #c9bda3;   /* 外描边 */
-  --edge-in:    #e8dfc9;   /* 内描线 */
+  /* —— 骨的材质 ——
+     上一版把"骨"做成了一张**平的米色纸**（低饱和、无斑驳），于是又素又空。
+     真实的甲骨是一件物件：骨面深浅不匀、有纵向骨纹、有褐斑、有虫蛀孔。
+     这几个值就是给"物件感"用的，不是给它加花纹。 */
+  --patina:     #b9a480;   /* 骨上的褐斑 */
+  --patina-2:   #9d8763;   /* 更深的斑 / 骨纹阴影 */
+  --pit:        #8a7754;   /* 虫蛀孔、骨面的凹点 */
+  --ink-carve:  #241d14;   /* 刻辞的墨：比正文更沉，是"刻"进去的 */
+  --rub:        #17120c;   /* 拓黑：墨拓的底 */
+  --rub-2:      #221a10;   /* 拓片稍亮处（拓包没压到的地方） */
+
+  /* —— 描边 ——
+     原色 #c9bda3 在骨白底上只有 1.53，框几乎看不见。
+     骨面上的刻线本来就该读得出来，所以压深一档到青铜系；
+     仍是"非文字"，不参与 AA 判定，但得真的看得见。 */
+  --edge:       #b3a480;   /* 外描边 */
+  --edge-in:    #ded1b4;   /* 内描线 */
 
   /* —— 语义色 —— */
   --green:      #3f6b4a;
@@ -74,6 +88,9 @@
      只用在【浅底】上的字形——构件讨伐的战场是深底，那里走 currentColor，
      不能一起改深，否则会看不见。 */
   --glyph-line:    #524834;
+
+  /* 拓片上的字形：反白。压在 --rub 上的字形走这个色。 */
+  --glyph-rub:     #e8dcc2;
 
   /* —— 行高（中文排版的关键参数）——
      参考：大阪中之岛美术馆默认 2.0（14px→28px）、森美术馆正文 1.75。
@@ -95,16 +112,36 @@
   --sheet-in:  color-mix(in srgb, var(--bone-hi) 42%, var(--bone));
   --sheet-in2: var(--bone-lo);      /* 最深一层：留给需要明显压深的地方 */
 
-  /* —— 纸张纤维 ——
+  /* —— 纸面纤维 ——
      一层极淡的噪点，让"纸面"有物质的颗粒感，而不是一块纯色。
-     纯 CSS 变量，不额外请求文件。 */
+     只用在浅色纸面上（卡片 / 展板 / 编辑器）。 */
   --fiber: url("../assets/paper.png");   /* 纸纹，由 dev/_gen_paper.py 生成 */
   --fiber-op: .055;   /* 压得很低：是"手感"，不是"花纹" */
+
+  /* —— 骨面材质 ——
+     斑驳 + 骨纹 + 虫蛀孔，由 dev/_gen_bone.py 生成（512 无缝平铺）。
+     这是"骨"之所以是骨、而不是一张米色纸的关键，铺在整页的地上。
+     它平均把底色压暗约 7.6%，所以 **--bone 不必再为它调暗**。 */
+  --bone-tex: url("../assets/bone.png");
+  --bone-tex-size: 440px 440px;
 
   /* —— 罫线：两份美术馆规范里，层次几乎是 1px 罫线撑起来的 —— */
   --rule:      1px solid var(--edge);
   --rule-in:   1px solid var(--edge-in);
   --rule-soft: 1px solid color-mix(in srgb, var(--edge) 62%, transparent);
+
+  /* —— 兆：灼烧裂纹作分区线 ——
+     甲骨**独有**的视觉符号：灼烧后骨面裂开的一道主纹 + 一道旁支。
+     它比任何装饰都贴题，而且这里的斜线是**抽象的叉线，不是字**，
+     所以不涉及"编造甲骨字形"（见 HANDOFF 约束 4）。
+
+     做法与踩过的坑：**不要**再走 CSS 内联 feTurbulence/复杂 SVG 那条路
+     （历史上 backgroundImage 恒为 none）。这里用最简单的 path +
+     stroke-opacity，data URI 只转义 # 和 <，别的字符都可直接出现在 URI 里。
+     另外：这只是**叠在**原有 1px 罫线之上的纹理层，
+     万一解析失败，罫线仍在，分区读得出来——不会退化成一个没有分界的页面。 */
+  --crack: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='12'%3E%3Cg fill='none' stroke='%236b5f45' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='miter'%3E%3Cpath d='M0 -1 L18 1.5 L35 -1 L52 .5 L70 2 L88 -1 L107 1 L124 -1.5 L142 3 L160 -1 L178 1 L196 -1 L214 2.5 L232 -1 L250 1 L268 -1 L280 .5' stroke-opacity='.32'/%3E%3Cpath d='M70 2 L75 6 M142 3 L148 7.5 M52 .5 L47 4 M214 2.5 L220 6 M107 1 L112 -3.5 M178 1 L173 -3' stroke-opacity='.24'/%3E%3C/g%3E%3C/svg%3E");
+  --crack-size: 280px 12px;
 
   /* —— 间距刻度（4 的倍数，全站统一）—— */
   --s-1: 4px;
@@ -194,8 +231,17 @@ html[data-theme="bone"] {
   --bone:     #f2e8d5;
   --bone-hi:  #faf5e9;
   --bone-lo:  #e7dcc3;
-  --edge:     #c9bda3;
-  --edge-in:  #e8dfc9;
+  /* 注意：这个块的选择器是 html[data-theme="bone"]，**权重高于 :root**，
+     所以 :root 里改 --edge 是没用的，必须同时改这里。
+     （踩过一次：只在 :root 改了描边色，页面上毫无变化。） */
+  --edge:     #b3a480;
+  --edge-in:  #ded1b4;
+  --patina:   #b9a480;
+  --patina-2: #9d8763;
+  --pit:      #8a7754;
+  --ink-carve:#241d14;
+  --rub:      #17120c;
+  --rub-2:    #221a10;
   --paper:    var(--bone);
   --card:     var(--bone-hi);
   --bone1:    #f4eee3;
@@ -222,16 +268,22 @@ body {
   /* 数字等宽：分数、进度、关卡号对齐时才不会跳 */
   font-variant-numeric: tabular-nums;
   background-color: var(--bone);
+  /* 地上三层，自下而上：竖向明暗（骨面本就不匀）→ 骨材质（斑驳/骨纹/虫蛀）
+     → 真字形刻辞底纹。骨材质走 multiply，才像"长在骨里"而不是"贴了张图"。 */
   background-image:
     var(--ob-pattern),
-    var(--bone-grain);
-  background-repeat: repeat, repeat;
+    var(--bone-tex),
+    linear-gradient(184deg,
+      #efe6d2 0%, var(--bone) 34%, #e6dac1 70%, #ded1b4 100%);
+  background-repeat: repeat, repeat, no-repeat;
   /* 底纹随指针轻微位移（由 motion.js 写 --bg-x/--bg-y，缓动到位）。
-     幅度只有几像素——是"纸有厚度"，不是"背景在飘"。 */
+     幅度只有几像素——是"骨有厚度"，不是"背景在飘"。 */
   background-position: var(--bg-x, 0px) var(--bg-y, 0px),
-                       var(--bg-x, 0px) var(--bg-y, 0px);
-  background-size: 860px 860px, 180px 180px;
-  background-attachment: fixed, fixed;
+                       var(--bg-x, 0px) var(--bg-y, 0px),
+                       50% 0;
+  background-size: 860px 860px, var(--bone-tex-size), 100% 100%;
+  background-attachment: fixed, fixed, fixed;
+  background-blend-mode: normal, multiply, normal;
 }
 
 /* 正文段落两端对齐。中文等宽，两端对齐不会像西文那样把字间拉出空洞；

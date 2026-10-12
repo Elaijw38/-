@@ -122,6 +122,28 @@
   /* ---------- 常用小件 ---------- */
   var SVGNS = 'http://www.w3.org/2000/svg';
 
+  /* 卷轴：把一页的主体内容装进浅色纸面。
+     页底是玉绿，内容若直接落在上面，标题与说明全是深字、看不清。
+     参考稿的做法就是"玉绿外框 + 浅色卷轴"，照它来。 */
+  function sheet() {
+    var s = App.el('div', 'sheet');
+    s.appendChild(App.el('span', 'sheet-in'));    /* 内圈金线 */
+    return s;
+  }
+
+  /* 把场景已经建好的子元素整体搬进卷轴。
+     比逐个改 appendChild 干净：场景照原样建，最后收口。
+     keep 传一个元素则把它留在卷轴外（首页的首屏大图是满幅的，不能被卷轴框住）。 */
+  function sheetWrap(wrap, keep) {
+    var sh = sheet();
+    var kids = [];
+    for (var i = 0; i < wrap.children.length; i++) { kids.push(wrap.children[i]); }
+    kids.forEach(function (k) { if (k !== keep) { sh.appendChild(k); } });
+    if (keep) { wrap.insertBefore(sh, keep.nextSibling); }
+    else { wrap.appendChild(sh); }
+    return wrap;
+  }
+
   /* 一个装了真甲骨字形的 SVG。没有这个字形时返回 null —— 宁可不画，也不画假的。 */
   function glyphSvgNode(ch, cls) {
     if (!App.hasGlyph(ch)) { return null; }
@@ -445,7 +467,7 @@
     if (App.achievements) { sec2.appendChild(achieveCard()); }
     wrap.appendChild(sec2);
 
-    return wrap;
+    return sheetWrap(wrap, hero);
   }
 
   /* 成就墙：每项都从真实进度算，未达成的显示进度条而不是灰掉了事 */
@@ -568,7 +590,8 @@
         return;
       }
       list.forEach(function (e) {
-        var card = App.el('button', 'atlas-card' + (learn[e.char] ? ' got' : ''));
+        var got = !!learn[e.char];
+        var card = App.el('button', 'atlas-card' + (got ? ' got' : ''));
         card.setAttribute('aria-label', '甲骨文「' + e.char + '」，点击查看详情');
         var box = App.el('div', 'ac-ob');
         var isComposed = !e.hasGlyph && (e.comps || []).length > 0;
@@ -579,6 +602,9 @@
            指针落上去或键盘聚焦才浅浅浮出 */
         box.appendChild(App.el('span', 'ac-char', e.char));
         card.appendChild(box);
+        /* 拓片上写今字的位置：像旧拓本在拓片旁用朱笔标注"某字"。
+           未解锁时只留一个短横，不写内容——拓片架上本就没这张。 */
+        card.appendChild(App.el('span', 'ac-rub', got ? e.char : '—'));
         card.appendChild(App.el('span', 'ac-kind',
           kindName(e.kind) + (isComposed ? '　组合' : '')));
         card.onclick = function () { openAtlasDetail(e); };
@@ -597,7 +623,7 @@
     search.oninput = function () { atlasFilter.q = search.value; paint(); };
 
     paint();
-    return wrap;
+    return sheetWrap(wrap);
   }
 
   function kindName(id) {
@@ -786,7 +812,7 @@
     src.appendChild(sl);
     wrap.appendChild(src);
 
-    return wrap;
+    return sheetWrap(wrap);
   }
 
   /* 每个玩法在说明页要讲的几步。文案对应各模块里真实的规则，不额外发明机制。 */
@@ -862,7 +888,10 @@
 
   function sceneModes() {
     var wrap = App.el('div', 'scene modes-scene');
-    wrap.appendChild(App.el('p', 'lead',
+    var sh = sheet();
+    wrap.appendChild(sh);
+    var host = sh;
+    host.appendChild(App.el('p', 'lead',
       '三个玩法共用同一套字形数据与素材库，各有各的节奏。'));
 
     var row = App.el('div', 'lv-row');
@@ -960,9 +989,9 @@
       row.appendChild(card);
     });
 
-    wrap.appendChild(row);
+    host.appendChild(row);
 
-    /* 人数/内容包这类元信息收在展板下方一行，别挤掉留白 */
+    /* 人数/内容包这类元信息收在展板下方一行 */
     var meta = App.el('p', 'lv-meta');
     meta.textContent = ready.map(function (m) {
       var players = m.maxPlayers > 1 ? (m.minPlayers + '—' + m.maxPlayers + ' 人') : '单人';
@@ -970,10 +999,10 @@
         ? ('　' + (m.data.packs[0].label || '')) : '';
       return m.name + '　' + players + pack;
     }).join('　·　');
-    wrap.appendChild(meta);
+    host.appendChild(meta);
 
     if (pend.length) {
-      wrap.appendChild(App.el('p', 'lv-meta',
+      host.appendChild(App.el('p', 'lv-meta',
         '筹备中的玩法：' + pend.map(function (m) { return m.name; }).join('、')));
     }
     return wrap;
@@ -1003,7 +1032,8 @@
   /* ---------- 场景：全局设置 ---------- */
   function sceneSettings() {
     var wrap = App.el('div', 'scene');
-    wrap.appendChild(App.el('p', 'lead', '这里的设置对所有玩法生效。玩法自己的选项在开局前设置。'));
+    var wrapLead = App.el('p', 'lead', '这里的设置对所有玩法生效。玩法自己的选项在开局前设置。');
+    wrap.appendChild(wrapLead);
 
     /* 数据备份
        原先这里是「内容包」区块：一张只有一行的表（内置字包）+ 导出/导入。
@@ -1058,7 +1088,7 @@
     wrap.appendChild(s2);
 
 
-    return wrap;
+    return sheetWrap(wrap);
   }
 
   /* ---------- 场景：对局（交给模式） ---------- */
