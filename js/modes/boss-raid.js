@@ -320,18 +320,7 @@
         st.onclick = function () { enter(0); };
         side.appendChild(st);
       }
-      /* 21 关一条锁链，演示时一关关打通太慢，留个后门 */
-      var all = App.el('button', 'btn sm ghost', '解锁全部（演示用）');
-      all.onclick = function () {
-        if (!window.confirm('把前 20 关都标记为已通关，直接解锁全部关卡？')) { return; }
-        var q = prog();
-        for (var i = 0; i < L.length - 1; i++) {
-          if (q.cleared.indexOf(i) < 0) { q.cleared.push(i); }
-        }
-        saveProg(q);
-        render();
-      };
-      side.appendChild(all);
+
       var back = App.el('button', 'btn sm', '回到玩法列表');
       back.onclick = function () { ctx.nav.modes(); };
       side.appendChild(back);
