@@ -739,6 +739,284 @@
 
 @keyframes regionBreath { from { filter: blur(4px); } to { filter: blur(9px); } }
 
+/* ============================================================================
+   第二关 · 本轮重做（类名统一加 wy2- 前缀，避免撞上上面那批旧类）
+   设计约束（照 HANDOFF「六」的实测规范）：
+     · 有彩色少用，只留朱砂一处；层次靠面色浓淡与 1px 罫，不靠阴影
+     · 不"盒子套盒子"：地图上不加卡片、不加粗边框、不加投影
+     · 入口标记低对比、融进画面；完成状态用柔光而不是贴图
+   ============================================================================ */
+.wangyi { max-width: 1560px; margin: 0 auto; padding: 10px 0 34px; }
+
+/* ---- 大地图 ---- */
+.wy2-head { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(170px, 230px);
+  align-items: end; gap: clamp(12px, 2.4vw, 28px); padding: 2px 2px 10px;
+  border-bottom: 1px solid var(--edge); }
+.wy2-kicker { margin: 0 0 4px; color: var(--cinnabar-tint); font-size: 9px; letter-spacing: 2px; }
+.wy2-title { margin: 0; color: var(--ink); font-size: clamp(21px, 2.3vw, 29px);
+  font-weight: 500; line-height: 1.2; }
+/* 说明收在两条以内：首屏要把纵向空间让给地图 */
+.wy2-lead { max-width: 62em; margin: 6px 0 0; color: var(--ink-2);
+  font-size: 11.5px; line-height: 1.7; }
+.wy2-head-meter { display: grid; gap: 5px; }
+.wy2-meter-line { display: flex; align-items: baseline; gap: 6px; margin: 0;
+  color: var(--ink-2); font-size: 10px; }
+.wy2-meter-line strong { color: var(--ink); font-family: var(--font-serif);
+  font-size: 18px; font-weight: 500; }
+.wy2-meter { display: block; height: 3px; overflow: hidden; background: var(--edge); }
+.wy2-meter-fill { display: block; width: 0; height: 100%; background: var(--cinnabar);
+  transition: width .5s ease; }
+.wy2-meter-words { margin: 0; color: var(--ink-soft); font-size: 10px; }
+
+/* 地图：容器比例与图片完全一致，所以百分比定位永远对得上 */
+.wy2-board { position: relative; margin: clamp(12px, 2vw, 20px) 0 0; }
+.wy2-board-art { position: relative; width: 100%; aspect-ratio: 2624 / 1472;
+  max-height: calc(100vh - 250px); margin: 0 auto; overflow: hidden;
+  background-color: var(--bone1); background-repeat: no-repeat;
+  background-position: center; background-size: contain;
+  border: 1px solid var(--edge); }
+.wy2-board-layer { position: absolute; inset: 0; }
+
+/* 点亮：柔光。未点亮时不可见，学完一片才升起。 */
+.wy2-glow { position: absolute; z-index: 1; opacity: 0; pointer-events: none;
+  border-radius: 50%; transform: translate(-50%, -50%) scale(.82);
+  background: radial-gradient(circle, rgba(255, 226, 160, .62) 0%,
+    rgba(240, 190, 110, .32) 34%, rgba(214, 150, 70, .1) 62%, transparent 78%);
+  transition: opacity .7s ease, transform .9s cubic-bezier(.2, .8, .2, 1); }
+.wy2-glow.partial { opacity: .16; transform: translate(-50%, -50%) scale(.9); }
+.wy2-glow.on { opacity: .82; transform: translate(-50%, -50%) scale(1.1);
+  animation: regionBreath 4.2s ease-in-out infinite alternate; }
+
+/* 区域入口：一圈细环 + 主题名。低对比、无底、无框、无影 */
+.wy2-pin { position: absolute; z-index: 3; display: inline-flex; align-items: center;
+  gap: 8px; padding: 3px; color: #f6ead2; font: inherit; text-align: left;
+  background: none; border: 0; border-radius: 999px; cursor: pointer;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 1px 3px rgba(28, 20, 12, .85), 0 0 12px rgba(28, 20, 12, .7);
+  transition: transform .22s ease, opacity .22s ease; }
+.wy2-pin-ring { display: grid; flex: 0 0 auto; width: 34px; height: 34px;
+  place-items: center; color: #f3d9ac; font-size: 11px; letter-spacing: .5px;
+  border: 1px solid rgba(246, 230, 205, .72); border-radius: 50%;
+  background: radial-gradient(circle, rgba(38, 29, 20, .5), rgba(38, 29, 20, .12));
+  transition: border-color .22s ease, background-color .22s ease; }
+.wy2-pin-txt { display: grid; gap: 1px; padding: 2px 7px 2px 5px; border-radius: 3px;
+  background: linear-gradient(90deg, rgba(30, 23, 16, .5), rgba(30, 23, 16, 0)); }
+/* 靠右的区域（>62%）把文字翻到圆环左侧，免得名字伸出地图外 */
+.wy2-pin.flip { flex-direction: row-reverse; }
+.wy2-pin.flip .wy2-pin-txt { padding: 2px 5px 2px 7px;
+  background: linear-gradient(270deg, rgba(30, 23, 16, .5), rgba(30, 23, 16, 0)); }
+.wy2-pin-txt b { font-family: var(--font-serif); font-size: 14px; font-weight: 500;
+  white-space: nowrap; }
+.wy2-pin-txt span { color: rgba(246, 234, 210, .72); font-size: 9px; white-space: nowrap; }
+.wy2-pin:hover, .wy2-pin:focus-visible { transform: translate(-50%, -50%) scale(1.06); }
+.wy2-pin:hover .wy2-pin-ring, .wy2-pin:focus-visible .wy2-pin-ring {
+  border-color: #ffe6b8; background-color: rgba(122, 56, 40, .5); }
+.wy2-pin:focus-visible { outline: 2px solid #ffdca4; outline-offset: 4px; }
+.wy2-pin.lit .wy2-pin-ring { color: #ffe6b0; border-color: #ffd68e;
+  background-color: rgba(150, 96, 40, .46); }
+.wy2-pin.lit .wy2-pin-txt span { color: #ffdfa4; }
+.wy2-pin, .wy2-reset, .wy2-tool { -webkit-tap-highlight-color: transparent; }
+
+/* 龟宝：一整行文字位，不压地图、不挡热点 */
+.wy2-guide { display: flex; align-items: center; gap: 12px; margin-top: 12px;
+  padding: 8px 12px 8px 4px; border-left: 2px solid var(--cinnabar); }
+.wy2-guide-mascot { width: 54px; height: 62px; flex: 0 0 auto; object-fit: contain; }
+.wy2-guide-copy { display: grid; gap: 3px; }
+.wy2-guide-copy b { color: var(--ink); font-size: 12px; font-weight: 500; }
+.wy2-guide-copy span { color: var(--ink-2); font-size: 11px; line-height: 1.6; }
+.wy2-reset { margin-left: auto; padding: 6px 10px; color: var(--ink-soft);
+  font: inherit; font-size: 10px; background: none; border: 1px solid var(--edge);
+  cursor: pointer; }
+.wy2-reset:hover { color: var(--cinnabar-tint); border-color: var(--cinnabar-tint); }
+.wy2-credit { margin: 14px 0 0; color: var(--ink-soft); font-size: 9.5px;
+  line-height: 1.7; }
+
+/* ---- 小地图 ---- */
+.wy2-zone-top { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(70px, 150px) auto;
+  align-items: center; gap: clamp(8px, 1.6vw, 18px); padding: 4px 2px 10px;
+  border-bottom: 1px solid var(--edge); }
+.wy2-back { color: var(--ink-2); background: none; border-color: var(--edge); }
+.wy2-zone-head { display: grid; gap: 1px; min-width: 0; }
+.wy2-zone-head b { color: var(--ink); font-family: var(--font-serif);
+  font-size: clamp(15px, 2vw, 20px); font-weight: 500; }
+.wy2-zone-head span { color: var(--ink-soft); font-size: 10px; }
+.wy2-zone-meter { display: block; height: 3px; overflow: hidden; background: var(--edge); }
+.wy2-zone-fill { display: block; width: 0; height: 100%; background: var(--cinnabar);
+  transition: width .45s ease; }
+.wy2-tools { display: flex; align-items: center; gap: 7px; }
+.wy2-tool { color: var(--ink-2); background: none; border-color: var(--edge); }
+.wy2-tool.on { color: var(--cinnabar-tint); border-color: var(--cinnabar-tint); }
+
+/* 视口：手机上图很大，这里给它一个固定的可滚动窗口，方便拖动看图。
+   高度必须**扣掉固定顶栏**（约 58px）：否则图的边缘会滚到顶栏底下，
+   那一带的热点就永远点不到——实测「宀」滚到 y=54 时被顶栏吃掉，
+   点击直接落到顶栏的导航链接上。 */
+.wy2-viewport { position: relative; overflow: auto; margin-top: 10px;
+  height: clamp(300px, calc(100vh - 268px), 700px);
+  max-height: calc(100vh - 76px);
+  background: var(--bone1); border: 1px solid var(--edge);
+  touch-action: pan-x pan-y; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-margin-top: 76px; }
+.wy2-stage { position: relative; }
+.wy2-art { position: absolute; inset: 0; display: block; width: 100%; height: 100%;
+  user-select: none; -webkit-user-drag: none; }
+.wy2-hotspots { position: absolute; inset: 0; display: block; }
+
+.wy2-hit { fill: rgba(255, 255, 255, .001); cursor: pointer; }
+.wy2-ring { fill: none; stroke: var(--cinnabar); stroke-width: 3px; opacity: 0;
+  pointer-events: none; }
+.wy2-spot.done .wy2-ring { opacity: .3; stroke-dasharray: 6 7; }
+.wy2-spot.focus .wy2-ring { opacity: .95; stroke-dasharray: none; }
+/* 「标出可点处」是给游客看"哪里有东西"的，类挂在视口上 */
+.wy2-viewport.show-hots .wy2-ring { opacity: .78; stroke-dasharray: 7 6; stroke-width: 4px; }
+.wy2-viewport.show-hots .wy2-spot.done .wy2-ring { opacity: .9; stroke-dasharray: none; }
+.wy2-spot { cursor: pointer; }
+
+/* 已学印记：小小的朱砂点，克制但看得见 */
+.wy2-seal-bg { fill: rgba(166, 62, 47, .82); stroke: rgba(255, 240, 214, .6);
+  stroke-width: 1.5px; }
+.wy2-seal-text { fill: #fff3dc; font-family: var(--font-serif); font-size: 22px; }
+
+/* 学习卡：盖在图上，关掉回到原位置（滚动与缩放都没动） */
+.wy2-card-wrap { position: fixed; z-index: 60; inset: 0; display: grid;
+  place-items: center; padding: 16px; background: rgba(28, 21, 14, .58);
+  animation: wy2Fade .18s ease; }
+@keyframes wy2Fade { from { opacity: 0; } to { opacity: 1; } }
+.wy2-card { position: relative; display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
+  gap: clamp(14px, 2.4vw, 28px); width: min(760px, 100%); max-height: min(86vh, 620px);
+  overflow: auto; padding: clamp(18px, 2.6vw, 30px); color: var(--ink);
+  background: var(--sheet); border: 1px solid var(--edge);
+  box-shadow: 0 26px 60px rgba(34, 24, 14, .3); }
+.wy2-card-x { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px;
+  color: var(--ink-soft); font: inherit; font-size: 13px; background: none;
+  border: 1px solid var(--edge); cursor: pointer; }
+.wy2-card-x:hover { color: var(--cinnabar-tint); border-color: var(--cinnabar-tint); }
+.wy2-card-form { display: grid; align-content: start; justify-items: center; gap: 9px;
+  padding-right: 4px; border-right: 1px solid var(--edge); }
+.wy2-card-glyph { display: block; width: min(168px, 100%); height: auto;
+  color: var(--glyph-line); }
+.wy2-card-zone { color: var(--ink-soft); font-size: 10px; letter-spacing: 1px; }
+.wy2-card-done { padding: 3px 8px; color: #fff3dc; background: var(--cinnabar);
+  font-size: 9px; letter-spacing: 1px; }
+.wy2-card-info { min-width: 0; }
+.wy2-card-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wy2-card-char { color: var(--ink); font-family: var(--font-serif);
+  font-size: clamp(30px, 4vw, 42px); font-weight: 500; line-height: 1; }
+.wy2-card-kind { padding: 2px 7px; color: var(--bronze-tint); font-size: 9px;
+  letter-spacing: 1px; border: 1px solid var(--edge); }
+.wy2-card-mean { margin: 11px 0 0; color: var(--ink); font-size: 15px; line-height: 1.6; }
+.wy2-card-form-note { margin: 9px 0 0; padding-left: 11px;
+  color: var(--ink-2); font-size: 12.5px; line-height: 1.85;
+  border-left: 2px solid var(--edge); }
+.wy2-card-src { margin: 9px 0 0; color: var(--ink-soft); font-size: 10px; }
+.wy2-card-acts { display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin-top: 18px; }
+.wy2-card-acts .btn { min-height: 42px; }
+
+/* 拼笔画：学习卡之后的那一步，本关的「学过」由它落下 */
+.wy2-flow { margin-top: 14px; padding: 14px 16px 16px; background: var(--sheet-in);
+  border: 1px solid var(--edge); }
+.wy2-flow-head { display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 9px; border-bottom: 1px solid var(--edge); }
+.wy2-flow-head b { color: var(--ink); font-family: var(--font-serif);
+  font-size: 16px; font-weight: 500; }
+.wy2-flow-count { color: var(--ink-soft); font-size: 10px; }
+.wy2-flow-head .btn { margin-left: auto; }
+.wy2-flow-body { display: grid; grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center; gap: 14px; margin: 12px 0; }
+.wy2-flow-ref { display: grid; justify-items: center; gap: 5px; }
+.wy2-flow-refglyph { display: block; width: 84px; height: 84px; color: var(--ink-soft); }
+.wy2-flow-ref span { color: var(--ink-soft); font-size: 9px; }
+.wy2-flow-stagewrap { display: flex; justify-content: center; }
+.wy2-flow-stage { display: block; width: min(240px, 100%); height: auto;
+  aspect-ratio: 1; touch-action: none; }
+.wy2-flow-guide { color: var(--ink); opacity: .12; }
+.wy2-flow-placed { color: var(--glyph-line); }
+.wy2-flow-tray { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.wy2-flow-tray-label { color: var(--ink-soft); font-size: 10px; }
+.wy2-flow-pool { display: flex; gap: 7px; flex-wrap: wrap; }
+.wy2-flow-empty { color: var(--green-tint); font-size: 11px; }
+.wy2-piece { padding: 5px; background: var(--card); border: 1px solid var(--edge);
+  cursor: grab; touch-action: none; }
+.wy2-piece-svg { display: block; width: 46px; height: 46px; color: var(--ink);
+  pointer-events: none; }
+.wy2-piece.dragging { position: relative; z-index: 9; opacity: .9; cursor: grabbing; }
+.wy2-flow-verdict { margin: 12px 0 0; color: var(--ink-2); font-size: 12px; }
+.wy2-flow-verdict.no { color: var(--cinnabar-tint); }
+.wy2-flow-verdict.ok { color: var(--green-tint); font-weight: 500; }
+
+.wy2-zone-clear { display: flex; align-items: center; gap: 12px; margin-top: 12px;
+  padding: 11px 14px; color: var(--ink-2); font-size: 11px;
+  background: var(--sheet-in); border-left: 2px solid var(--cinnabar); }
+.wy2-zone-clear .btn { margin-left: auto; }
+.wy2-clear-seal { padding: 4px 8px; color: #fff3dc; background: var(--cinnabar);
+  font-size: 9px; letter-spacing: 1px; }
+
+/* 键盘入口：视觉上藏起来，Tab 到时才显形 */
+.wy2-focus-helper { position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  border: 0; }
+.wy2-focus-helper:focus-visible { position: static; width: auto; height: auto;
+  margin: 10px 0 0; padding: 8px 12px; overflow: visible; clip: auto;
+  color: var(--ink); font: inherit; font-size: 11px; background: var(--card);
+  border: 1px solid var(--cinnabar-tint); }
+
+@media (max-width: 900px) {
+  .wy2-head { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .wy2-head-meter { max-width: 320px; }
+  .wy2-board-art { max-height: calc(100vh - 300px); }
+}
+@media (max-width: 620px) {
+  .wangyi { padding: 4px 0 26px; }
+  .wy2-title { font-size: clamp(21px, 6.4vw, 28px); }
+  .wy2-lead { font-size: 11px; }
+  /* 手机：入口缩到只剩细环 + 名字，绝不糊住地图 */
+  .wy2-pin { gap: 5px; }
+  .wy2-pin-ring { width: 26px; height: 26px; font-size: 9px; }
+  .wy2-pin-txt b { font-size: 11px; }
+  .wy2-pin-txt span { display: none; }
+  .wy2-guide { align-items: flex-start; gap: 9px; }
+  .wy2-guide-mascot { width: 44px; height: 52px; }
+  .wy2-guide-copy span { font-size: 10px; }
+  .wy2-reset { padding: 5px 8px; font-size: 9px; }
+  .wy2-credit { font-size: 9px; }
+  /* 小地图在手机上占满一屏，标题压到一行 */
+  .wy2-zone-top { grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px; padding-bottom: 8px; }
+  .wy2-zone-meter { display: none; }
+  .wy2-zone-head span { font-size: 9px; }
+  .wy2-viewport { height: clamp(300px, calc(100vh - 236px), 540px);
+    max-height: calc(100vh - 76px); }
+  .wy2-tool { padding: 6px 9px; font-size: 10px; }
+  .wy2-card { grid-template-columns: minmax(0, 1fr); gap: 12px;
+    max-height: 88vh; padding: 16px 15px 18px; }
+  /* 卡片改单列：字形与分区名并排一行，下面接释义与构形说明。
+     注意 .wy2-card-form 里只有「字形 + 分区名 + 已学」三项，
+     用两列网格让字形在左、文字在右，不要用 grid-auto-flow: column
+     ——那会把「已学」挤到第二行并跑到右边去（实测过）。 */
+  .wy2-card-form { grid-template-columns: 84px minmax(0, 1fr);
+    align-items: center; justify-items: start; gap: 4px 12px;
+    padding: 0 0 12px; border-right: 0;
+    border-bottom: 1px solid var(--edge); }
+  .wy2-card-glyph { width: 84px; grid-row: span 3; align-self: start; }
+  .wy2-card-zone { align-self: end; }
+  .wy2-card-done { justify-self: start; }
+  .wy2-card-acts { align-items: stretch; flex-direction: column; }
+  .wy2-card-acts .btn { width: 100%; min-height: 46px; }
+  .wy2-flow-body { grid-template-columns: 66px minmax(0, 1fr); gap: 10px; }
+  .wy2-flow-refglyph { width: 60px; height: 60px; }
+  .wy2-flow-stage { width: min(200px, 100%); }
+  .wy2-piece-svg { width: 40px; height: 40px; }
+  .wy2-zone-clear { align-items: flex-start; flex-wrap: wrap; }
+  .wy2-zone-clear .btn { width: 100%; margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wy2-glow.on { animation: none; }
+  .wy2-pin, .wy2-meter-fill, .wy2-zone-fill, .wy2-glow { transition: none; }
+  .wy2-card-wrap { animation: none; }
+}
+
 @media (max-width: 900px) {
   .wy-world-intro { grid-template-columns: minmax(0, 1fr) 270px; }
   .wy-zone-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -57,14 +57,49 @@ python -m http.server 8099
 
 ---
 
+## 1.5 第二关：两套坐标空间（**最容易搞错，务必先读**）
+
+第二关有两张完全不同的图，**各有自己的像素空间**。混用会把热区全打乱。
+
+| 用途 | 图 | 空间 | 数据字段 |
+|---|---|---|---|
+| **游戏内热区**（点实物学字） | `assets/wangyi-map.jpg` | **1800×1010**（`map.viewBox = "0 0 1800 1010"`） | `map.zones[].objects[].x/y/r` |
+| **分区插画**（小地图页展示） | `assets/level2-0X-*.jpg` | **2624×1472** | `map.zones[].art` |
+
+- 首页世界图另有一张写死在代码里的 `assets/wangyi-atlas.svg`（图解式底图，不是热区底图）。
+- **踩过的坑**：曾把 `objects` 的 x/y 按 2624×1472 重写，与 1800×1010 不符，
+  越靠右下的点位偏得越多。已用 `_check/levels.json.bak` 回滚，
+  并用 `dev/_restore_hotspots.py` 写了自检（**越界必须为 0**）。
+- `dev/_build_hotspots.py` 产出的 `out/level2-maps/hotspots.json` 是
+  **2624×1472 空间**（给插画配热点用），**不能直接写进 objects**。
+  该目录里有 `README-坐标系必读.md` 说明这一点。
+
+## 1.6 第二关字表（已盘点，可核验）
+
+- 实际字数 **61**（天象 4 · 山川 9 · 草木 6 · 禽兽虫鱼 9 · 人居器物 33），
+  跨区无重复；甲骨字形 **61/61 全覆盖**（数据集共 73 字）。
+- 完整逐字表 + 释义 + 可画物体 + 难物化分析：`out/level2-charset-audit.md`
+  （由 `dev/_l2_charset_audit_report.py` 生成）。
+- 字形来源：Oracle Bone Glyphs v0.3（Li & Bian，**CC BY 4.0**，
+  DOI `10.5281/zenodo.22467946`）→ `js/core/_data.js` 的 `App.glyphs.parts`。
+- **难物化 17 字**，其中「身体局部」6 字（目 耳 口 止 又 足）最棘手，热点天然偏小。
+- 第三关 Boss 21 字与第二关**重叠 7 字**（山 人 木 日 月 水 虎），
+  两关目标不同不算冲突，但**别互相取字凑数**。
+
+---
+
 ## 2. 仓库当前状态（接手时核对）
 
-```
-本地 HEAD  e251921   加强艺术感、互动性与主线：真字形底纹、纸面物质感、滚动显现、贯穿主线
-远端        e42d35b   展板手机端：「进入」对不齐右边 + 出处被藏
-```
+**以 `git log --oneline -3` 与 `git status --porcelain` 的实测为准**，
+本节只记留意事项（提交号会变，别照抄）：
 
-**本地领先远端 1 个提交，未推送。**
+- 远端 `origin/main` 已含「修复开始游戏页手机排版，第二关大地图改为唯一选图入口」等提交。
+- **推送要走系统代理**：本机设了 `http://127.0.0.1:12450`，而 git 不知道，
+  直连会 `Failed to connect to github.com:443`。用
+  `git -c http.proxy=http://127.0.0.1:12450 push origin main`（只对这一条命令生效，不写配置）。
+- 工作区目前有**未提交**改动：`js/core/_data.js`、`js/core/levels.json`、
+  `js/modes/wangyi-map.js`、`css/modes.css`（第二关插画/排版相关）。
+- `dev/` 与 `out/` 下有大量**未跟踪**的核查脚本与产出（地图、清单），未入仓库。
 
 **上一次那版「绿金皮」已被撤回。** 撤回前把它存成了 git tag，随时可查：
 
@@ -88,6 +123,17 @@ git show wip-jade-gold-rejected:css/theme.css | head -80
 | `css/modes.css` | `.ac-glyph path` 线宽 1.9 → 2.4px（反白字发虚，必须加粗） |
 | `js/core/build.js` | 刻辞底纹加深（真看得见）、撤掉多余的那层 SVG 网格 |
 | `js/core/shell.js` | 保留 `sheetWrap()`；拓片卡新增 `.ac-rub`（朱笔今字） |
+
+**★ 最近一轮（第二关地图与热点）的状态**：
+
+| 项 | 状态 |
+|---|---|
+| 分区插画 | 六张已出，五张已接入 `assets/level2-0X-*.jpg`（`zones[].art`）；`level2-00-world` 是大地图，**尚未接入页面** |
+| 热区坐标 | **保持原有 1800×1010 标定，未动**（曾误改，已回滚，自检越界 0） |
+| 字表盘点 | 完成，见 `out/level2-charset-audit.md` |
+| 插画热点清单 | `out/level2-maps/hotspots.json`（2624×1472 空间，给插画用） |
+| 仍在工作区未提交 | `js/core/_data.js`、`js/modes/wangyi-map.js`、`js/core/levels.json`、`css/modes.css`、`HANDOFF.md` |
+| 已知未决 | 人居器物那张的「衣」不够明确；大地图「天象」区偏弱 |
 
 ---
 
@@ -303,30 +349,155 @@ README.md                 给读者看的项目文档（含素材授权、设计
 
 ---
 
+## 7.6 接手会话的记录（核对时新增）
+
+**修掉一个一直假绿的检查脚本**：`dev/_verify_deploy.js` 把 `?v=` 版本串
+当成路径的一部分去 `readdirSync`，于是 `js/core/util.js?v=20261012-2`
+永远命中不了。这个假 404 **从校验脚本诞生的那一版就在**（同一个提交里
+`index.html` 已经带 `?v=`），所以之前记的「引用 18 个全绿」是错的，
+实际是 **16 真通过 + 2 假 404**。已在脚本里剥掉 `?`/`#` 再校验，
+现在真的是「全部 18 个引用可精确命中」。**版本串本身仍是 20261012-2**，
+而 util.js / boss-raid.js 在 `5e652e2` 之后又改过 —— 要不要一起刷版本号，待定。
+
+**浏览器类验证在本会话被沙箱挡住**：Edge 在受限沙箱下**启动即崩**，
+两条现象都实测过（不是猜）：
+
+- `--dump-dom` 路线：输出空 DOM，进程以 `0x80000003`（STATUS_BREAKPOINT）结束；
+  报错为 `ERROR:mojo\public\cpp\platform\platform_channel.cc:187 Check failed:
+  . : 拒绝访问。 (0x5)` 与 `crashpad_client_win.cc:456 OpenProcess: 拒绝访问`。
+- CDP 路线（`_route_shot.py`）：`http://127.0.0.1:9722/json/list` 始终没有
+  page target，脚本在 `page = [...] [0]` 处 `IndexError`。
+
+即**程序间管道（named pipe）在受限沙箱里被挡**，而 Chromium 的多进程架构
+离不开它。所以凡是走 Edge 的检查（「五」里的 `_run_shell` / `_run_drive` /
+`_run_wy` / `_run_bo` / `_mobile` / `_lv_test` / `_motion_test` / `_bb_audit` /
+`_scroll_shot`，以及 `_route_shot`）**都需要在完全访问权限下才能跑**。
+纯 Node/Python 的检查（`_syntax_probe` / `_verify_deploy` / `_contrast`）
+和 `_final_check.py`（八个页面 DOM 全 OK）在受限沙箱里能过。
+
+**本次实测到的**：语法 10 个文件 OK · 引用 18 个全命中（修脚本后）·
+对比度只剩基线那 1 对（`--edge` on `--bone`，1.56，非文字）·
+`_final_check.py` 八个页面全部正常。
+
+---
+
+## 7.7 第二关「殷商王邑」本轮重做（**坐标空间已统一，1.5 节要一起改读**）
+
+### 一句话
+
+第二关从「灰图点亮 + 拼笔画」改成需求要的形态：
+**大地图当唯一入口（五区任意顺序）→ 进分区插画 → 点实物 → 学习卡 → 拼笔画记下**。
+
+### ★ 坐标空间：不再有两套（**这一条最重要**）
+
+原来是两套：`levels.json` 的 objects 在旧王邑图 **1800×1010**，
+分区插画在 **2624×1472**。现在**只有一套：2624×1472**，大地图与五张小地图共用。
+
+- `map.viewBox = "0 0 2624 1472"`、`map.worldImage = "assets/level2-world.jpg"`
+- `zones[].world = {x, y, r}` 是**大地图上的区域入口**（同一空间）
+- `zones[].objects[].x/y/r` 是**该区插画上的热点**（同一空间）
+- **热点命中与图片显示永远用同一套换算**，不会再"越往右下偏得越多"。
+- 所以「1.5 两套坐标空间」那一节记的坑，**在本轮之后不再适用**；
+  旧王邑底图 `assets/wangyi-map.jpg` 已不再被页面引用（文件留着，没删）。
+
+### 唯一真源与重建流程（改坐标只走这一条）
+
+```
+dev/_l2_calibrate.py   ← 61 字的 (x, y, r, meaning, form) 全在这里
+      ↓  python dev/_l2_calibrate.py
+js/core/levels.json    ← 写入 art / world / objects / viewBox / worldPins
+      ↓  脚本内部自动调 dev/_build_leveldata.py（并先备份 _data.js）
+js/core/_data.js       ← 运行时真正读的那份
+```
+
+**不要直接改 `_data.js`**（它由脚本生成）。`_l2_calibrate.py` 有两道闸：
+字表与现有数据**逐字一致**才允许写（防凭空增删），坐标越界直接拒绝写。
+
+### 成果与验证
+
+| 项 | 结果 |
+|---|---|
+| 61 字热点 | **全部校准完成，越界 0** |
+| 同区"抢点击"（圆心距 < 0.6×(r₁+r₂)） | 山川 1 对（石/水，71px）、人居器物 4 对（卜/糸、糸/戈、刀/斧、人/口）——都靠"最近者优先"+局部放大处理 |
+| 手机上最小可点直径 | **44px**（33 个里 0 个低于 44） |
+| 桌面端到端走查 | 61 字全部学完，MISS 0，控制台错误 0 |
+| 手机端到端走查 | 61 字全部学完，MISS 0，控制台错误 0 |
+| 五区自由顺序 | 实测按 人居器物→天象→草木→山川→禽兽虫鱼 进入，进度 20→40→60→80→100% |
+
+### 本轮新加的工具（都在 `dev/`）
+
+| 脚本 | 作用 |
+|---|---|
+| `_l2_calibrate.py` | **坐标与字表唯一真源**，写 levels.json 并按流程重建 _data.js |
+| `_l2_grid.py` | 在最新图上出**带像素刻度**的整图 + 3×3 放大块（用来读准坐标，不靠目测） |
+| `_l2_overlay_new.py` | 在**最新六张图**上叠热点出校验图 → `out/level2-maps/_calib/*-calib.png` |
+| `_wy2_walkthrough.py` | 第二关端到端走查（桌面/手机），逐字：点实物→放大→学习卡→拼笔画，带 JSONL 日志 |
+| `_wy2_shots.py` | 交付截图（5 张：大地图/小地图/标出可点处/放大/学习卡） |
+| `_wy2_touchsize.py` | 量手机上每个热点的**真实可点直径** |
+| `_wy2_vp_probe.py` / `_wy2_vp_init.py` | 量小地图视口几何（高度、是否被固定顶栏压住） |
+| `_patch_viewport_h.py` | 一次性补丁（改 `.wy2-viewport` 高度口径） |
+
+### 本轮踩到的两个真坑（都修了）
+
+1. **缩回全景后滚动位置是脏的**：`setZoom` 先 `redrawZone()` 再用闭包里的
+   `viewport` 落滚动 —— 那个节点已脱离文档，量到 0 宽高，于是
+   `scrollTop=84` 却无处可滚。改成 `applyZoom` 每次从 DOM **现取视口**，
+   先定尺寸再落滚动。
+2. **热点会被固定顶栏吃掉**：小地图视口高度原来按 `100vh-300px` 算，
+   页面一滚，图上沿就跑到 58px 的 sticky 顶栏底下，那一带的热点
+   永远点不到（实测「宀」滚到 y=54 时，点击落到顶栏导航上）。
+   现按"扣掉顶栏"给高度，并在视口上留 `scroll-margin-top`。
+
+### 旧脚本已过时（**别再拿它的红字当回归**）
+
+- `dev/_run_wy.py` + `dev/_wy_pin_test.py`：写的是**旧类名与旧玩法**
+  （`.wy-bg-dim` / `.wy-spot` / `mask` 白圆 / 顺序解锁 / 一键点亮），
+  本轮重做后必然全红。**替代品是本轮新加的 `_wy2_walkthrough.py`。**
+- `dev/shell-drive.js` 里 `.lv-center` 那条检查也过时了（那个类已不在
+  shell.js 里产出），但它只是打印，不影响判定。
+
+### 已知未决 / 手机上仍不够清楚的对象
+
+- **目 耳 口 止 又 足**（r=60~62，直径 44~45px）：正好卡在触控下限，
+  且 目/口 圆心距只有 38px。所以这 6 个字**点击后强制放大到 3.4×**，
+  并在视口里给出焦点环；但"不重叠"只能保证到"最近者优先"的程度。
+- **刀 斧**（圆心距 62px、直径 52px）：靠 3.0× 放大分开，
+  总览时两环会互相压住，属**勉强可辨**。
+- **衣**：仍是全图最弱的关联（落在人物腰间），这一条上一轮就记着未决。
+- 手机上只要放大到 3× 以上，单件物体（鼎、舟、戈）非常清楚；
+  真正吃力的是上面这些"小且近"的组合。
+
 ## 8. 建议的第一步
 
-**不要再从"撤回绿金版"开始了——那件事本次已经做完**（tag `wip-jade-gold-rejected` 就是那版）。
-接手的第一件事应该是**先把成果给人看**：
+**先读「1.5 两套坐标空间」**——那是这个项目最容易出错、代价最大的一条
+（我曾把热区坐标按错的空间重写，61 个点位全偏，靠备份回滚）。
+
+然后**先把成果给人看**，别急着改：
 
 ```powershell
 cd C:\DSH\字趣
-# 起预览（端口占用就往上找），然后逐页看：
-#   #/home   ← 骨材质底 + 刻辞 + 兆纹分区线
-#   #/atlas  ← 拓片集（本次最大的改动）
 python -m http.server 8099
+#   #/play/wangyi-map  ← 第二关：大地图选图入口 + 五个据点 + 分区插画
+#   #/play/bone-build  ← 第一关：龟宝入门课
+#   #/atlas            ← 拓片集
 ```
 
 ```powershell
-# 或者直接出图给人看
+# 出图给人看
 $py='C:\Users\32058\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe'
-& $py dev\_route_shot.py atlas 1440 1000 _check\atlas.png 0
-& $py dev\_route_shot.py home  1440 1000 _check\home.png  1250
-& 'C:\Users\32058\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe' dev\_mobile.js "http://127.0.0.1:8099/index.html#/atlas" 390 844 _check\m_atlas.png
+$node='C:\Users\32058\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe'
+& $py dev\_route_shot.py play/wangyi-map 1440 1000 _check\wy.png 0
+& $node dev\_mobile.js "http://127.0.0.1:8099/index.html#/play/wangyi-map" 390 900 _check\wy_m.png
 ```
 
-**等用户对"拓片集"这一版表态**，再决定往下做哪一条——不要自己一口气把「六」剩下的都铺开。
-用户会明确说"好"或"还是素"。若说还是素，下一步最有把握的是第 4 条（钻凿作边饰）
-与"图鉴详情浮层也走拓片／卜辞体制"。
+**第二关已知未决**（接着做就从这两条挑）：
+1. 人居器物那张的「衣」不够明确（其余 32 项都有对应物）；
+2. 大地图「天象」区偏弱，总览时认不出。
+
+**一条工作方式上的教训**（用户明确提过）：
+我曾在长上下文里丢掉关键前提，于是拿错的基准改数据、连续盲改图。
+**对策**：把状态与教训即时落进本文件，别留在会膨胀的对话里；
+动手前先重读相关小节，改完必跑「五」的全套。
 
 **别一次改十个地方。改完跑「五」的全套，截图给人看。**
 

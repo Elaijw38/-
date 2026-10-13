@@ -31,12 +31,15 @@ for (const f of files) {
 }
 
 // 同时检查 index.html 里所有引用的本地资源是否存在
+// 注意：引用可能带缓存版本串（如 js/core/util.js?v=...），
+// 版本串不是路径的一部分，必须先剥掉，否则真实存在的文件会被报成缺失。
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const refs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
   .map(m => m[1]).filter(u => !/^(https?:|data:|#)/.test(u));
 console.log('\n=== index.html 本地引用 ===');
 for (const r of refs) {
-  const ok = fs.existsSync(path.join(ROOT, decodeURIComponent(r)));
+  const file = r.split('?')[0].split('#')[0];
+  const ok = fs.existsSync(path.join(ROOT, decodeURIComponent(file)));
   if (!ok) bad++;
   console.log((ok ? 'OK   ' : '缺失 ') + r);
 }
