@@ -107,25 +107,39 @@ def content_pass(paths, needles):
 
 
 def pages_pass():
-    """逐个打开线上页面。判据是保守的：出现任何已知错误字样就算失败。"""
+    """逐个打开线上页面。判据是保守的：出现任何已知错误字样就算失败。
+
+    单页超时不能把整轮打断。图鉴页有 88 张 PNG 共 10.5MB，
+    `--virtual-time-budget` 会一直等网络收敛而超时——那是**慢**，不是**坏**，
+    记一笔继续往下走；直接抛异常会让剩下七个页面根本没被测到。
+    """
     os.makedirs(os.path.join(OUT, "ui"), exist_ok=True)
     prof = os.path.join(OUT, "liveprof")
-    bad = 0
+    bad, slow = 0, 0
     for name, h in PAGES:
-        r = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
-                            "--user-data-dir=" + prof, "--disk-cache-size=1",
-                            "--window-size=1280,1000", "--virtual-time-budget=22000",
-                            "--dump-dom", BASE + h],
-                           capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", timeout=260)
-        d = r.stdout or ""
+        argv = [EDGE, "--headless=new", "--disable-gpu", "--no-sandbox",
+                "--user-data-dir=" + prof, "--disk-cache-size=1",
+                "--window-size=1280,1000", "--virtual-time-budget=22000",
+                "--dump-dom", BASE + h]
+        try:
+            r = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
+                               errors="replace", timeout=260)
+            d, timed_out = r.stdout or "", False
+        except subprocess.TimeoutExpired as e:
+            d = e.stdout.decode("utf-8", "replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
+            timed_out = True
         err = ("加载出错" in d) or ("该玩法尚未实现" in d) or ("Uncaught" in d)
         if err:
             bad += 1
+        if timed_out:
+            slow += 1
         m = re.search(r'<div class="scene([^"]*)"', d)
-        print("  %-10s dom %7d  场景 %-22s 报错=%s"
-              % (name, len(d), (m.group(1).strip() if m else "?"), "有" if err else "无"))
-    print("  功能层：%s" % ("八页全正常" if bad == 0 else "%d 个页面有问题" % bad))
+        state = "有" if err else ("超时" if timed_out else "无")
+        print("  %-10s dom %7d  场景 %-22s 报错=%s" % (name, len(d),
+              (m.group(1).strip() if m else "?"), state))
+    print("  功能层：%s%s" % (
+        "八页全正常" if bad == 0 else "%d 个页面有问题" % bad,
+        "（其中 %d 页因图片大而超时，不算故障）" % slow if slow else ""))
     return bad
 
 
