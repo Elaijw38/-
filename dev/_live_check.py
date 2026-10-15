@@ -25,6 +25,18 @@
     python dev/_live_check.py --all          # 内容层查仓库全部文件
     python dev/_live_check.py --wait         # 内容没生效就轮询，最多等 10 分钟
     python dev/_live_check.py --needle "js/modes/boss-raid.js=POOL_SIZE"
+
+**关于 `--all`**：它要把整站（约 30MB、227 个文件）拉一遍，在本机代理下实测
+12 分钟才走完 16 个，还夹着 502 与读超时——那些是**网络**错误，不是内容不一致，
+但它们会把结果淹掉，所以不适合当日常手段。
+
+要证明"远端每个文件都和本地一样"，**比 blob sha 就够了，不用下载内容**：
+
+    GH_TOKEN=... python dev/_push_api.py --dry
+
+输出「没有需要推的东西」= 远端树的每个 blob 都与本地逐字节相同（227 个全覆盖，
+精确）。GitHub Pages 直接服务同一棵树，所以内容层其实只需要**抽几个文件**确认
+Pages 那一层确实在发新字节（默认那 8 个关键文件就是干这个的）。
 """
 import argparse
 import json
@@ -43,6 +55,9 @@ OUT = os.path.join(REPO, "_check")
 BASE = "https://elaijw38.github.io/jiagugouciji/"
 
 SKIP_DIRS = {"_check", "_bak", "_edgeprof", "_docpages", "__pycache__", ".git"}
+# 和 dev/_push_api.py 保持一致：这两个不参与推送，自然也不该拿来做线上比对。
+# deploy.ps1 与远端只差行尾符；根目录 _cdp_*.js 是跑验证时的临时探针。
+SKIP_FILES = {"deploy.ps1"}
 HTTP_H = {"Cache-Control": "no-cache", "Pragma": "no-cache",
           "User-Agent": "Mozilla/5.0 (compatible; live-check)"}
 
@@ -165,7 +180,12 @@ def tracked_files():
         for fn in fns:
             if fn.endswith(".pyc"):
                 continue
-            out.append(os.path.relpath(os.path.join(dp, fn), REPO).replace("\\", "/"))
+            rel = os.path.relpath(os.path.join(dp, fn), REPO).replace("\\", "/")
+            if rel in SKIP_FILES:
+                continue
+            if "/" not in rel and fn.startswith("_cdp") and fn.endswith(".js"):
+                continue
+            out.append(rel)
     return sorted(out)
 
 
