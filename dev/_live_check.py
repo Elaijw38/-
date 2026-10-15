@@ -111,9 +111,17 @@ ws.addEventListener('open', async () => {
     {width: 1280, height: 1000, deviceScaleFactor: 1, mobile: false});
   const pages = JSON.parse(process.argv[3]);
   const base = process.argv[4];
+  const perPage = +(process.argv[5] || 60000);
   const out = [];
+  /* 先预热一次。冷缓存下第一页要拉 index + _data.js(285KB) + 两个 css(230KB)，
+     实测偶发超过 40 秒——那是"慢"，不是"坏"，但会被记成"没挂起来"。
+     先导航一次把静态资源落进缓存，后面八页就都在同一条件下比。 */
+  await send('Page.navigate', {url: base});
+  await waitFor("!!document.querySelector('#sceneRoot') && " +
+    "document.querySelector('#sceneRoot').children.length>0", perPage);
   for (const [name, hash, accept] of pages) {
     cerrs = [];
+    const t0 = Date.now();
     await send('Page.navigate', {url: base + hash});
     /* 就绪判据：真的落在 github.io 上、路由落在预期集合里、**且**挂载点里有
        子节点。三者缺一不可——只看"挂载点有子节点"会在上一页的 DOM 上假绿。 */
@@ -121,14 +129,27 @@ ws.addEventListener('open', async () => {
       JSON.stringify(a)).join(" || ") + ")";
     const ok = await waitFor("location.host.indexOf('github.io')>=0 && " +
       routeExpr + " && !!document.querySelector('#sceneRoot') && " +
-      "document.querySelector('#sceneRoot').children.length>0", 40000);
+      "document.querySelector('#sceneRoot').children.length>0", perPage);
+    const ms = Date.now() - t0;
     await wait(1200);
     const st = await ev("JSON.stringify((function(){var r=document.querySelector('#sceneRoot');" +
       "var s=document.querySelector('.scene');" +
       "return {hash:location.hash, host:location.host," +
       "rootKids:r?r.children.length:-1," +
       "scene:s?('scene'+((s.className||'').replace('scene',''))):'-'};})())");
-    out.push({name: name, ok: ok, st: st, errs: cerrs.slice(0, 3)});
+    /* 失败时把"到底哪一条没满足"带回来。只说"没挂起来"是猜不出原因的：
+       可能是没导航成功、可能路由没落对、也可能真没挂载。 */
+    let diag = '';
+    if (!ok) {
+      diag = await ev("JSON.stringify({href:location.href, host:location.host," +
+        "hash:location.hash, ready:document.readyState," +
+        "hasRoot:!!document.querySelector('#sceneRoot')," +
+        "rootKids:(function(){var r=document.querySelector('#sceneRoot');" +
+        "return r?r.children.length:-1;})()," +
+        "bodyLen:(document.body?document.body.innerHTML.length:-1)})");
+    }
+    out.push({name: name, ok: ok, st: st, errs: cerrs.slice(0, 3),
+              diag: diag, ms: ms});
   }
   console.log('PAGES:' + JSON.stringify(out));
   try { await send('Browser.close'); } catch (e) {}
@@ -187,7 +208,7 @@ def content_pass(paths, needles):
     return bad
 
 
-def pages_pass(per_page=45):
+def pages_pass(per_page=60):
     """CDP 逐页导航，确认应用真的挂起来了。见文件头"为什么不用 --dump-dom"。"""
     os.makedirs(OUT, exist_ok=True)
     ns = os.path.join(OUT, "_cdp_pages.js")
@@ -219,10 +240,11 @@ def pages_pass(per_page=45):
         print("  ！没拿到可调试的 page target，功能层没测到")
         return len(PAGES)
 
-    timeout = per_page * len(PAGES) + 120
+    timeout = per_page * (len(PAGES) + 1) + 120
     try:
         r = subprocess.run([NODE, ns, pages[0]["webSocketDebuggerUrl"],
-                            json.dumps(PAGES, ensure_ascii=False), BASE],
+                            json.dumps(PAGES, ensure_ascii=False), BASE,
+                            str(per_page * 1000)],
                            capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=timeout)
     except subprocess.TimeoutExpired:
@@ -249,15 +271,16 @@ def pages_pass(per_page=45):
         errs = row.get("errs") or []
         if not row.get("ok"):
             bad += 1
-            print("  %-10s 应用没挂起来（hash=%s）← 不算通过" % (row["name"], st.get("hash")))
+            print("  %-10s 没通过。诊断：%s" % (row["name"], row.get("diag") or st))
             continue
         if errs:
             bad += 1
             print("  %-10s dom 就绪  场景 %-26s 控制台有异常：%s"
                   % (row["name"], st.get("scene"), errs[:2]))
             continue
-        print("  %-10s 挂载 %2s 个顶层节点  场景 %-26s 控制台干净"
-              % (row["name"], st.get("rootKids"), st.get("scene")))
+        print("  %-10s 挂载 %2s 个顶层节点  场景 %-26s 控制台干净  %5ss"
+              % (row["name"], st.get("rootKids"), st.get("scene"),
+                 round((row.get("ms") or 0) / 1000.0, 1)))
     print("  功能层：%s" % ("八页全部正常" if bad == 0 else "%d 页未通过" % bad))
     return bad
 
