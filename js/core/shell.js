@@ -609,7 +609,30 @@
 
     function entryCard(e, learn) {
       var got = !!learn[e.char];
-      var card = App.el('button', 'atlas-card' + (got ? ' got' : ''));
+      var isCodex = e.kind === 'codex';
+      var card = App.el('button', 'atlas-card' + (isCodex ? ' is-codex' : '') + (got ? ' got' : ''));
+
+      /* 讨伐名录的卡片：主角是 **Boss 形象**，不是甲骨字形——
+         这一档讲的是"这一尊长什么样、怎么拆"，字形放在详情里。 */
+      if (isCodex) {
+        card.setAttribute('aria-label', 'Boss 形象「' + e.char + '」，点击查看详情');
+        var cbox = App.el('div', 'ac-ob');
+        var art = App.el('img', 'ac-art');
+        art.src = e.art;
+        art.alt = e.char + '——' + (e.form || '');
+        art.draggable = false;
+        art.onerror = function () { cbox.className = 'ac-ob no-art'; };
+        cbox.appendChild(art);
+        cbox.appendChild(App.el('span', 'ac-char', e.char));
+        card.appendChild(cbox);
+        card.appendChild(App.el('span', 'ac-rub', e.char));
+        card.appendChild(App.el('span', 'ac-kind',
+          e.playable === 'stroke' ? '可斩笔画'
+            : e.playable === 'compound' ? '可拆构件' : '仅名录'));
+        card.onclick = function () { openAtlasDetail(e); };
+        return card;
+      }
+
       card.setAttribute('aria-label', '甲骨文「' + e.char + '」，点击查看详情');
       var box = App.el('div', 'ac-ob');
       var isComposed = !e.hasGlyph && (e.comps || []).length > 0;
@@ -714,17 +737,54 @@
 
     var body = App.el('div', 'edbody as-body');
     var left = App.el('div', 'as-left');
-    var g = anyGlyphNode(e, 'as-glyph');
-    if (g) left.appendChild(g);
-    left.appendChild(App.el('span', 'as-char', e.char));
-    left.appendChild(App.el('span', 'as-charlab', '今字'));
-    if (!e.hasGlyph && (e.comps || []).length) {
-      left.appendChild(App.el('span', 'as-composednote', '构件组合示意'));
+    /* 讨伐名录：左栏是 Boss 形象；若字库里有这个字的整字甲骨形，字形跟在下面 */
+    if (e.kind === 'codex') {
+      left.className = 'as-left as-left-codex';
+      var aImg = App.el('img', 'as-art');
+      aImg.src = e.art;
+      aImg.alt = e.char + '——' + (e.form || '');
+      aImg.draggable = false;
+      left.appendChild(aImg);
+      left.appendChild(App.el('span', 'as-char', e.char));
+      left.appendChild(App.el('span', 'as-charlab', e.py || '今字'));
+      if (e.hasGlyph && e.glyphKey) {
+        var gk = glyphSvgNode(e.glyphKey, 'as-glyph as-glyph-sm');
+        if (gk) {
+          left.appendChild(gk);
+          left.appendChild(App.el('span', 'as-composednote', '甲骨字形'));
+        }
+      }
+    } else {
+      var g = anyGlyphNode(e, 'as-glyph');
+      if (g) left.appendChild(g);
+      left.appendChild(App.el('span', 'as-char', e.char));
+      left.appendChild(App.el('span', 'as-charlab', '今字'));
+      if (!e.hasGlyph && (e.comps || []).length) {
+        left.appendChild(App.el('span', 'as-composednote', '构件组合示意'));
+      }
     }
     body.appendChild(left);
 
     var right = App.el('div', 'as-right');
-    if (e.comps && e.comps.length) {
+    if (e.kind === 'codex') {
+      if (e.form) right.appendChild(App.el('p', 'as-line', 'Boss 形象：' + e.form));
+      if (e.parts && e.parts.length) {
+        right.appendChild(App.el('p', 'as-line', '可拆部件：' + e.parts.map(function (p) {
+          return p.n + (p.a ? '（' + p.a + '）' : '');
+        }).join('　') + '　共 ' + e.parts.length + ' 处'));
+      }
+      if (e.play) right.appendChild(App.el('p', 'as-line', '破解玩法：' + e.play));
+      if (e.group) {
+        right.appendChild(App.el('p', 'as-line as-src',
+          '出自《Boss（象形会意假借）.docx》· ' + e.group));
+      }
+      right.appendChild(App.el('p', 'as-line as-state',
+        e.playable === 'stroke'
+          ? '这一尊，字库里有整字甲骨形——可以直接斩它的笔画。'
+          : e.playable === 'compound'
+            ? '这一尊的构件字库里都有——可以拼出身体、拆它的构件。'
+            : '这一尊暂时只能停在名录上：字库里没有它的整字甲骨形，也不臆造一个出来。'));
+    } else if (e.comps && e.comps.length) {
       right.appendChild(App.el('p', 'as-line',
         '构件：' + e.comps.join(' ＋ ') + '（' + e.comps.length + ' 块）'));
     }
@@ -756,9 +816,13 @@
     }
     if (links.children.length) right.appendChild(links);
 
-    var isLearned = !!App.atlas.learned()[e.char];
-    right.appendChild(App.el('p', 'as-state' + (isLearned ? ' got' : ''),
-      isLearned ? '已在你的收集里' : '尚未解锁——去玩一局就会记进来'));
+    /* 名录里的字不是"玩出来的"，所以不套那句"尚未解锁"——
+       它在名录里本来就在。 */
+    if (e.kind !== 'codex') {
+      var isLearned = !!App.atlas.learned()[e.char];
+      right.appendChild(App.el('p', 'as-state' + (isLearned ? ' got' : ''),
+        isLearned ? '已在你的收集里' : '尚未解锁——去玩一局就会记进来'));
+    }
     body.appendChild(right);
     box.appendChild(body);
 

@@ -589,6 +589,73 @@ img { max-width: 100%; }
 }
 .as-state.got { color: var(--green-tint); }
 
+/* —— 讨伐名录 ——
+   这一档的主角**不是**甲骨字形，而是 docx 字表里那一尊尊 Boss 形象。
+   字表原文是"某字，像某物"的写法，所以交付的资产也是同一路数的
+   **墨线稿 + 骨胎底**（assets/boss/*.png：身体填 #F7EFE1，笔画留褐墨，
+   四周抠透）。
+
+   于是它不能沿用上面的**拓片**——拓片是墨底反白，把细笔的线描稿压进
+   墨里，笔线会糊成一片灰。这里做**倒过来的一档**：浅骨胎上落褐线。
+   两者同属拓本语汇（都是一块"贴在纸上"的片），但一眼分得清
+   哪块是形象、哪块是字形；整页看过去，"名录 88 尊"与"字形四档"
+   也各自成块，读者不会把它们混成一堆。 */
+.atlas-card.is-codex,
+.as-left-codex {
+  /* 骨胎色**必须与 PNG 内填色一字不差**：#F7EFE1。
+     差一点，浅底上就会在剪影外圈露出一圈"方框"。 */
+  --codex-bone: #f7efe1;
+}
+/* 线描稿的笔线比字形细，格子得比拓片大一档；
+   84px 里 88 尊形象全糊成灰。同一条 .atlas-strip 靠 :has() 只在
+   "有名录卡片"时放宽——分档浏览、单档筛选两条路都覆盖到。 */
+.atlas-strip:has(.atlas-card.is-codex) {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+.atlas-card.is-codex .ac-ob {
+  position: relative;
+  background-color: var(--codex-bone);
+  background-image: none;
+  /* 骨胎的边：走内阴影而不是描边，读起来是"一块骨片"，
+     不是又一个网页盒子。只贴边，不压到形象上。 */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bronze) 30%, transparent);
+}
+.atlas-card.is-codex:hover .ac-ob,
+.atlas-card.is-codex:focus-visible .ac-ob,
+.atlas-card.is-codex:active .ac-ob {
+  box-shadow: 0 0 0 1px var(--cinnabar),
+              inset 0 0 0 1px color-mix(in srgb, var(--bronze) 30%, transparent);
+}
+/* 形象本体。contain 保证无论这尊是横是竖（車 扁、龍 长），都不变形、
+   都完整落在格子里；格外的留白与骨胎同色，接缝看不见。
+
+   **必须绝对定位**。给一张普通流内的图写 height:100%，会踩一个很隐蔽的坑：
+   父元素的高度这时还没定下来（它是靠 aspect-ratio 从宽度推的），
+   于是百分比高度退化成 auto，图就按自身比例自己撑高——
+   50 尊竖长的（弓、矢、龍）会把格子从 111 撑到 398，
+   一行里高低不齐，整个名录散架。绝对定位之后图不参与父元素定高，
+   1:1 的骨胎说了算，图只在这个方格里 contain。 */
+.ac-art {
+  position: absolute; left: 7%; top: 7%; width: 86%; height: 86%;
+  object-fit: contain;
+}
+/* 资产缺失时不留一个白洞：把格子尺寸保住，只把图拿掉换一句说明 */
+.atlas-card.is-codex .ac-ob.no-art .ac-art { display: none; }
+.atlas-card.is-codex .ac-ob.no-art::after {
+  content: '无形象'; font-size: var(--fs-xs); color: var(--ink-soft);
+}
+
+/* 名录详情：左栏放形象，比字形栏宽一档——线描稿的细节经不起压 */
+.as-left-codex { width: 190px; }
+.as-art {
+  display: block; width: 100%; height: auto;
+  background-color: var(--codex-bone);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bronze) 28%, transparent);
+}
+/* 名录里那 16 尊的字库里有整字甲骨形，字形跟在形象下面——
+   是"对照"，不是主角，所以缩到 84px，并沿用 .as-composednote 的说明行 */
+.as-glyph-sm { width: 84px; height: 84px; }
+
 /* ============================================================================
    玩法说明
    ============================================================================ */

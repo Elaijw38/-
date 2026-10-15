@@ -1917,76 +1917,92 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   transition: width var(--t-slow) var(--ease);
 }
 
-/* ---------- 线性关卡：沿甲骨片轮廓围成一圈 ----------
-   形状、取点全在 JS 里（BONE / boneRing），这里只负责画。
-   底板用 clip-path 切出骨片外形；因为 clip-path 会把 box-shadow 一起剪掉，
-   阴影改用 filter: drop-shadow（它跟着切出来的形状走）。 */
-.bo-bone {
+/* ---------- 讨伐榜：一阶一块骨版 ----------
+   分组本身就是信息。原来 21 关串在一枚骨片轮廓上，6 / 6 / 9 三档在环上
+   分不出来，玩家看不出"这一关比上一关难在哪"；珠子挤到 66px，
+   序号、字形、状态、本阶说明全叠在一起。
+   现在一阶一块骨版：左边是本阶的怪（Boss 形象），右边是阶名 ·
+   这一阶的打法 · 本阶进度 · 关卡行。三段递进一眼可见。
+   层次靠面色浓淡 + 1px 罫，不靠阴影。 */
+.bo-board {
+  display: grid; gap: var(--s-3);
+  max-width: 1180px; margin: var(--s-5) auto var(--s-6);
+}
+.bo-tier {
   position: relative;
-  width: 100%; max-width: 1120px;
-  margin: var(--s-5) auto var(--s-6);
-  aspect-ratio: 100 / 62;
-}
-.bo-boneplate {
-  position: absolute; inset: 0;
-  clip-path: polygon(3% 46%, 8% 25%, 18% 11%, 34% 4%, 52% 8%, 68% 2%, 83% 11%,
-                     93% 26%, 87% 40%, 95% 54%, 86% 66%, 91% 79%, 75% 88%, 57% 83%,
-                     39% 93%, 21% 86%, 9% 71%, 2% 58%);
-  /* 三层叠出"刻过字的骨片"：
-       ① 卜辞竖行——极淡的竖向刻痕（甲骨上的字是竖着成行的）
-       ② 受光面
-       ③ 骨面本体的暖色渐变（要比页面底色实，否则整块融进背景） */
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--s-5);
+  align-items: center;
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  /* 骨面：比页面底色实一档，否则整块融进背景 */
   background:
-    repeating-linear-gradient(90deg,
-      transparent 0 44px,
-      color-mix(in srgb, var(--bronze) 9%, transparent) 44px 45px),
-    radial-gradient(ellipse at 34% 22%,
-      color-mix(in srgb, var(--bone-white) 90%, transparent), transparent 56%),
-    linear-gradient(152deg,
-      #fdf9f0 0%, #f6ecda 42%, #e7d9be 100%);
-  /* clip-path 会连 box-shadow 一起剪掉，所以阴影得用 drop-shadow；
-     但模糊别开太大（原来 18px 直接在边上糊成光晕） */
-  filter: drop-shadow(0 3px 9px rgba(60, 46, 24, .22));
+    radial-gradient(ellipse at 20% 16%,
+      color-mix(in srgb, var(--bone-white) 88%, transparent), transparent 62%),
+    linear-gradient(152deg, #fdf9f0 0%, #f4e9d6 60%, #e9dcc2 100%);
+  box-shadow: var(--sh-1);
+}
+/* 正在打的那一阶：左边一道朱砂。不改底色，不用色块抢注意力 */
+.bo-tier.current { border-left: 3px solid var(--cinnabar); }
+.bo-tier.cleared { border-color: color-mix(in srgb, var(--green) 42%, var(--edge)); }
+.bo-tier.no-art { grid-template-columns: minmax(0, 1fr); }
+.bo-tier.no-art .bo-tier-art { display: none; }
+
+.bo-tier-art {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-2);
+}
+/* 立绘是带透明通道的剪影，按高度对齐：三只身高一致，
+   档位递进靠轮廓复杂度（拼合 → 浑然 → 棘刺纠缠）去说，不靠尺寸虚张。 */
+.bo-tier-img {
+  display: block; width: 100%; height: clamp(84px, 9.4vw, 136px);
+  object-fit: contain;
+  filter: drop-shadow(0 7px 11px rgba(62, 45, 28, .16));
+}
+.bo-tier-artname {
+  font-size: var(--fs-sm); letter-spacing: 2px; color: var(--bronze-tint);
 }
 
-/* 轮廓与路径 */
-.bo-boneline { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.bo-boneline polyline, .bo-boneline polygon {
-  fill: none;
-  vector-effect: non-scaling-stroke;   /* viewBox 被拉伸，线宽必须抗缩放 */
+.bo-tier-main { min-width: 0; }
+.bo-tier-head { display: flex; align-items: baseline; gap: var(--s-2); flex-wrap: wrap; }
+.bo-tier-no {
+  font-size: var(--fs-xs); letter-spacing: 3px; color: var(--cinnabar-tint);
+  padding: 1px 7px; border-radius: var(--r-xs);
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 34%, var(--edge));
 }
-.bo-boneedge {
-  stroke: color-mix(in srgb, var(--bronze) 62%, var(--edge));
-  stroke-width: 2;
-  stroke-linejoin: round;
+.bo-tier-name { margin: 0; font-size: 18px; letter-spacing: 2px; }
+.bo-tier-prog {
+  margin-left: auto; font-size: var(--fs-sm);
+  color: var(--ink-soft); white-space: nowrap;
 }
-.bo-bonepath {
-  stroke: color-mix(in srgb, var(--bronze) 34%, transparent);
-  stroke-width: 2; stroke-dasharray: 5 5;
+.bo-tier-note {
+  margin: var(--s-2) 0 var(--s-3);
+  font-size: var(--fs-sm); line-height: 1.7; color: var(--ink-2);
 }
-.bo-bonedone { stroke: var(--green); stroke-width: 3; stroke-linecap: round; }
+.bo-tier-beads { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 
-/* 关卡珠子：串在骨片边上，圆心正好落在轮廓上 */
+/* 关卡珠子：在本阶那一行里平铺，不再是环上的定位元素 */
 .bo-bead {
-  position: absolute; transform: translate(-50%, -50%);
+  position: relative;
   width: 66px; height: 66px; padding: 0;
   display: flex; align-items: center; justify-content: center;
   border-radius: 50%;
   background: var(--bone-hi);
   border: 1.5px solid var(--edge);
-  box-shadow: var(--sh-2);
+  box-shadow: var(--sh-1);
   cursor: pointer;
   transition: transform var(--t-base) var(--ease),
               box-shadow var(--t-base) var(--ease),
               border-color var(--t-base) var(--ease);
 }
 .bo-bead:hover {
-  transform: translate(-50%, -50%) scale(1.09);
-  box-shadow: var(--sh-3);
+  transform: translateY(-3px);
+  box-shadow: var(--sh-2);
   border-color: color-mix(in srgb, var(--bronze) 60%, var(--edge));
   z-index: 3;
 }
-.bo-bead:active { transform: translate(-50%, -50%) scale(1.02); }
+.bo-bead:active { transform: translateY(-1px); }
 
 .bo-beadglyphwrap { position: relative; display: flex; align-items: center; justify-content: center; }
 .bo-beadglyph { width: 44px; height: 44px; color: var(--ink); display: block; }
@@ -2015,43 +2031,48 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 /* 状态：下一关朱砂 · 已通关绿 · 完美通关描金 · 未解锁压暗 */
 .bo-bead.next {
   border-color: var(--cinnabar);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--cinnabar) 14%, transparent), var(--sh-2);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--cinnabar) 14%, transparent), var(--sh-1);
   animation: beadPulse 2.2s ease-in-out infinite;
 }
 @keyframes beadPulse {
-  0%, 100% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--cinnabar) 14%, transparent), var(--sh-2); }
-  50%      { box-shadow: 0 0 0 9px color-mix(in srgb, var(--cinnabar) 7%, transparent), var(--sh-2); }
+  0%, 100% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--cinnabar) 14%, transparent), var(--sh-1); }
+  50%      { box-shadow: 0 0 0 9px color-mix(in srgb, var(--cinnabar) 7%, transparent), var(--sh-1); }
 }
 .bo-bead.done { border-color: color-mix(in srgb, var(--green) 60%, var(--edge)); }
 .bo-bead.done .bo-beadnum { color: var(--green-tint); border-color: color-mix(in srgb, var(--green) 45%, var(--edge)); }
 .bo-bead.perfect {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent), var(--sh-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent), var(--sh-1);
 }
 .bo-bead.perfect .bo-beadnum { color: var(--bronze-tint); border-color: var(--gold); }
 .bo-bead.locked { opacity: .58; cursor: not-allowed; filter: grayscale(.6); }
-.bo-bead.locked:hover { transform: translate(-50%, -50%); box-shadow: var(--sh-1); border-color: var(--edge); }
+.bo-bead.locked:hover { transform: none; box-shadow: var(--sh-1); border-color: var(--edge); }
 
-/* 骨片正中：真实进度 */
-.bo-bonecore {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  pointer-events: none; text-align: center;
+/* 进度条右侧：下一关是哪一关（原来这块信息在骨片正中） */
+.bo-prognext {
+  font-size: var(--fs-sm); color: var(--cinnabar-tint);
+  letter-spacing: .5px; white-space: nowrap;
 }
-.bo-corelabel { font-size: var(--fs-sm); letter-spacing: 4px; color: var(--bronze-tint); }
-.bo-corenum {
-  font-size: 40px; font-weight: 700; letter-spacing: 2px; line-height: 1.1;
-  color: var(--ink);
-}
-.bo-corenote { font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: .5px; }
 
-/* 窄屏：珠子缩小，骨片拉高一点，免得珠子互相压住 */
-@media (max-width: 860px) {
-  .bo-bone { aspect-ratio: 100 / 78; }
-  .bo-bead { width: 50px; height: 50px; }
+/* 中屏：怪像缩小，关卡行不许被挤到溢出 */
+@media (max-width: 1024px) {
+  .bo-tier { grid-template-columns: 140px minmax(0, 1fr); gap: var(--s-4); }
+}
+/* 窄屏：怪像收到头一行左侧，整个榜改单列 */
+@media (max-width: 760px) {
+  .bo-tier {
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    align-items: start;
+  }
+  .bo-tier-artname { display: none; }
+  .bo-tier-name { font-size: 16px; }
+  .bo-tier-note { font-size: var(--fs-xs); }
+  .bo-tier-beads { gap: var(--s-1); }
+  .bo-bead { width: 52px; height: 52px; }
   .bo-beadglyph { width: 34px; height: 34px; }
   .bo-beadnum { min-width: 15px; height: 15px; font-size: 9px; }
-  .bo-corenum { font-size: 26px; }
 }
 
 /* ---------- 现代字的"揭晓"机制 ----------
@@ -2209,13 +2230,37 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   position: relative; z-index: 1;
   display: flex; flex-direction: column;
 }
-.bd-bodybox { display: flex; justify-content: center; margin-top: var(--s-2); }
+/* 怪像 + 字形 —— 形象回答"这是什么东西"，字形回答"身上刻着什么"。
+   两者**并排**：形象不压在字形上，字形尺寸一点没动
+   （仍是可点、可拆的那个对象）。这是唯一能让两边都看得清的排法——
+   叠在一起时，要么字形被压小到点不准，要么形象被盖得看不见。 */
+.bd-figure {
+  position: relative;   /* 命中飘字挂在这上面，所以它得是定位的祖先 */
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: var(--s-3);
+  margin: var(--s-2) auto 0;
+}
+.bd-figure-media {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  flex: 0 0 auto;
+}
+/* 立绘按高度给尺寸（图是剪影，宽高比各不相同），不套方框不加边 */
+.bd-figure-art {
+  display: block; height: 178px; width: auto; max-width: 100%;
+  object-fit: contain;
+}
+.bd-figure-tag {
+  font-size: var(--fs-xs); letter-spacing: 2px; color: var(--bronze-tint);
+}
+.bd-plate { position: relative; flex: 0 0 auto; }
 .bd-body {
   display: block; width: 300px; height: 300px;
   color: var(--ink);
   transition: color var(--t-base) var(--ease);
 }
 .scene-wide .bd-body { width: 330px; height: 330px; }
+/* 形象图加载不出来 / 该档没有形象：收掉那一栏，退回原来只有字形的样子 */
+.bd-figure.no-art .bd-figure-media { display: none; }
 
 /* 可点的构件 / 笔画（逻辑沿用，样式保留） */
 .bo-part { cursor: pointer; }
@@ -2279,7 +2324,27 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   background: linear-gradient(180deg,
     color-mix(in srgb, var(--bone-hi) 94%, var(--green)), var(--bone-hi));
 }
-.bd-winglyph { width: 132px; height: 132px; color: var(--ink); flex: 0 0 auto; }
+/* 结算：同一套关系——怪在旁，被杀掉的字形在侧。
+   剪影在浅底上只有墨线读得出来，所以给一道很轻的落影，让它站得住。 */
+.bd-winfig {
+  display: flex; align-items: center; gap: var(--s-5);
+  flex: 0 0 auto;
+}
+.bd-winfig-art {
+  display: block; height: 126px; width: auto; max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(62, 45, 28, .18));
+}
+/* 拼合字在数据集里没有整字甲骨形，只能给「构件组合示意」，
+   所以字形下面要挂一行小注说明——不能让它冒充原形。 */
+.bd-winfig .bd-plate {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+/* 结算的字形必须是主角：这一屏的落点就是「你认出了这个字」。
+   立绘退到印章的分量（作战界面同理，字形一直比立绘大）。 */
+.bd-winglyph { display: block; width: 168px; height: 168px; color: var(--ink); }
+.bd-composednote { font-size: var(--fs-xs); color: var(--ink-soft); letter-spacing: 1px; }
+.bd-winfig.no-art .bd-winfig-art { display: none; }
 .bd-wininfo { flex: 1 1 260px; }
 .bd-wintitle { margin: 0 0 var(--s-2); font-size: 22px; letter-spacing: 2px; }
 .bd-windesc { margin: 0 0 var(--s-1); font-size: var(--fs-md); color: var(--ink-2); line-height: 1.65; }
@@ -2289,12 +2354,42 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   background: color-mix(in srgb, var(--bronze) 9%, transparent);
 }
 
+/* 结算里的「讨伐名录」：形象 · 破绽 · 破解玩法。
+   这些**只能打完之后给**——开打之前说出来就是报答案
+   （"先断枝、再斩根"本身就是整套解）。所以它长在结算页上，
+   是赢下来才挣到的一份读解，跟图鉴里的名录卡片说的是同一件事。 */
+.bd-wincodex {
+  display: flex; flex-direction: column; gap: 5px;
+  margin: var(--s-3) 0 0; padding: var(--s-3) var(--s-4);
+  background: color-mix(in srgb, var(--bone-hi) 70%, var(--bronze) 7%);
+  border: 1px solid var(--edge); border-left: 2px solid var(--cinnabar);
+  border-radius: var(--r-sm);
+}
+.bd-wincodex-k {
+  font-size: 10px; letter-spacing: 3px; color: var(--cinnabar-tint);
+}
+.bd-wincodex .bd-windesc {
+  margin: 0; font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.8;
+}
+.bd-wincodex .bd-wincodex-src {
+  color: var(--ink-soft); font-size: var(--fs-xs); letter-spacing: .5px;
+}
+/* 结算上的形象：它已经是"被斩杀之后"的那一尊——半透明、边缘发虚的残影。
+   结算卡是浅底，所以这里不反相（反相在浅底上会糊成一团墨），
+   只把墨线褪淡、发一层虚，读作"形体散了"。 */
+.bd-winfig.fig-stage-4 .bd-winfig-art {
+  /* .72 而不是更低：这一屏的落点是"你认出了这个字"，字形必须是主角，
+     但形象退到几乎看不见就成了"图没加载出来"，反而像坏了。 */
+  opacity: .72;
+  filter: blur(.4px) drop-shadow(0 6px 10px rgba(62, 45, 28, .16));
+}
+
 /* ---------- 响应式 ---------- */
 /* 中屏：把左侧形象位压窄，远景让位 */
 @media (max-width: 1024px) {
   .bd-field { grid-template-columns: minmax(130px, 170px) minmax(0, 1fr) minmax(200px, 300px); }
   .bd-hero-slot { min-height: 200px; }
-  .bd-body, .scene-wide .bd-body { width: 220px; height: 220px; }
+  .bd-figure { max-width: 300px; }
 }
 /* 窄屏：横版改为"上 BOSS、下形象位"，仍保持左右对位的观感 */
 @media (max-width: 760px) {
@@ -2311,16 +2406,20 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .bd-hero-slot { min-height: 150px; }
   .bd-slot-tag { font-size: var(--fs-md); letter-spacing: 2px; }
   .bd-slot-note { font-size: 10px; }
-  .bd-body, .scene-wide .bd-body { width: 150px; height: 150px; }
+  .bd-figure { max-width: 200px; }
+  .bd-figure-tag { display: none; }
+  .bd-figure.no-art .bd-body { width: 150px; height: 150px; }
   .bd-ground { height: 46px; }
 }
 
 /* ============================================================================
    构件池（阶段一：自己挑构件砸上去）
    ----------------------------------------------------------------------------
-   池子里是**全部**构件（37 个），正确项只有 2 个左右，其余是干扰项。
+   池子里是 POOL_SIZE（现 12）个候选：正确项全留，其余是干扰项。
+   定宽是关键——池子大小不随正确项个数变，看池子看不出答案有几个。
    构件名要能看清才挑得动，所以不做完全隐藏：
    默认压到很淡（"浅浅的现代字"），指针落上去才恢复清晰。
+   阶段二起整池收成细栏，见 .bd-pool.is-dead。
    ============================================================================ */
 .bd-pool {
   max-width: 1180px; margin: 0 auto var(--s-4);
@@ -2338,7 +2437,10 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 
 .bd-poolgrid {
   display: grid; gap: var(--s-2);
-  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  /* 轨道下限从 56 提到 86：池子收窄到 12 个之后，56 的下限会排出
+     约 21 条轨道，12 块只占掉半行、右边空一大片，看着像没铺完。
+     86 在桌面宽度下正好排出 12 条——12 块均分一整行。 */
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
 }
 .bd-chip {
   display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -2708,7 +2810,7 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .scene.boss-raid .bd-phase { background: color-mix(in srgb, var(--bone-hi) 80%, transparent); }
 
 .scene.boss-raid .bd-field {
-  grid-template-columns: minmax(170px, 230px) minmax(180px, 1fr) minmax(245px, 350px);
+  grid-template-columns: minmax(170px, 230px) minmax(180px, 1fr) minmax(280px, 360px);
   grid-template-areas: "hero guide boss";
   align-items: stretch;
   gap: clamp(15px, 2.5vw, 32px);
@@ -2801,6 +2903,35 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .bd-field-guide.success .bd-guide-kicker { color: #c3ca8c; }
 .bd-field-guide.alert { border-left-color: #df916e; }
 
+/* —— 阶段二的行动按钮：长在提示卡正文下面 ——
+   为什么搬到这里：阶段二那一刻正是"上一手失效、下一手顶上来"，
+   玩家的注意力本来就在这张卡上。它原先挂在页面最底部的操作行里，
+   而它上面还摊着一整片点不动的构件池，按钮被推到屏幕之外，够不着
+   （实测反馈：「不太好发现」）。正文下面、页脚上面，是这张卡里
+   视线最先落到的空位，而且在战场正中，不用滚。 */
+.bd-guide-cta {
+  display: flex; align-items: center; gap: 9px 14px; flex-wrap: wrap;
+  margin-top: 17px;
+}
+.bd-guide-ctahint { color: rgba(234, 212, 179, .56); font-size: 10.5px; line-height: 1.6; }
+.scene.boss-raid .bd-guide-btn {
+  --btn-h: 40px;
+  flex: 0 0 auto; padding: 0 var(--s-5);
+  color: #fdf3e6;
+  background: var(--cinnabar); border-color: var(--cinnabar);
+  animation: bdCtaPull 2.1s ease-out infinite;
+}
+.scene.boss-raid .bd-guide-btn:hover {
+  background: var(--cinnabar-hi); border-color: var(--cinnabar-hi);
+}
+/* 呼吸环：这是当前唯一能做的一件事，让视线能被拉过去。
+   环画在 box-shadow 上而不是 transform 上——按钮本身要稳，不能晃。 */
+@keyframes bdCtaPull {
+  0%   { box-shadow: var(--sh-2), 0 0 0 0 rgba(199, 91, 66, .62); }
+  70%  { box-shadow: var(--sh-2), 0 0 0 13px rgba(199, 91, 66, 0); }
+  100% { box-shadow: var(--sh-2), 0 0 0 0 rgba(199, 91, 66, 0); }
+}
+
 .scene.boss-raid .bd-boss {
   grid-area: boss;
   align-self: stretch; justify-content: end; min-width: 0;
@@ -2813,16 +2944,131 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .scene.boss-raid .bd-sidebar { height: 6px; margin-bottom: 5px; background: rgba(239, 218, 185, .13); box-shadow: none; }
 .scene.boss-raid .bd-sidefill.boss { background: linear-gradient(90deg, #a54132, #dc7855); }
 .scene.boss-raid .bd-hpnum { color: #dfa27e; font-size: 9px; }
-.scene.boss-raid .bd-bodybox {
-  position: relative; min-height: 300px; flex: 1 1 auto; align-items: center; margin-top: 8px;
-  background: radial-gradient(ellipse at center, rgba(225, 183, 121, .11), transparent 66%);
+/* 怪像：剪影在深色战场上是**一块骨白的形**——和甲骨本身同一种材质，
+   不需要衬纸、也不需要卡纸边去遮什么。落影只负责把它从暗场里托起来。 */
+/* 竖排：兽在上、字在下，读成一尊整体（"这头兽，就是这个字做的"）。
+   显式竖排，就不必依赖 flex-wrap 的自动换行了——列宽一变排法就翻，太脆。 */
+.scene.boss-raid .bd-figure {
+  flex-direction: column; flex-wrap: nowrap;
+  gap: clamp(10px, 1.6vw, 18px); margin-top: 8px;
 }
+.scene.boss-raid .bd-figure-art {
+  height: 196px;
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, .5));
+}
+.scene.boss-raid .bd-figure-tag { color: #c9a97c; font-size: 10px; }
 .scene.boss-raid .bd-body { width: min(100%, 300px); height: 300px; color: #ead7b5; filter: drop-shadow(0 0 16px rgba(220, 176, 117, .12)); }
 .scene-wide .scene.boss-raid .bd-body { width: min(100%, 330px); height: 330px; }
 .scene.boss-raid .bd-body .bo-part:hover path,
 .scene.boss-raid .bd-body .bo-cut:hover path { stroke: #ef9b76; }
 .scene.boss-raid .bd-field.final .bd-body { color: #efb08e; }
 .scene.boss-raid .bd-field.broken .bd-field-guide { animation: bdGuideAlert .5s ease-out; }
+
+/* ============================================================================
+   形象随战况崩坏（.fig-stage-N）
+   ----------------------------------------------------------------------------
+   这张形象不是挂在战场边上的插图——**它就是这一尊的身体**。
+   所以它必须跟着战况变：拆掉几块、构件错乱、剥落到只剩纹路、形体全断。
+   五度由**已经打出来的进度**算出来（见 boss-raid.js 的 figureStage），
+   跟左侧拆解条、右侧完整度条说的是同一件事，不另存一份状态。
+
+   材质上它是一块骨白的剪影 + 褐墨的线（assets/boss/*.png：身体填
+   #F7EFE1、笔画留褐、四周抠透），所以在**深色战场**上它天然读作
+   骨白剪影——正因如此，剥落那一度可以用 invert 把关系翻过来：
+   骨胎沉进暗场，只剩纹路亮着，读起来就是"肉没了，只剩刻痕"。
+   ——这正是"笔画终局"该有的样子。
+   ============================================================================ */
+/* 第二层：同图反相 + screen，把褐墨的刻痕抬成暖光。
+   为什么需要它——实测出来的问题：深色战场上骨白的身很亮，但**褐墨的线
+   （约 #4a3320）跟底色（#30271f → #1d1916）几乎同明度，整片沉掉**。
+   实体型的兽还能靠身认出来；线描多的那几尊（涉的水波、雷的闪电、云气）
+   就只剩一团白。叠这一层之后：
+     · 骨白的身 → 反相成近黑 → screen 下不改变任何东西，身还是那个身；
+     · 褐墨的线 → 反相成暖亮 → screen 加在它自己上面，刻痕亮起来；
+     · 透明的空处 → 反相后仍是空 → 什么都不加。
+   也就是说，一个"身仍在、刻痕发光"的怪，而不是一块白。 */
+.bd-figure-shot { position: relative; display: block; line-height: 0; }
+.scene.boss-raid .bd-figure-glow {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  filter: invert(1) sepia(.5) saturate(1.5) brightness(1.02);
+  mix-blend-mode: screen;
+  opacity: .75;
+  pointer-events: none;
+}
+/* 结算那一屏是浅底，这一层只会把画面洗白，不该出现 */
+.bd-winfig .bd-figure-glow { display: none; }
+/* 三、四度已经把整张图反相了（身沉、线亮），再叠这层就是亮上叠亮——去掉 */
+.scene.boss-raid .fig-stage-3 .bd-figure-glow,
+.scene.boss-raid .fig-stage-4 .bd-figure-glow { display: none; }
+
+/* 一 · 缺了一块：暗一档、褪一点暖，像掉了一块之后受光变了 */
+.scene.boss-raid .fig-stage-1 .bd-figure-art {
+  filter: brightness(.9) saturate(.72) drop-shadow(0 10px 16px rgba(0, 0, 0, .5));
+}
+/* 二 · 构件错乱（阶段二：它把拆散的部件又吸了回去）：
+   剪影朝左右各拖出一道错位的影，一暖一冷——两个形体错开一点叠在一起，
+   构件对不上号了。用两层 drop-shadow 复刻，不必再复制一个 DOM 出来。 */
+.scene.boss-raid .fig-stage-2 .bd-figure-art {
+  filter:
+    drop-shadow(12px 0 0 rgba(226, 143, 105, .5))
+    drop-shadow(-11px 0 0 rgba(120, 170, 208, .4))
+    drop-shadow(0 10px 16px rgba(0, 0, 0, .5));
+  animation: bdFigWarp 3.4s ease-in-out infinite;
+}
+/* 错开的距离要真看得出来（12px 起步）：太轻就只是"图变暗了一点"，
+   读不出"两个形体叠在一起、构件对不上号"这层意思。 */
+@keyframes bdFigWarp {
+  0%, 100% { filter: drop-shadow(12px 0 0 rgba(226, 143, 105, .5)) drop-shadow(-11px 0 0 rgba(120, 170, 208, .4)) drop-shadow(0 10px 16px rgba(0, 0, 0, .5)); }
+  50%      { filter: drop-shadow(5px 0 0 rgba(226, 143, 105, .38)) drop-shadow(-16px 0 0 rgba(120, 170, 208, .5)) drop-shadow(0 10px 16px rgba(0, 0, 0, .5)); }
+}
+/* 三 · 剥落得只剩纹路（阶段三过半）：反相 —— 骨胎沉进暗场、
+   笔画浮成暖光。形体已经没有"肉"了，只剩下要斩的那些刻痕。 */
+.scene.boss-raid .fig-stage-3 .bd-figure-art,
+.scene.boss-raid .fig-stage-4 .bd-figure-art {
+  filter: invert(1) sepia(.55) saturate(1.7) hue-rotate(-12deg) brightness(1.06);
+}
+.scene.boss-raid .fig-stage-3 .bd-figure-tag { color: #b98a5e; }
+/* 四 · 形体全断：只剩一层将散未散的虚影（真要看清得看结算页） */
+.scene.boss-raid .fig-stage-4 .bd-figure-art {
+  opacity: .48;
+  filter: invert(1) sepia(.4) saturate(1.3) hue-rotate(-12deg) brightness(.92) blur(.6px);
+}
+
+/* 命中：整尊抖一下。
+   抖动只动 transform，不碰 filter——形象的 filter 是分度数的（上面那一组），
+   在关键帧里重写 filter 会把当前那一度抹掉，抖完就回不去。
+   所以这里 animate .bd-figure 这个容器：形象与字形一起晃，读成一尊整体。 */
+.bd-figure.is-hit { animation: bdFigHit .42s cubic-bezier(.2, .7, .3, 1); }
+@keyframes bdFigHit {
+  0%   { transform: translateX(0) rotate(0deg); }
+  20%  { transform: translateX(-7px) rotate(-.9deg); }
+  45%  { transform: translateX(6px) rotate(.7deg); }
+  70%  { transform: translateX(-3px) rotate(-.3deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+/* 命中飘字：这一手叫什么（"封走位""斩断一段"）。
+   刻意挂在 .bd-figure 上，所以哪怕这一档没有形象图，这一下也照样报得出来。 */
+.bd-figure-fx {
+  position: absolute; left: 50%; top: 16%; z-index: 3;
+  padding: 3px 10px; white-space: nowrap;
+  font-size: 11px; letter-spacing: 2px; color: #fdeade;
+  background: linear-gradient(180deg, rgba(152, 53, 31, .94), rgba(114, 37, 21, .94));
+  border: 1px solid rgba(234, 160, 124, .55);
+  border-radius: 2px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+  pointer-events: none;
+  animation: bdFigFx .95s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+.bd-figure-fx.miss {
+  color: #e6dcc9; background: rgba(58, 50, 42, .92);
+  border-color: rgba(190, 170, 140, .34);
+}
+@keyframes bdFigFx {
+  0%   { opacity: 0; transform: translate(-50%, 9px) scale(.92); }
+  18%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  68%  { opacity: 1; transform: translate(-50%, -7px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -26px) scale(.98); }
+}
 
 .scene.boss-raid .bd-pool {
   max-width: 1240px; margin: 0 auto 14px; padding: 15px 18px 17px;
@@ -2845,6 +3091,18 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .scene.boss-raid .bd-chipglyph { width: 35px; height: 35px; }
 .scene.boss-raid .bd-chipname { color: #805e3d; font-size: 10px; }
 .scene.boss-raid .bd-pool-toggle { min-height: 34px; margin-left: auto; }
+
+/* —— 阶段二/三：构件池收成一条细栏 ——
+   不铺残池。十几块点不动的构件只干两件事：占掉大半屏、把下一步的按钮
+   顶出视口。这一栏留着的意义只剩"告诉玩家这一手没了"，所以压到一行。 */
+.scene.boss-raid .bd-pool.is-dead {
+  padding: 11px 18px;
+  background: linear-gradient(155deg, #eee3cd, #e1d1b5);
+  border-top-color: #a08f7c;
+}
+.scene.boss-raid .bd-pool.is-dead .bd-pool-head { margin-bottom: 0; }
+.scene.boss-raid .bd-pool.is-dead .bd-pool-head b { opacity: .48; }
+.scene.boss-raid .bd-pool-cta { min-height: 34px; margin-left: auto; }
 
 .scene.boss-raid .bd-logs {
   grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px;
@@ -2870,10 +3128,13 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .bd-hero-portrait.mood-alert { animation: bdGuibaoReassure .48s ease-out; }
 
 @media (max-width: 1024px) {
-  .scene.boss-raid .bd-field { grid-template-columns: minmax(145px, 185px) minmax(170px, 1fr) minmax(205px, 270px); gap: 14px; }
+  .scene.boss-raid .bd-field { grid-template-columns: minmax(145px, 185px) minmax(170px, 1fr) minmax(205px, 280px); gap: 14px; }
   .bd-hero-portrait { min-height: 210px; }
   .bd-avatar { max-height: 240px; }
-  .scene.boss-raid .bd-bodybox { min-height: 260px; }
+  /* 中屏放不下"怪像 + 字形"并排了，改成怪像压在字形上方，并缩小 */
+  .scene.boss-raid .bd-figure { flex-direction: column; flex-wrap: nowrap; gap: 9px; }
+  .scene.boss-raid .bd-figure-art { height: 132px; }
+  .scene.boss-raid .bd-figure-tag { font-size: 9px; }
   .scene.boss-raid .bd-body,
   .scene-wide .scene.boss-raid .bd-body { width: min(100%, 250px); height: 250px; }
 }
@@ -2885,7 +3146,7 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .scene.boss-raid .bd-field {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "hero boss" "guide guide";
-    align-items: end; gap: 9px 14px; min-height: 0; padding: 17px 14px 57px;
+    align-items: end; gap: 7px 14px; min-height: 0; padding: 12px 14px 57px;
   }
   .scene.boss-raid .bd-hero,
   .scene.boss-raid .bd-boss { min-width: 0; }
@@ -2898,7 +3159,13 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .scene.boss-raid .bd-side-head { align-items: flex-start; flex-direction: column; gap: 3px; }
   .scene.boss-raid .bd-side-name { font-size: 15px; }
   .scene.boss-raid .bd-side-role { font-size: 8px; }
-  .scene.boss-raid .bd-bodybox { min-height: 155px; margin-top: 3px; }
+  /* 手机上位置太紧：怪像缩到字形上方。字形仍然保持 160px 不动
+     （终局要点单笔，字形一缩就点不准）——剪影不再带方框，同样的高度里
+     本体比原来大一圈，这一格本来就有富余，正好用掉。 */
+  .scene.boss-raid .bd-figure { flex-direction: column; flex-wrap: nowrap; gap: 6px; margin-top: 0; }
+  .scene.boss-raid .bd-figure-media { gap: 3px; }
+  .scene.boss-raid .bd-figure-art { height: 84px; }
+  .scene.boss-raid .bd-figure-tag { font-size: 8px; letter-spacing: 1px; }
   .scene.boss-raid .bd-body,
   .scene-wide .scene.boss-raid .bd-body { width: min(100%, 160px); height: 160px; }
   .scene.boss-raid .bd-field-guide { padding: 13px 14px; }
@@ -2906,6 +3173,12 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .bd-guide-title { margin: 7px 0 5px; font-size: 19px; }
   .bd-guide-copy { min-height: 0; font-size: 11px; }
   .bd-guide-foot { margin-top: 10px; padding-top: 8px; }
+  /* 阶段二的"改用笔画"按钮在手机上一度贴着首屏下沿（底边差 13px 出屏）。
+     提示卡排在「玩家 + 怪像」那一行下面，是被上面那一行顶下去的；
+     所以这里收的是"上一行的高度"和"卡片自己的间距"，不是盲调卡片内边距。 */
+  .scene.boss-raid .bd-hero-portrait { min-height: 132px; max-height: 158px; }
+  .bd-guide-cta { margin-top: 10px; gap: 7px 10px; }
+  .bd-guide-btn { --btn-h: 38px; }
   .scene.boss-raid .bd-pool { padding: 12px 10px; }
   .scene.boss-raid .bd-poolgrid { grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 5px; }
   .scene.boss-raid .bd-chip { min-height: 58px; }
@@ -2914,6 +3187,11 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .scene.boss-raid .bd-log { padding: 7px 9px; }
   .scene.boss-raid .bd-actions { align-items: stretch; flex-direction: column; }
   .scene.boss-raid .bd-actions .btn { width: 100%; }
+  /* 结算卡在窄屏收一档：立绘与字形一起缩，保证 360px 宽也不横溢 */
+  .bd-win { gap: var(--s-4); padding: var(--s-4); }
+  .bd-winfig { gap: var(--s-4); }
+  .bd-winfig-art { height: 76px; }
+  .bd-winglyph { width: 132px; height: 132px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bd-hero-portrait,
@@ -2923,4 +3201,11 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .scene.boss-raid .bd-field.broken .bd-field-guide { animation: none; }
   .scene.boss-raid .bd-chip,
   .scene.boss-raid .bd-progress-fill { transition: none; }
+  /* 崩坏度照旧（那是信息，不能因为减动效就不给了），
+     只把"抖"和"飘"去掉：命中改成静态高亮，不晃也不飞。 */
+  .bd-figure.is-hit,
+  .scene.boss-raid .fig-stage-2 .bd-figure-art { animation: none; }
+  .bd-figure-fx { animation: none; opacity: 1; transform: translate(-50%, 0); }
+  /* 呼吸环去掉；按钮仍是朱砂实底，位置本身已经够醒目了 */
+  .scene.boss-raid .bd-guide-btn { animation: none; }
 }

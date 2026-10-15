@@ -64,9 +64,18 @@ ws.addEventListener('open', async () => {
     "hasBossGlyph:!!document.querySelector('.bd-body,.bd-bodybox')," +
     "hasIntegrity:!!document.querySelector('.bd-sidebar')})"));
 
-  /* 故意点错一块构件 -> 看龟宝是否换成"再观察一次"这类反应 */
-  const miss = await ev("(function(){var c=document.querySelector('.bd-chip:not([disabled])');" +
-    "if(c){c.click();return 'clicked';}return 'none';})()");
+  /* 故意点错一块构件 -> 看龟宝是否换成"再观察一次"这类反应。
+     必须**保证**点的是干扰项：池子已收窄到 12 个，随手取第一个
+     有 1/6 的概率正好取到正确项，那样测的就不是"误选"了。
+     所以从页面里读出本关的正确构件，排除掉再挑。 */
+  const miss = await ev("(function(){" +
+    "var L=window.App&&App.levels&&App.levels.boss;" +
+    "var comps=(L&&L.tiers&&L.tiers[0]&&L.tiers[0].list[0]&&L.tiers[0].list[0].comps)||[];" +
+    "var cs=[].slice.call(document.querySelectorAll('.bd-chip:not([disabled])'));" +
+    "for(var i=0;i<cs.length;i++){" +
+      "var n=(cs[i].getAttribute('aria-label')||'').replace('构件 ','');" +
+      "if(comps.indexOf(n)<0){cs[i].click();return 'clicked:'+n;}}" +
+    "return 'none';})()");
   await new Promise(r => setTimeout(r, 900));
   console.log('AFTERMISS:' + await ev("JSON.stringify({" +
     "clicked:" + JSON.stringify(miss) + "," +

@@ -24,7 +24,8 @@
     { id: 'piece',  name: '构件',     note: '构字的最小单位，37 个' },
     { id: 'word',   name: '合体字',   note: '由构件拼成，附卜辞出处' },
     { id: 'object', name: '王邑实物', note: '殷商王邑图卷上可点亮的实物' },
-    { id: 'boss',   name: '讨伐字形', note: '构件讨伐里逐关推进的对手' }
+    { id: 'boss',   name: '讨伐字形', note: '构件讨伐里逐关推进的对手' },
+    { id: 'codex',  name: '讨伐名录', note: 'Boss 形象 · 可拆部件 · 破解玩法，88 尊' }
   ];
 
   var _cache = null;
@@ -82,6 +83,32 @@
             tier: t.name, comps: b.comps || [],
             meaning: b.note || '', seg: b.seg || 0
           });
+        });
+      });
+    }
+
+    /* 讨伐名录：docx 字表的每一尊 Boss 形象（形象 / 可拆部件 / 破解玩法）。
+       这一档的"图"是 Boss 形象（art），不是甲骨字形——所以不参与 anyGlyphNode；
+       hasGlyph 单独由名录里的 glyph 字段决定：字库里有整字甲骨形的才为真。
+       playable 说明能不能真打成关卡（stroke 斩笔画 / compound 拆构件 / 空 仅名录）。 */
+    var codex = (App.levels && App.levels.bossCodex) || null;
+    if (codex) {
+      var gname = {};
+      (codex.groups || []).forEach(function (g) { gname[g.id] = g.name; });
+      (codex.entries || []).forEach(function (c) {
+        if (!c || !c.char) { return; }
+        push('codex', c.char, {
+          art: c.art || '',
+          form: c.form || '',
+          play: c.play || '',
+          parts: c.parts || [],
+          py: c.py || '',
+          group: gname[c.group] || c.group || '',
+          playable: c.playable || '',
+          glyphKey: c.glyph || '',
+          comps: [],
+          hasGlyph: !!c.glyph,
+          seg: c.seg || 0
         });
       });
     }
