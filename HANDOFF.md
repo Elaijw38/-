@@ -178,10 +178,18 @@ git show wip-jade-gold-rejected:css/theme.css | head -80
 | **自定义属性里的 `url()` 按样式表解析** | 想用 `--fig-src: url(assets/x.png)` 再在 `background-image: var(--fig-src)` 里用，会去 `css/assets/x.png` 取 —— **静默 404**，什么都不显示 | 别用变量传图；直接放一个同源的 `<img>` 叠层 |
 | **流内图片写 `height:100%` 会退化** | 父元素高度若靠 `aspect-ratio` 从宽度推（此刻尚未确定），百分比高度退化成 `auto`，竖长的图把 111px 的格子撑到 398px，一行高低不齐 | 叠层/填充图一律**绝对定位**（`inset` 或 `left/top%+width/height%`），不参与父元素定高 |
 | **可分离方形结构元做形态学** | 图像处理里"先横后纵"等于方形结构元，膨胀出来的**方角腐蚀收不回去**，素材上留下成片直角台阶 | 要圆盘效果就上**八方向线形结构元**（横、纵 + 两条对角，对角半长取 r/√2）；四个方向必须都从**同一份输入**取，否则半径叠乘 |
+| **Windows 解包副本会带 CRLF** | 与远端比出"整个文件都不同"，看着像大改，其实**只差行尾符**（远端 LF、本地 CRLF）。照推等于把文件整篇重写，提交里全是噪音，review 时看不出真正改了什么 | 判定是否要推用 **git blob sha**（`sha1("blob <len>\0" + content)`），不要用 mtime/size；行尾符差异先归一化再逐字节比。本次 `deploy.ps1` 就是这样被识别并跳过的 |
+| **`--dump-dom` + `--virtual-time-budget` 判页面** | 同样的八个页面跑两轮，失败的页面还不一样（一轮空 3 个、一轮空 5 个）——有图要下载的页面会拖住虚拟时钟，输出直接为空 | 判页面用 **CDP 就绪轮询**（见 `dev/_live_check.py`），一个浏览器逐页导航，等"路由落对 + 挂载点有子节点"再判定 |
+| **空 DOM 被当成"没有报错"** | 检查方式是"在 DOM 里搜错误字样"。dump 失败时 DOM 是空的，空串里当然搜不到错误 → **空跑也算通过**。这是最坏的一种假绿：验证工具本身在骗人 | 判据要反过来写——**"挂起来才算过"**，不是"没搜到错就算过"。`dom 为空` 必须判失败，且不猜超时原因（"图片大"只是猜测），只如实记"没测到" |
+| **就绪判据用固定睡眠** | 浏览器可能还停在 `about:blank`，此时所有选择器都返回 0。把 0 当成结论，就会报出"线上 0 张卡片"这种**假故障**，比漏报还费时间 | 断言 `location.host` 非空 **且** 挂载点有子节点。另外：短路由（如首页 hash 为空）会被路由规范化成 `#/home`，就绪条件要给**可接受集合**，写死比 `""` 会让首页永远判失败 |
 
 ---
 
-## 5. 验证套件（`dev/`，现 54 个工具）
+## 5. 验证套件（`dev/`，现 91 个：`_*.py` 83 + `_*.js` 8）
+
+> **路径说明**：下面命令里的 `C:\DSH\字趣` 与那几个 `$py` / `$node` 是原作者机器上的
+> 位置，换了机器要改。本机（WorkBuddy 工作副本）的实际路径见 §7.10。
+> 只统计 `dev/` 下的脚本文件数，不代表都能跑——`_probe_point.py` 就已知不可靠。
 
 改完**必须**跑，全绿才算完。
 
@@ -216,6 +224,24 @@ cd C:\DSH\字趣
 & $py dev\_probe_point.py <route> <宽> <高> <x> <y> [滚动到]
       # 点探：某一点上的命中栈与盒模型 ★ 目前**不可靠**（页面常停在 394px），
       # 急着查某点归谁管时再修它，日常用 _route_shot.py
+```
+
+**推送与线上核验**（这一组是这次新加的，改完代码要用它才能确认"线上真的生效了"）：
+
+```bash
+# 令牌从本机凭据管理器取，不落盘、不打印
+GH_TOKEN=$(printf "protocol=https\nhost=github.com\n\n" | GIT_TERMINAL_PROMPT=0 \
+  git credential fill 2>/dev/null | sed -n 's/^password=//p')
+
+GH_TOKEN="$GH_TOKEN" python dev/_push_api.py --dry               # 只列清单，不提交
+GH_TOKEN="$GH_TOKEN" python dev/_push_api.py --message-file msg.txt
+      # 走 GitHub REST API（这份副本没有 .git，且代理对 git push 返 502）。
+      # 用 git blob sha 判定"要不要推"；默认跳过 deploy.ps1（仅行尾符差异）
+
+python dev/_live_check.py            # 内容层（逐字节比本地与线上）+ 功能层（八页）
+python dev/_live_check.py --content --wait    # 只比内容，没生效就轮询
+python dev/_live_check.py --pages             # 只跑八页
+python dev/_live_check.py --needle "js/modes/boss-raid.js=POOL_SIZE"
 ```
 
 **四个 CSS 的花括号要配平**（`theme/ui/app/modes`）。**改动前记得 `git status`。**
