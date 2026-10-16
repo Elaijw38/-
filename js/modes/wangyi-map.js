@@ -45,13 +45,36 @@
      scale = 显示宽 / 2624 反算，保证屏幕上的命中直径不小于这个值。 */
   var TOUCH_MIN_PX = 44;
 
+  /* 缩放区间。1 = 「整幅图完整铺进视口」（contain），这也是进小地图时的初始倍率
+     ——需求「一、5」要求先给完整全景。往上最高 6 倍，够把一个作坊看清。 */
+  var MAX_ZOOM = 6;
+
   /* 需要局部放大的字：天然极小，或与宿主（人／鹿）热区挤在一起。
-     倍率按「让该字周围的 560 用户单位铺满一屏」来取。 */
+     倍率是在 contain 基准之上的**追加**倍率。 */
   var ZOOM_HINT = {
     '目': 3.4, '口': 3.4, '耳': 3.4, '止': 3.4, '又': 3.4, '足': 3.4,
     '刀': 3.0, '斧': 3.0, '斤': 3.0, '戈': 3.0, '糸': 3.0, '卜': 3.0,
     '玉': 2.8, '贝': 2.8, '矢': 2.8, '弓': 2.6,
     '米': 2.6, '屮': 2.6, '隹': 2.6, '石': 2.4, '水': 2.4, '泉': 2.4
+  };
+
+  /* 分区查看（需求「一、5」）：内容多的图不能把几十个热点挤在一屏全景里。
+     每个区域 = 一个视角（中心 + 倍率），点一下就跳过去。
+     倍率按「手机竖屏下，一屏看得到该区域周边约 1000×1200 用户单位」取。 */
+  var REGIONS = {
+    beast: [
+      { name: '隹·鹿·牛', x: 790, y: 400, z: 2.4 },
+      { name: '羊·虎', x: 2040, y: 460, z: 2.4 },
+      { name: '豕·犬', x: 900, y: 1160, z: 2.4 },
+      { name: '鱼·虫', x: 2030, y: 1120, z: 2.4 }
+    ],
+    life: [
+      { name: '城邑·城门', x: 760, y: 330, z: 2.8 },
+      { name: '水井·作坊', x: 420, y: 900, z: 2.8 },
+      { name: '兵器·陶铜', x: 1300, y: 800, z: 2.8 },
+      { name: '人物·身体', x: 1010, y: 1140, z: 2.8 },
+      { name: '匠作·水岸', x: 1850, y: 1080, z: 2.8 }
+    ]
   };
 
   /* 状态：
@@ -65,8 +88,22 @@
   var S = {
     view: 'map', zone: null, sel: null, lens: null, showHot: false,
     scroll: { left: 0, top: 0 }, zoom: 1,
+    /* manual：玩家自己放大过（按钮 / 双指 / 滚轮）。
+       自己放大之后，再点一次就直接开卡，不必「先点放大、再点开卡」两步。 */
+    manual: false,
+    /* hint：手势提示是否已经因为一次真实交互而收起 */
+    hint: false,
+    region: null,
     flow: null, drag: null
   };
+
+  /* 进小地图时把窗口滚到地图顶端（只做一次，之后不再跟玩家抢滚动条）。
+     需求「一、5」：**进入地图时优先完整显示全景**——光把图缩到 contain 还不够，
+     手机竖屏下顶栏 + 工具条 + 区域栏能占掉半屏，图会被顶到首屏之外。 */
+  var scrollToMapOnce = false;
+  /* 当前小地图的「按真实可用高度重算 + 重落缩放」入口，交给 window resize 用 */
+  var refitViewport = null;
+  var dropResize = null;
 
   function svgEl(tag) { return document.createElementNS(SVGNS, tag); }
   function uid() { return 'wy' + (uid.n = (uid.n || 0) + 1); }
@@ -113,10 +150,26 @@
   function mount(host) {
     S.view = 'map'; S.zone = null; S.sel = null; S.lens = null;
     S.showHot = false; S.scroll = { left: 0, top: 0 }; S.zoom = 1;
+    S.manual = false; S.hint = false; S.region = null;
     S.flow = null; S.drag = null;
 
     var root = App.el('div', 'scene wangyi');
     host.appendChild(root);
+
+    /* 转屏 / 改窗口大小：重算视口高度并重落缩放（窄屏那条 contain 基准依赖它） */
+    var onResize = function () {
+      if (!refitViewport) { return; }
+      if (S.view !== 'zone' || !S.zone) { return; }
+      refitViewport();
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    dropResize = function () {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+      dropResize = null;
+      refitViewport = null;
+    };
 
     if (!MAP || !MAP.zones || !MAP.zones.length) {
       root.appendChild(App.el('p', 'lead', '地图数据缺失（js/core/levels.json）。'));
@@ -242,7 +295,9 @@
     function enterZone(z) {
       S.zone = z; S.view = 'zone'; S.sel = null; S.lens = null;
       S.showHot = false; S.zoom = 1; S.scroll = { left: 0, top: 0 };
+      S.manual = false; S.region = null;
       S.flow = null;
+      scrollToMapOnce = true;      /* 进图一次性的对齐，见 renderZone 末尾 */
       render();
     }
     function backToWorld() {
@@ -276,7 +331,7 @@
       zhead.appendChild(App.el('span', null,
         s.clear ? '这一片已学完 · 大地图已点亮'
                 : '已学 ' + s.done + ' / ' + s.total
-                  + ' · 点图上看得见的实物，点中会放大'));
+                  + ' · 点图上看得见的实物'));
       top.appendChild(zhead);
 
       var zbar = App.el('span', 'wy2-zone-meter');
@@ -285,22 +340,57 @@
       zbar.appendChild(zfill);
       top.appendChild(zbar);
 
-      /* 工具：显示/隐藏可点处（学习状态）、放大复位。
-         「已学」状态也要清楚但克制——所以用**小小的印记**而不是大勾。 */
+      /* 工具条：缩放（− / + / 全景）+ 标出可点处。
+         「已学」状态也要清楚但克制——用**小小的印记**，不用扎眼的红圈。 */
       var tools = App.el('div', 'wy2-tools');
+      var zOut = App.el('button', 'btn sm wy2-zbtn', '−');
+      zOut.type = 'button';
+      zOut.setAttribute('aria-label', '缩小');
+      zOut.onclick = function () { zoomBy(1 / 1.6, null, true); };
+      tools.appendChild(zOut);
+
+      var zPct = App.el('span', 'wy2-zpct', Math.round(S.zoom * 100) + '%');
+      tools.appendChild(zPct);
+
+      var zIn = App.el('button', 'btn sm wy2-zbtn', '+');
+      zIn.type = 'button';
+      zIn.setAttribute('aria-label', '放大');
+      zIn.onclick = function () { zoomBy(1.6, null, true); };
+      tools.appendChild(zIn);
+
+      var zFit = App.el('button', 'btn sm wy2-tool' + (S.zoom <= 1.02 ? ' on' : ''),
+        '全景');
+      zFit.type = 'button';
+      zFit.disabled = S.zoom <= 1.02;
+      zFit.onclick = function () { setZoom(1, null, true); };
+      tools.appendChild(zFit);
+
       var hotBtn = App.el('button', 'btn sm wy2-tool' + (S.showHot ? ' on' : ''),
         S.showHot ? '收起提示' : '标出可点处');
       hotBtn.type = 'button';
       hotBtn.onclick = function () { S.showHot = !S.showHot; redrawZone(); };
       tools.appendChild(hotBtn);
-      if (S.zoom > 1) {
-        var zBtn = App.el('button', 'btn sm wy2-tool', '缩回全景');
-        zBtn.type = 'button';
-        zBtn.onclick = function () { setZoom(1, null); };
-        tools.appendChild(zBtn);
-      }
       top.appendChild(tools);
       el.appendChild(top);
+
+      /* 分区查看（内容多的图）：点一下跳到一个区域，省得在一屏全景里找 */
+      var regions = REGIONS[z.id];
+      if (regions && regions.length) {
+        var rbar = App.el('div', 'wy2-regions');
+        rbar.appendChild(App.el('span', 'wy2-regions-label', '按区域看'));
+        regions.forEach(function (rg, ri) {
+          var on = S.region === ri;
+          var b = App.el('button', 'wy2-region' + (on ? ' on' : ''), rg.name);
+          b.type = 'button';
+          b.onclick = function () {
+            S.region = (S.region === ri) ? null : ri;
+            if (S.region === null) { setZoom(1, null, true); }
+            else { setZoom(rg.z, { x: rg.x, y: rg.y }, true); }
+          };
+          rbar.appendChild(b);
+        });
+        el.appendChild(rbar);
+      }
 
       /* 学习卡会盖在地图上方，所以先建地图，卡片挂到 el 最后 */
       var viewport = App.el('div', 'wy2-viewport' + (S.showHot ? ' show-hots' : ''));
@@ -339,11 +429,12 @@
         g.appendChild(ring);
 
         if (it.done) {
-          /* 已学：一枚小小的朱砂印记。克制，但看得见。 */
+          /* 已学：一枚小小的朱砂印记。克制、静态（不做动画），但看得见。
+             半径给一个用户单位下限，缩到全景时也还剩一个点。 */
           var seal = svgEl('g');
           seal.setAttribute('class', 'wy2-seal');
           var sc = svgEl('circle');
-          sc.setAttribute('r', Math.max(16, (o.r || 70) * 0.22));
+          sc.setAttribute('r', Math.max(42, (o.r || 70) * 0.34));
           sc.setAttribute('class', 'wy2-seal-bg');
           seal.appendChild(sc);
           var st = svgEl('text');
@@ -361,51 +452,106 @@
       viewport.appendChild(stage);
       el.appendChild(viewport);
 
+      /* 手势提示：进图先给一句，一有真实交互就收起（不挡地图、不闪烁） */
+      var ghint = App.el('p', 'wy2-gesture' + (S.hint ? ' used' : ''));
+      ghint.appendChild(App.el('b', null, '看全图'));
+      ghint.appendChild(App.el('span', null,
+        '整幅已经铺满这一屏。拖动可移动，点「+ / −」或双指捏合放大，'
+        + '放大后点实物就出字卡。'));
+      el.appendChild(ghint);
+
       if (!objs.length) {
         el.appendChild(App.el('p', 'lead', '这一片还没有学习点。'));
         return;
       }
 
+      /* 窄屏布局助手：站点顶栏是 position:sticky，滚上去不会消失，
+         所有「剩余高度」都得先把它减掉，否则工具条会被压在它下面看不见。 */
+      function stickyHeadH() {
+        var h = document.querySelector('header.top, .top');
+        if (!h) { return 0; }
+        var r = h.getBoundingClientRect();
+        return Math.round(Math.min(r.height, (window.innerHeight || 800) * 0.4)) || 0;
+      }
+      function docY(node) {
+        var r = node.getBoundingClientRect();
+        return r.top + (window.pageYOffset || document.documentElement.scrollTop || 0);
+      }
+
+      /* 窄屏：视口高度按「进图后顶栏 + 分区栏 + 工具条之下的剩余空间」实测取值。
+         CSS 里那条 clamp() 只能估，估大了就把整幅全景顶到首屏之外
+         （实测 390×780 时视口 540px，图的上沿落在 y=708，整幅在屏幕外）。
+         这里量一次真实剩余高度，宁可矮一点，也要「一眼看全」。 */
+      function fitViewportHeight() {
+        var vp = root.querySelector('.wy2-viewport');
+        if (!vp) { return; }
+        if (window.innerWidth > 620) { vp.style.height = ''; return; }
+        var head = stickyHeadH();
+        var ztop = root.querySelector('.wy2-zone-top');
+        var vpOff = 0;
+        if (ztop) {
+          vpOff = Math.round(vp.getBoundingClientRect().top - ztop.getBoundingClientRect().top);
+        }
+        var ih = window.innerHeight || 800;
+        var avail = ih - head - vpOff - 16;
+        avail = Math.max(190, Math.min(avail, ih - head - 50));
+        /* 全景态让视口贴着图高，别在图上下一人留一大片空白；
+           一旦放大就用满剩余空间（不然放大后没有可拖动的余量）。 */
+        var vw = vp.clientWidth || 360;
+        var hug = Math.round(vw * AY / AX);
+        var want = (S.zoom <= 1.02 && hug < avail) ? hug : avail;
+        vp.style.height = Math.max(150, want) + 'px';
+      }
+
       /* ---- 视口与放大 ----
          stage 的宽高都写成像素：图片按 100%/100% 拉伸，
          svg 也显式给同样的像素宽高 + meet，于是两者永远严丝合缝。
-         这样「放大后热点还在实物上」不需要任何额外换算。 */
+         这样「放大后热点还在实物上」不需要任何额外换算。
+
+         基准是 **contain**：zoom=1 时整幅图完整铺进视口（需求「一、5」：
+         进地图先给完整全景）。之前用的是 fill-height，会把图横向裁掉。 */
+      function fitScale(vp) {
+        var vw = vp.clientWidth || 900;
+        var vh = vp.clientHeight || 500;
+        return Math.min(vw / AX, vh / AY);
+      }
+      function sizeFor(vp, zf) {
+        var bs = fitScale(vp);
+        return { w: Math.round(AX * bs * zf), h: Math.round(AY * bs * zf) };
+      }
       function applyZoom(anchor) {
         /* 每次都从 DOM 现取视口：setZoom 会整屏重画，闭包里的旧节点已经脱离文档，
            继续用它会量到 0 宽高（那正是"缩回全景后 scrollTop 卡在 84"的根因）。 */
         var vp = root.querySelector('.wy2-viewport');
         if (!vp) { return; }
         viewport = vp;
-        var zf = S.zoom;
         var vw = vp.clientWidth || 900;
         var vh = vp.clientHeight || 500;
-        var w = Math.round(vw * zf);
-        var h = Math.round(w * AY / AX);
-        if (h < vh * zf) {          /* 极宽的图：以高度为准，避免上下留白过多 */
-          h = Math.round(vh * zf);
-          w = Math.round(h * AX / AY);
-        }
+        var size = sizeFor(vp, S.zoom);
+        var w = size.w, h = size.h;
         if (anchor === undefined) { anchor = S.anchor; }
         stage.style.width = w + 'px';
         stage.style.height = h + 'px';
         svg.setAttribute('width', String(w));
         svg.setAttribute('height', String(h));
         if (anchor) {
-          var tx = anchor.x / AX * w;
-          var ty = anchor.y / AY * h;
-          S.scroll.left = clamp(tx - vw / 2, 0, Math.max(0, w - vw));
-          S.scroll.top = clamp(ty - vh / 2, 0, Math.max(0, h - vh));
+          var s = w / AX;
+          S.scroll.left = clamp(anchor.x * s - vw / 2, 0, Math.max(0, w - vw));
+          S.scroll.top = clamp(anchor.y * s - vh / 2, 0, Math.max(0, h - vh));
         } else {
-          S.scroll.left = 0;
-          S.scroll.top = 0;
+          S.scroll.left = Math.max(0, (w - vw) / 2);
+          S.scroll.top = Math.max(0, (h - vh) / 2);
         }
         vp.scrollLeft = S.scroll.left;
         vp.scrollTop = S.scroll.top;
       }
-      function setZoom(zf, anchor) {
-        S.zoom = Math.max(1, Math.min(4, zf));
+      function setZoom(zf, anchor, manual) {
+        S.zoom = Math.max(1, Math.min(MAX_ZOOM, zf));
         S.anchor = anchor || (S.lens ? { x: S.lens.x, y: S.lens.y } : null);
-        if (S.zoom <= 1.02) { S.zoom = 1; S.anchor = null; S.lens = null; }
+        if (manual) { S.manual = true; }
+        if (S.zoom <= 1.02) {
+          S.zoom = 1; S.anchor = null; S.lens = null; S.manual = false; S.region = null;
+        }
         redrawZone();
         /* 重画后 viewport 是新节点：必须**先定尺寸、再落滚动**，
            否则会把上一轮的旧 scrollTop 落到新节点上（会 scrollTop=84 却无处可滚）。
@@ -417,24 +563,34 @@
           applyZoom(S.anchor);
         });
       }
+      function zoomBy(f, anchor, manual) {
+        S.region = null;
+        setZoom(S.zoom * f, anchor, manual);
+      }
+      /* 视口坐标 → 图上的用户坐标（2624×1472 空间） */
+      function screenToUser(clientX, clientY) {
+        var r = svg.getBoundingClientRect();
+        if (!r.width) { return null; }
+        var scale = Math.min(r.width / AX, r.height / AY);
+        var dispW = AX * scale, dispH = AY * scale;
+        var offX = r.left + (r.width - dispW) / 2;
+        var offY = r.top + (r.height - dispH) / 2;
+        return { x: (clientX - offX) / scale, y: (clientY - offY) / scale };
+      }
       /* 点击判定：最近者优先 ----
          手机上图缩得很小，小物件只有几像素，逐像素去点不现实。
          所以按落点找**最近的热点**（超出容忍距离就不认），
          命中后自动放大到它，再点一次才开卡片。 */
       window.__wyDbg = window.__wyDbg || { taps: [], picks: [] };
       function pickAt(clientX, clientY) {
+        var u = screenToUser(clientX, clientY);
+        if (!u) { return null; }
+        var ux = u.x, uy = u.y;
         var r = svg.getBoundingClientRect();
-        if (!r.width || !r.height) { return null; }
-        /* svg 是 meet 的：图片区域可能比 svg 框小，先算出真实图片区域 */
         var scale = Math.min(r.width / AX, r.height / AY);
-        var dispW = AX * scale, dispH = AY * scale;
-        var offX = r.left + (r.width - dispW) / 2;
-        var offY = r.top + (r.height - dispH) / 2;
-        var ux = (clientX - offX) / scale;
-        var uy = (clientY - offY) / scale;
         if (ux < -40 || uy < -40 || ux > AX + 40 || uy > AY + 40) { return null; }
 
-        /* 手指容差：把 44px 换成用户单位，并给一点余量 */
+        /* 手指容差：把 44px 换算成用户单位，并给一点余量 */
         var tolPx = 26;
         var tol = tolPx / scale;
         var best = null, bd = Infinity;
@@ -465,8 +621,15 @@
             same: sameAsLens, willCard: !!(S.zoom > 1 && sameAsLens)
           });
         }
-        /* 已经放大到它了：这一次点就是「打开学习卡」 */
-        if (S.zoom > 1 && sameAsLens) {
+        /* 两种情况下这一下就是「打开学习卡」：
+           ① 已经由点击放大到它（lens 命中同一个字）；
+           ② 玩家自己放过（按钮 / 双指 / 滚轮），已经处在放大状态。 */
+        var openNow = (S.zoom > 1.02) && (sameAsLens || S.manual);
+        if (window.__wyDbg) {
+          var last = window.__wyDbg.taps[window.__wyDbg.taps.length - 1];
+          last.openNow = openNow;
+        }
+        if (openNow) {
           try {
             openCard(it);
             if (window.__wyDbg) { window.__wyDbg.taps[window.__wyDbg.taps.length - 1].ok = 1; }
@@ -480,26 +643,141 @@
         }
         var zf = ZOOM_HINT[o.char] || 2.6;
         S.lens = { char: o.char, x: o.x, y: o.y };
+        S.region = null;
         setZoom(zf, { x: o.x, y: o.y });
       }
 
-      /* 用 pointerup 而不是 click：手机上拖动图像后不会误触 */
+      /* ---- 手势：拖动交给浏览器原生滚动；缩放三路都要有
+         （按钮 / 双指捏合 / Ctrl+滚轮），否则手机上没有"明显"的放大入口 ---- */
+      var ptrs = {};
+      var pinch = null;
+      var liveZoom = 1;
       var downAt = null;
+      var drag = null;
+      function dist2(a, b) {
+        return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+      }
+      function ptrList() {
+        var a = [];
+        for (var k in ptrs) { if (ptrs.hasOwnProperty(k)) { a.push(ptrs[k]); } }
+        return a;
+      }
+      function markHintUsed() {
+        if (S.hint) { return; }
+        S.hint = true;
+        var h = root.querySelector('.wy2-gesture');
+        if (h) { h.classList.add('used'); }
+      }
+      /* 捏合过程中直接改 DOM 尺寸，不整屏重画（重画会打断手势） */
+      function applyLive(zf, cx, cy) {
+        var vp = viewport;
+        if (!vp) { return; }
+        var size = sizeFor(vp, zf);
+        var ratio = size.w / (stage.offsetWidth || size.w);
+        var sc = { left: vp.scrollLeft, top: vp.scrollTop };
+        var r = vp.getBoundingClientRect();
+        var lx = cx - r.left, ly = cy - r.top;
+        stage.style.width = size.w + 'px';
+        stage.style.height = size.h + 'px';
+        svg.setAttribute('width', String(size.w));
+        svg.setAttribute('height', String(size.h));
+        vp.scrollLeft = clamp((sc.left + lx) * ratio - lx, 0, Math.max(0, size.w - vp.clientWidth));
+        vp.scrollTop = clamp((sc.top + ly) * ratio - ly, 0, Math.max(0, size.h - vp.clientHeight));
+      }
+
       viewport.addEventListener('pointerdown', function (ev) {
         downAt = { x: ev.clientX, y: ev.clientY, t: Date.now() };
+        ptrs[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+        /* 桌面端：overflow:auto 的容器鼠标拖不动，得自己实现拖动看图 */
+        if (ev.pointerType === 'mouse' && S.zoom > 1.02) {
+          drag = { x: ev.clientX, y: ev.clientY,
+                   left: viewport.scrollLeft, top: viewport.scrollTop };
+          viewport.style.cursor = 'grabbing';
+          try { viewport.setPointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+        }
+        var a = ptrList();
+        if (a.length === 2) {
+          drag = null;
+          pinch = { d: Math.max(1, dist2(a[0], a[1])), z0: S.zoom,
+                    cx: (a[0].x + a[1].x) / 2, cy: (a[0].y + a[1].y) / 2 };
+          liveZoom = S.zoom;
+        }
       });
+      viewport.addEventListener('pointermove', function (ev) {
+        if (!ptrs[ev.pointerId]) { return; }
+        ptrs[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+        if (drag) {
+          viewport.scrollLeft = drag.left - (ev.clientX - drag.x);
+          viewport.scrollTop = drag.top - (ev.clientY - drag.y);
+          markHintUsed();
+          return;
+        }
+        if (!pinch) { return; }
+        var a = ptrList();
+        if (a.length < 2) { return; }
+        var d = Math.max(1, dist2(a[0], a[1]));
+        liveZoom = clamp(pinch.z0 * d / pinch.d, 1, MAX_ZOOM);
+        applyLive(liveZoom, (a[0].x + a[1].x) / 2, (a[0].y + a[1].y) / 2);
+        markHintUsed();
+      });
+      function endPointer(ev) {
+        if (drag) {
+          drag = null;
+          viewport.style.cursor = '';
+          try { viewport.releasePointerCapture(ev.pointerId); } catch (e) { /* 忽略 */ }
+        }
+        if (pinch && ptrList().length <= 2) {
+          pinch = null;
+          S.zoom = liveZoom;
+          S.manual = S.zoom > 1.02;
+          S.region = null;
+          S.lens = null;               /* 捏合之后要重新点一次选字，避免误开 */
+          S.anchor = screenToUser(ev.clientX, ev.clientY);
+          if (S.zoom <= 1.02) { S.zoom = 1; S.anchor = null; S.manual = false; }
+          redrawZone();
+          requestAnimationFrame(function () {
+            var vp = root.querySelector('.wy2-viewport');
+            if (!vp) { return; }
+            viewport = vp;
+            applyZoom(S.anchor);
+          });
+        }
+        delete ptrs[ev.pointerId];
+      }
       viewport.addEventListener('pointerup', function (ev) {
+        endPointer(ev);
+        if (pinch) { return; }
         if (!downAt) { return; }
         var moved = Math.abs(ev.clientX - downAt.x) + Math.abs(ev.clientY - downAt.y);
         var quick = Date.now() - downAt.t < 700;
         downAt = null;
         if (moved > 12 || !quick) { return; }   /* 是拖动/长按，不算点选 */
+        markHintUsed();
         onTap(ev);
+      });
+      viewport.addEventListener('pointercancel', function (ev) {
+        pinch = null;
+        drag = null;
+        viewport.style.cursor = '';
+        delete ptrs[ev.pointerId];
+        downAt = null;
       });
       viewport.addEventListener('scroll', function () {
         S.scroll.left = viewport.scrollLeft;
         S.scroll.top = viewport.scrollTop;
+        markHintUsed();
       });
+      /* Ctrl/⌘ + 滚轮（触控板捏合同源）缩放；普通滚轮继续滚页面 */
+      var wheelAt = 0;
+      viewport.addEventListener('wheel', function (ev) {
+        if (!(ev.ctrlKey || ev.metaKey)) { return; }
+        ev.preventDefault();
+        var now = Date.now();
+        if (now - wheelAt < 140) { return; }
+        wheelAt = now;
+        S.region = null;
+        zoomBy(ev.deltaY > 0 ? 1 / 1.25 : 1.25, screenToUser(ev.clientX, ev.clientY), true);
+      }, { passive: false });
 
       /* ---- 学习卡 ---- */
       function openCard(it) {
@@ -576,13 +854,37 @@
         if (vp) { vp.scrollLeft = S.scroll.left; vp.scrollTop = S.scroll.top; }
       }
 
-      /* ---- 先落一次缩放；视口尺寸此时未必可靠，下一帧再按真实尺寸重算 ---- */
+      /* ---- 先落一次缩放；视口尺寸此时未必可靠，下一帧再按真实尺寸重算 ----
+         窄屏还要先把视口高度压到「屏幕剩下的地方」，否则全景会被顶出首屏。 */
+      fitViewportHeight();
       applyZoom();
-      requestAnimationFrame(function () {
+      refitViewport = function () {
+        fitViewportHeight();
         var vp = root.querySelector('.wy2-viewport');
         if (!vp) { return; }
         viewport = vp;
         applyZoom();
+      };
+      requestAnimationFrame(function () {
+        var vp = root.querySelector('.wy2-viewport');
+        if (!vp) { return; }
+        viewport = vp;
+        fitViewportHeight();
+        applyZoom();
+        /* 进这一片的第一帧：把窗口滚到「分区顶栏」贴住站点顶栏，
+           使标题 / 缩放按钮 / 按区域看 / 整幅地图**同时**在第一屏里。
+           只滚一次；之后玩家自己上下滚，我们不再插手。 */
+        if (scrollToMapOnce) {
+          scrollToMapOnce = false;
+          var head = stickyHeadH();
+          var zt = root.querySelector('.wy2-zone-top');
+          if (zt) {
+            var target = Math.max(0, docY(zt) - head - 6);
+            window.scrollTo(0, target);
+            fitViewportHeight();
+            applyZoom();
+          }
+        }
       });
 
       /* 键盘可达：Tab 到热点时给个明显轮廓（热点在 svg 里，用按钮代理太绕，
@@ -592,6 +894,8 @@
       window.__wyDbg.state = function () {
         return { view: S.view, zoom: S.zoom, lens: S.lens ? S.lens.char : null,
                  sel: S.sel, zone: S.zone ? S.zone.id : null,
+                 manual: S.manual, region: S.region, hint: S.hint,
+                 scroll: { left: S.scroll.left, top: S.scroll.top },
                  showHot: S.showHot, flow: S.flow ? S.flow.obj.char : null };
       };
       var focusBtn = App.el('button', 'wy2-focus-helper',
@@ -809,7 +1113,10 @@
   function unmount() {
     S.view = 'map'; S.zone = null; S.sel = null; S.lens = null;
     S.showHot = false; S.zoom = 1; S.flow = null; S.drag = null;
+    S.manual = false; S.region = null;
     S.scroll = { left: 0, top: 0 };
+    scrollToMapOnce = false;
+    if (dropResize) { dropResize(); }
   }
 
   App.modes.register({

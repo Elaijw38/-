@@ -30,7 +30,7 @@ if not os.path.isabs(OUT):
     OUT = os.path.join(REPO, OUT)
 os.makedirs(OUT, exist_ok=True)
 
-URL = "http://127.0.0.1:8099/index.html#/play/boss-raid"
+URL = os.environ.get("RAID_URL") or "http://127.0.0.1:8099/index.html#/play/boss-raid"
 
 CDP = r'''
 const fs = require('fs');
@@ -72,13 +72,36 @@ const STATE = "JSON.stringify((function(){" +
   "var art=document.querySelector('.bd-figure-art');" +
   "var hp=document.querySelector('.bd-hpnum');" +
   "var st=document.querySelector('.bd-progress-value');" +
+  "function box(e){if(!e)return null;var b=e.getBoundingClientRect();" +
+  "return {x:Math.round(b.x),y:Math.round(b.y),w:Math.round(b.width),h:Math.round(b.height)};}" +
+  "var bub=document.querySelector('.bd-hero-bubble');" +
+  "var phead=document.querySelector('.bd-player-head');" +
+  "var bb=box(bub), pb=box(phead);" +
+  "var chips=document.querySelectorAll('.bd-chip');" +
+  "var nxt=document.querySelectorAll('.bo-cut.is-next');" +
   "return {" +
   "view:(document.querySelector('.bd-win')?'win':(document.querySelector('.bd-field')?'fight':'-'))," +
   "figClass:f?f.className:'-'," +
   "fxClass:fx?fx.className:'-', fxText:fx?fx.textContent:'-'," +
   "artSrc:art?String(art.getAttribute('src')).split('/').pop():'-'," +
   "artOk:art?(art.complete&&art.naturalWidth>0):false," +
-  "artVisible:art?getComputedStyle(art).display!=='none':false," +
+  "artBox:box(art)," +
+  "plateBox:box(document.querySelector('.bd-plate'))," +
+  "guideBox:box(document.querySelector('.bd-field-guide'))," +
+  "bubble:bub?bub.textContent:'-', bubbleBox:bb," +
+  /* 气泡压在名字行上就是排版事故，直接量出来 */
+  "bubbleOverHead:!!(bb&&pb&&bb.y<pb.y+pb.h&&bb.y+bb.h>pb.y)," +
+  "heroBox:box(document.querySelector('.bd-hero'))," +
+  "chipN:chips.length," +
+  "nextCut:nxt.length," +
+  "demo:!!document.querySelector('.bd-demo')," +
+  "demoBox:box(document.querySelector('.bd-demo-hand'))," +
+  "fieldBox:box(document.querySelector('.bd-field'))," +
+  "poolBox:box(document.querySelector('.bd-pool'))," +
+  "logsBox:box(document.querySelector('.bd-logs'))," +
+  "poolInView:(function(){var p=document.querySelector('.bd-pool');if(!p)return null;" +
+  "var b=p.getBoundingClientRect();return b.top<window.innerHeight&&b.top>0;})()" +
+  "," +
   "hp:hp?hp.textContent.trim():'-', prog:st?st.textContent.trim():'-'," +
   "cut:(document.querySelectorAll('.bo-cut').length)," +
   "phase:(document.querySelector('.bd-field.final')?'3':" +
@@ -131,6 +154,17 @@ ws.addEventListener('open', async () => {
   await send('Page.navigate', {url: process.argv[5]});
   await wait(5200);
 
+  /* 要进第 IDX 关，前面几关得先通关：unlocked(i) = i<=0 || isCleared(i-1)，
+     否则那颗珠子是 disabled，click() 点下去**什么都不发生**，
+     症状是"战斗界面一片空、view 取到 '-'"——看着像页面坏了，
+     其实是没解锁。只补到 IDX 前一步，讨伐榜看起来仍然自然。 */
+  if (IDX > 0) {
+    await ev("(function(){var a=[];for(var i=0;i<" + IDX + ";i++)a.push(i);" +
+      "App.store.set('bossraid',{cleared:a,perfect:a});return 'seeded';})()");
+    await send('Page.reload', {ignoreCache: false});
+    await wait(4200);
+  }
+
   await shot('00-track.png');
   /* 讨伐榜的"悬停换怪"：指针落到某一关，左边那一尊应换成**这一关自己要打的**。
      量的是 band 里那张图的 src——默认应是本阶通则图，悬停后应是这一关的专属图。 */
@@ -168,6 +202,29 @@ ws.addEventListener('open', async () => {
     await shot('02-break' + (i + 1) + '.png');
     await shotEl('02-break' + (i + 1) + '-fig.png', '.bd-figure', 2.4);
     if (i + 1 < COMPS.length) { await wait(1400); }
+  }
+
+  /* 独体 / 繁复档（山 人 日 月 水 龍 鳥 鼓 馬 舞 虎 …）：一阶段**没有构件池**，
+     直接在字形上点笔画（.bo-part[data-kind=stroke]）。所以这里补一条分支，
+     否则这些关永远停在 phase=1，看着像"关卡推不动"，其实只是探针只会点构件。
+     点到最后一段时游戏自己转阶段二（构件崩坏）。 */
+  const hasChips = await ev("document.querySelectorAll('.bd-chip').length");
+  if (!COMPS.length || hasChips === 0) {
+    for (var s = 0; s < 40; s++) {
+      const ph = await ev("(document.querySelector('.bd-field.final')?'3':" +
+        "(document.querySelector('.bd-field.broken')?'2':'1'))");
+      if (ph !== '1') { break; }
+      const hit = await ev("(function(){var g=document.querySelector('.bo-part');" +
+        "if(!g)return 'none';" +
+        "g.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));" +
+        "return 'ok';})()");
+      if (hit !== 'ok') { break; }
+      await wait(640);
+      if (s === 0) {
+        await shot('02-break1.png');
+        await shotEl('02-break1-fig.png', '.bd-figure', 2.4);
+      }
+    }
   }
 
   /* 阶段一转阶段二：构件崩坏 */
@@ -294,7 +351,23 @@ else:
         print("%18s %s  %s  飘字=%r%s"
               % ("", st["hp"], st["prog"], st["fxText"],
                  ("  名录面板=" + st["winCodexTxt"]) if st["winCodex"] else ""))
-        if st["overflowX"]:
+        # 布局：立绘/字形/提示卡的实际盒子、构件池个数、笔画引导标记
+        if st.get("artBox") or st.get("plateBox"):
+            print("%18s 立绘=%s 字形=%s 提示卡=%s"
+                  % ("", st.get("artBox"), st.get("plateBox"), st.get("guideBox")))
+        if st.get("bubble") and st["bubble"] != "-":
+            print("%18s 龟宝气泡=%r %s%s"
+                  % ("", st["bubble"], st.get("bubbleBox"),
+                     "  ！压住名字行" if st.get("bubbleOverHead") else ""))
+        if st.get("chipN"):
+            print("%18s 构件池=%d 个  池子=%s  首屏可见=%s  战场=%s"
+                  % ("", st["chipN"], st.get("poolBox"), st.get("poolInView"),
+                     st.get("fieldBox")))
+        if st.get("nextCut"):
+            print("%18s 笔画目标标记=%d 个（应为 1）%s"
+                  % ("", st["nextCut"],
+                     ("  演示层在 %s" % st["demoBox"]) if st.get("demo") else "  无演示层"))
+        if st["overflowX"] > 1:
             print("%18s ！横向溢出 %dpx" % ("", st["overflowX"]))
 print("输出目录 %s" % OUT)
 try:

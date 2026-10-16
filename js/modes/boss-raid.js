@@ -25,13 +25,15 @@
   var BOSS = (App.levels && App.levels.boss) || null;
   var SVGNS = 'http://www.w3.org/2000/svg';
   var CV = 100;
-  /* 构件池铺几个。原先铺的是 BOSS.palette 全部 37 个，而正确项只有 2 个——
-     玩家要在 37 个长得极像的甲骨构件里扫，扫完还得往下滚过整片池子
-     才够得着下一步的按钮（"改用笔画"因此几乎找不到）。
-     现在按关取 12 个：正确项全留，其余从池子里随机补满。
-     **定宽**是关键——池子大小不随正确项个数变，所以"池子里有几个"
+  /* 构件池铺几个。原先铺的是 BOSS.palette 全部 37 个，玩家要在 37 个长得极像的
+     甲骨构件里扫，扫完还得往下滚过整片池子才够得着下一步的按钮
+     （"改用笔画"因此几乎找不到）；后来收到 12 个，仍嫌多——一阶六关的正确项
+     都只有 2 个，12 个里挑 2 个还是要来回比对七八眼。
+     现在定 **4** 个：这一阶的正确项恒为 2，所以铺出来就是 2 个真的 + 2 个干扰，
+     一屏看全、不用滚，也正好落在"一眼扫完、还得想一想"的区间。
+     定宽仍然是关键——池子大小不随正确项个数变，所以"池子里有几个"
      不泄露"答案有几个"；只给正确项才是报答案。 */
-  var POOL_SIZE = 12;
+  var POOL_SIZE = 4;
   var STORE_KEY = 'bossraid';
 
   /* ---------- 三档 Boss 形象 ----------
@@ -78,6 +80,21 @@
   })();
   /* 取名录条目（原样返回，结算要用它的 form / parts / play） */
   function codexOf(ch) { return ch ? (ART_BY_CHAR[ch] || null) : null; }
+
+  /* ---------- 代用表：docx 字表里没有、因而从来没出过形象的那几关 ----------
+     第三关 21 关里有 12 关的字不在《Boss（象形会意假借）.docx》（去掉十二生肖后
+     88 尊）里——一阶 焚；二阶 山 人 日 月 水；终极 龍 鳥 鼓 馬 舞 虎。
+     它们原先一律回退到 assets/boss-0X-*.png 那三张【早期卡通】档位通用图，
+     画风与 88 尊不是一套（红眼、粗轮廓、无骨白平涂），并排看很跳。
+     数据在 js/core/boss-art-swap.json → levels.json 的 boss.artSwap，
+     由 dev/_build_bosscodex.py 生成。
+
+     取用顺序：名录专属形象 → 本表代用 → 本档通用图。
+     借来的形象一律带 swapped 标记：界面因此**说得清它是借的**，
+     不会把它冒充成本关的原生形象（需求「二、1 / 二、2」）。
+     这张表是数据不是代码——往后补了专属形象，只要把对应那行删掉即可。 */
+  var SWAP = (BOSS && BOSS.artSwap && BOSS.artSwap.entries) || {};
+  function swapOf(ch) { return ch ? (SWAP[ch] || null) : null; }
   /* 条目里的 group 存的是 id（picto / huiyi / jiajie），直接印出来就是
      给玩家看天书。图鉴那边已经有一份 id→中文名的表，这里照同一份来。 */
   var GROUP_NAME = (function () {
@@ -90,14 +107,37 @@
   function groupName(id) { return GROUP_NAME[id] || id || ''; }
   function charArt(ch) {
     var c = codexOf(ch);
-    if (!c) { return null; }
-    return {
-      src: c.art,
-      /* 形象说明是「巨龟，甲壳如岩、头尾可缩、四足如柱」这样的句子，
-         标签只取头一个短句当名字用。 */
-      name: String(c.form || ch).split(/[，,、]/)[0].slice(0, 10),
-      note: c.form || ''
-    };
+    if (c && c.art) {
+      return {
+        src: c.art,
+        /* 形象说明是「巨龟，甲壳如岩、头尾可缩、四足如柱」这样的句子，
+           标签只取头一个短句当名字用。 */
+        name: String(c.form || ch).split(/[，,、]/)[0].slice(0, 10),
+        note: c.form || ''
+      };
+    }
+    /* 名录里没有这一尊，看代用表。name 用**本关自己的描述**（tiers[].list[].note），
+       所以标签读得出「这是本关的那尊」；note 借的是「为什么要借这一尊」，
+       进 alt 与结算页的说明都靠它。 */
+    var s = swapOf(ch);
+    if (s && s.art) {
+      return {
+        src: s.art,
+        name: s.name || String(ch),
+        note: s.why || '',
+        swapped: true,
+        from: s.of || '',
+        tie: s.tie || ''
+      };
+    }
+    return null;
+  }
+  /* 形象的显示名。代用的在后面缀一个「· 代用」——只有 10px 的小标注、
+     手机上本来就不显示，但它在桌面端把「这张是借的」说清楚了，
+     不会让人把独角犀当成虎。 */
+  function artLabel(a) {
+    if (!a) { return ''; }
+    return a.name + (a.swapped ? ' · 代用' : '');
   }
   function bossArtOf() {
     return charArt(S.boss && S.boss.char) || tierArt(S.tier && S.tier.id);
@@ -179,7 +219,11 @@
     pool: [],
     /* 这一手打在怪身上的效果。由命中处写入、由 render() 取走一次就清空——
        因此它只会在"刚刚打中"的那一次渲染里出现，别的原因引起的重绘不会重放。 */
-    fx: null, fxView: null
+    fx: null, fxView: null,
+    /* 笔画终局的首次演示（需求「二、4」）：只在该玩家第一次进终局时亮一次，
+       对着「本次该打的那一段」指一下，几秒后自己收走，不常驻、不挡操作。
+       是否已经看过记在存档里（prog().tipStroke），换一关不会再演一遍。 */
+    demo: false
   };
 
   /* ============================================================
@@ -210,6 +254,7 @@
       S.view = 'track'; S.idx = 0; S.boss = null; S.tier = null;
       S.phase = 1; S.hp = 100; S.broken = []; S.cut = []; S.miss = 0;
       S.log = []; S.hint = false; S.pool = []; S.fx = null; S.fxView = null;
+      S.demo = false;
     }
 
     /* 形体崩坏度：让形象跟着战况走，而不是从头到尾摆一张不变的画。
@@ -351,7 +396,7 @@
             artName = App.el('span', 'bo-tier-artname', a.name);
             artBox.appendChild(artName);
           }
-          artName.textContent = a.name;
+          artName.textContent = artLabel(a);
         }
         function resetArt() {
           if (!art) { return; }
@@ -553,6 +598,21 @@
       return { title: '先看轮廓', text: '这是一个整体象形。点选一笔试着拆解，观察线条如何组合。', tone: 'action' };
     }
 
+    /* 龟宝嘴边那一句：把 cue 压到最短，只留一个动作或一句判断。
+       误选 / 命中这类要当场看见的反馈也走这里——紧贴着龟宝出，
+       不必等玩家把视线挪到战报上才发现自己点错了。 */
+    function guibaoLine() {
+      var fx = S.fxView;
+      if (S.phase === 3) {
+        if (fx && fx.kind === 'cut') { return '接着斩下一段'; }
+        return S.cut.length ? '照这个走，一段一段来' : '从这里开始，逐段斩';
+      }
+      if (S.phase === 2) { return '构件混同了，改用笔画'; }
+      if (fx && fx.kind === 'miss') { return '这块不在它的构形里'; }
+      if (fx && fx.kind === 'break') { return '拆下一块，继续'; }
+      return isCompound() ? '看它由哪几块拼成' : '点一笔试着拆';
+    }
+
     function renderFight(el) {
       var b = S.boss;
 
@@ -594,6 +654,13 @@
       heroHead.appendChild(App.el('span', 'bd-player-kicker', '玩家化身'));
       heroHead.appendChild(App.el('strong', 'bd-player-name', '龟宝'));
       hero.appendChild(heroHead);
+
+      /* 龟宝嘴边那一句短提示（需求「二、5」：提示改成小气泡 / 靠近龟宝的短句）。
+         排在龟宝**正上方**、跟他在同一条流里——不是悬在栏顶的一张卡。
+         和中央那张提示卡说的是同一件事，但这里只留最短的一句动词句；
+         误选时它当场变成"这块不在它的构形里"，不用去战报里翻。 */
+      hero.appendChild(App.el('div',
+        'bd-hero-bubble tone-' + cue.tone, guibaoLine()));
 
       var avatarWrap = App.el('div', 'bd-hero-portrait mood-' + cue.tone);
       var avatar = App.el('img', 'bd-avatar');
@@ -725,7 +792,7 @@
         figGlow.setAttribute('aria-hidden', 'true');
         figShot.appendChild(figGlow);
         figMedia.appendChild(figShot);
-        figMedia.appendChild(App.el('span', 'bd-figure-tag', figArt.name));
+        figMedia.appendChild(App.el('span', 'bd-figure-tag', artLabel(figArt)));
         figure.appendChild(figMedia);
       }
 
@@ -748,6 +815,29 @@
 
       field.appendChild(App.el('span', 'bd-ground'));
       el.appendChild(field);
+
+      /* 笔画终局的首次演示层：在战报与构件池之前插进战场里，
+         且只挂在 .bd-plate 内（跟着字形走，不覆盖别处）。
+         位置由那段笔画自己的 bbox 算，不写死坐标——每个字的笔画在哪儿都不一样。 */
+      if (S.phase === 3 && S.demo) {
+        var nx = root.querySelector('.bd-plate .bo-cut.is-next');
+        var demo = App.el('div', 'bd-demo');
+        var hand = App.el('i', 'bd-demo-hand');
+        var dtxt = App.el('span', 'bd-demo-text', '从这一段开始');
+        if (nx && nx.getBBox) {
+          var bb = nx.getBBox();
+          var px = Math.max(6, Math.min(94, (bb.x + bb.width / 2) / CV * 100));
+          var py = Math.max(6, Math.min(94, (bb.y + bb.height / 2) / CV * 100));
+          hand.style.left = px + '%';
+          hand.style.top = py + '%';
+          dtxt.style.left = px + '%';
+          dtxt.style.top = py + '%';
+        }
+        demo.appendChild(hand);
+        demo.appendChild(dtxt);
+        var plate2 = root.querySelector('.bd-plate');
+        if (plate2) { plate2.appendChild(demo); }
+      }
 
       /* 构件池：只有身上真有构件的那一档才给（其余档没有可挑的东西） */
       if (isCompound()) { renderPool(el); }
@@ -831,10 +921,9 @@
       }
 
       head.appendChild(App.el('span', 'bd-pool-note',
-        '在 ' + pool.length + ' 个候选里挑出它身上的构件'
-        + '（已拆 ' + S.broken.length + ' / ' + need.length + '）'
-        + (S.miss ? '　误选 ' + S.miss + ' 次' : '')
-        + '　指针放上去看名字'));
+        '从 ' + pool.length + ' 块里挑出它身上的构件 · 已拆 '
+        + S.broken.length + ' / ' + need.length
+        + (S.miss ? ' · 误选 ' + S.miss + ' 次' : '')));
       /* 触屏没有悬停，给一个常显开关——这就是"点击显示名字"。
          默认关着：甲骨形上不印现代字是既定规则。 */
       var toggle = App.el('button', 'btn sm ghost bd-pool-toggle',
@@ -913,7 +1002,11 @@
       var out = [];
 
       if (S.phase === 3) {
-        /* 终局：纯笔画体。合体 BOSS 用各构件笔画之和；其余用整字笔画。 */
+        /* 终局：纯笔画体。合体 BOSS 用各构件笔画之和；其余用整字笔画。
+           **第一段还没斩的笔画标成 is-next**：需求「二、4」要求
+           "明确标出本次可攻击的笔画或路径"。只靠提示卡那句"点一段残线"
+           等于让玩家在一堆细线里自己认哪一段是活的——现在图上直接指出来。 */
+        var marked = false;
         if (isCompound()) {
           var n = b.comps.length;
           b.comps.forEach(function (c, ci) {
@@ -921,7 +1014,9 @@
             for (var j = 0; j < cnt; j++) {
               var k = compIndex(ci, j);
               if (S.cut.indexOf(k) >= 0) { continue; }
-              out.push('<g class="bo-cut" data-k="' + k + '" transform="' +
+              var isNext = !marked; marked = true;
+              out.push('<g class="bo-cut' + (isNext ? ' is-next' : '') +
+                '" data-k="' + k + '" transform="' +
                 compLayout(ci, n) + '">' + strokePath(c, j, 'currentColor', 1) +
                 '<g class="bo-hit">' + strokePath(c, j, 'rgba(0,0,0,0)', 7) + '</g></g>');
             }
@@ -930,7 +1025,9 @@
           var m = App.glyphStrokeCount(b.char);
           for (var i = 0; i < m; i++) {
             if (S.cut.indexOf(i) >= 0) { continue; }
-            out.push('<g class="bo-cut" data-k="' + i + '">' +
+            var isNext2 = !marked; marked = true;
+            out.push('<g class="bo-cut' + (isNext2 ? ' is-next' : '') +
+              '" data-k="' + i + '">' +
               strokePath(b.char, i, 'currentColor', 1) +
               '<g class="bo-hit">' + strokePath(b.char, i, 'rgba(0,0,0,0)', 7) + '</g></g>');
           }
@@ -978,6 +1075,11 @@
           g.addEventListener('click', function () {
             var k = parseInt(g.getAttribute('data-k'), 10);
             if (S.cut.indexOf(k) >= 0) { return; }
+            /* 玩家已经动手了，演示层立刻收走——留着就挡下一段了 */
+            if (S.demo) {
+              S.demo = false;
+              if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
+            }
             S.cut.push(k);
             var total = strokeTotal();
             S.hp -= 50 / total;
@@ -1037,9 +1139,27 @@
     function toPhase3() {
       S.phase = 3;
       S.cut = [];
+      /* 第一次进终局的玩家，给一段几秒的演示（需求「二、4」"首次操作时给出
+         简短演示"）。看过一次就记进存档，之后不再演。 */
+      var p = prog();
+      if (!p.tipStroke) { p.tipStroke = 1; saveProg(p); S.demo = true; }
       say('sys', '笔画终局', '它彻底化为无构件的纯图画古字。'
         + '现在只有一件事能做：把它的笔画一段一段斩断。');
       render();
+      if (S.demo) { demoStrokeOnce(); }
+    }
+
+    /* 笔画演示：把"本次该打的那一段"指出来，几秒后自己收走。
+       只摘掉这一层演示层，不重画整屏——重画会把刚落的停顿又抖一下。 */
+    var demoTimer = null;
+    function demoStrokeOnce() {
+      if (demoTimer) { clearTimeout(demoTimer); }
+      demoTimer = setTimeout(function () {
+        demoTimer = null;
+        S.demo = false;
+        var d = root.querySelector('.bd-demo');
+        if (d && d.parentNode) { d.parentNode.removeChild(d); }
+      }, 4600);
     }
 
     function win() {
@@ -1136,6 +1256,15 @@
           + (cx.group ? ' · ' + groupName(cx.group) : '')
           + '　·　在「汉字图鉴 → 讨伐名录」里可查'));
         info.appendChild(cxbox);
+      } else if (wArt && wArt.swapped) {
+        /* 这一尊没有名录条目——因为它根本不在那份 docx 字表里。
+           形象是从名录里借的，就得如实说清是借的、为什么借，
+           而不是让玩家以为独角犀就是虎（需求「二、1 / 二、2」）。 */
+        info.appendChild(App.el('p', 'bd-winnote',
+          '※ 形象是借的：本关的字不在《Boss（象形会意假借）.docx》字表内，'
+          + '名录里没有它的专属形象，这里暂借「' + wArt.from + '」一尊顶上'
+          + (wArt.tie ? '（' + wArt.tie + '）' : '') + '。'
+          + (wArt.note ? wArt.note : '')));
       }
       card.appendChild(info);
       el.appendChild(card);

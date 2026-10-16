@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """把「讨伐名录」（Boss 形象字表）并进 js/core/levels.json 的 bossCodex 段。
 
-数据来源分三处，各管一件事：
+数据来源分四处，各管一件事：
   js/core/boss-codex.json   《Boss（象形会意假借）.docx》的逐字转录（形象/部件/玩法）
   js/core/glyph-parts.json  甲骨字库（73 字）——决定这个字能不能真打成关卡
   assets/boss/*.png         形象资产（文件名即编号+拼音，本脚本按同一次序号推导）
+  js/core/boss-art-swap.json 代用表：docx 表里没有、因而从来没出过形象的那几关，
+                             先从现有名录形象里借最贴的一尊顶上（用户口径：不新出图，
+                             先把画风统一起来）。借来的不算专属形象，不进图鉴。
 
 产出既给「图鉴」用（形象/部件/玩法），也给作战界面用（按字取形象，回退到按档）。
 
@@ -24,6 +27,7 @@ REPO = os.path.normpath(os.path.join(HERE, ".."))
 CODEX = os.path.join(REPO, "js", "core", "boss-codex.json")
 LEVELS = os.path.join(REPO, "js", "core", "levels.json")
 GLYPHS = os.path.join(REPO, "js", "core", "glyph-parts.json")
+SWAP = os.path.join(REPO, "js", "core", "boss-art-swap.json")
 ARTDIR = os.path.join(REPO, "assets", "boss")
 
 # 简繁互认：docx 用繁体写「龜魚貝門」，字库里有的是简体。只做等价替换，不改字。
@@ -97,6 +101,35 @@ def main():
         })
 
     doc = json.loads(io.open(LEVELS, encoding="utf-8").read())
+
+    # ---------- 代用表（docx 没收录、因而从来没出过形象的那几关） ----------
+    # 只做并入与自检：既不能漏掉一关（漏了就还会掉回卡通通用图），
+    # 也不能塞进一个不是关卡的字（塞了就是死数据，没人会发现）。
+    swap_doc = json.loads(io.open(SWAP, encoding="utf-8").read())
+    swaps = swap_doc.get("swap") or {}
+    lv_chars = []
+    for t in (doc.get("boss") or {}).get("tiers", []):
+        for lv in (t.get("list") or []):
+            lv_chars.append(lv["char"])
+    have = set(e["char"] for e in entries)
+    have |= set(e["alt"] for e in entries if e.get("alt"))
+    swap_bad, swap_gap = [], []
+    for k, v in swaps.items():
+        if k not in lv_chars:
+            swap_bad.append("%s（不是任何一关的字）" % k)
+        if not os.path.exists(os.path.join(REPO, v.get("art", ""))):
+            swap_bad.append("%s → %s（文件不存在）" % (k, v.get("art")))
+    for c in lv_chars:
+        if c not in have and c not in swaps:
+            swap_gap.append(c)
+
+    doc["boss"]["artSwap"] = {
+        "_note": "关卡取不到名录专属形象时的代用表。取用顺序：名录专属形象 → 本表 → 本档通用图。"
+                 "由 js/core/boss-art-swap.json 生成，勿手改。",
+        "_version": swap_doc.get("_version", "1.0"),
+        "entries": swaps,
+    }
+
     doc["bossCodex"] = {
         "_note": "《Boss（象形会意假借）.docx》的字表：形象 / 可拆部件 / 破解玩法。"
                  "art 指向 assets/boss/ 下的形象；glyph 是字库里对应的整字甲骨形（无则 null）；"
@@ -121,6 +154,21 @@ def main():
         print("  ★ 缺形象资产：%s" % " ".join(missing_art))
     else:
         print("  形象资产：88 张全在 ✓")
+
+    print()
+    print("  代用表：%d 关无专属形象" % len(swaps))
+    for k in lv_chars:
+        if k in swaps:
+            print("    %s ← %-4s（%s）%s" % (k, swaps[k].get("of", "?"),
+                                            swaps[k].get("tie", ""), swaps[k].get("art", "")))
+    if swap_bad:
+        print("  ★ 代用表有问题：%s" % "；".join(swap_bad))
+    if swap_gap:
+        print("  ★ 这几关既无专属形象、也不在代用表里，会掉回卡通通用图：%s"
+              % " ".join(swap_gap))
+    if not swap_bad and not swap_gap:
+        print("  21 关全部有形象可用 ✓（专属 %d 关 / 代用 %d 关）"
+              % (len(lv_chars) - len(swaps), len(swaps)))
 
 
 if __name__ == "__main__":

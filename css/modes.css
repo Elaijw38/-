@@ -843,22 +843,54 @@
 .wy2-zone-meter { display: block; height: 3px; overflow: hidden; background: var(--edge); }
 .wy2-zone-fill { display: block; width: 0; height: 100%; background: var(--cinnabar);
   transition: width .45s ease; }
-.wy2-tools { display: flex; align-items: center; gap: 7px; }
+.wy2-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  justify-content: flex-end; }
 .wy2-tool { color: var(--ink-2); background: none; border-color: var(--edge); }
 .wy2-tool.on { color: var(--cinnabar-tint); border-color: var(--cinnabar-tint); }
+/* 缩放控件：− 100% + ，放大入口要显眼，不能只藏在双指里 */
+.wy2-zbtn { min-width: 34px; padding: 5px 8px; color: var(--ink);
+  font-size: 15px; line-height: 1; background: var(--card);
+  border-color: var(--edge-strong, var(--edge)); }
+.wy2-zbtn:hover { color: var(--cinnabar-tint); border-color: var(--cinnabar-tint); }
+.wy2-zpct { min-width: 42px; color: var(--ink-soft); font-size: 10px;
+  text-align: center; font-variant-numeric: tabular-nums; }
+
+/* 按区域查看：内容多的图（人居器物 33 个点）不能挤在一屏全景里 */
+.wy2-regions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 9px; }
+.wy2-regions-label { color: var(--ink-soft); font-size: 10px; letter-spacing: 1px; }
+.wy2-region { padding: 5px 10px; color: var(--ink-2); font-size: 11px;
+  background: var(--sheet-in); border: 1px solid var(--edge); border-radius: 2px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.wy2-region:hover { color: var(--cinnabar-tint); border-color: var(--cinnabar-tint); }
+.wy2-region.on { color: #fff3dc; background: var(--cinnabar);
+  border-color: var(--cinnabar); }
+
+/* 手势提示：一次性，交互后就收起 */
+.wy2-gesture { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  margin: 9px 0 0; padding: 8px 12px; color: var(--ink-2); font-size: 11px;
+  line-height: 1.55; background: var(--sheet-in);
+  border-left: 2px solid var(--bronze-tint);
+  transition: opacity .25s ease, max-height .25s ease, margin .25s ease,
+              padding .25s ease; }
+.wy2-gesture b { color: var(--ink); font-family: var(--font-serif);
+  font-size: 12px; font-weight: 500; }
+.wy2-gesture.used { max-height: 0; margin: 0; padding-top: 0; padding-bottom: 0;
+  overflow: hidden; opacity: 0; }
 
 /* 视口：手机上图很大，这里给它一个固定的可滚动窗口，方便拖动看图。
    高度必须**扣掉固定顶栏**（约 58px）：否则图的边缘会滚到顶栏底下，
    那一带的热点就永远点不到——实测「宀」滚到 y=54 时被顶栏吃掉，
    点击直接落到顶栏的导航链接上。 */
 .wy2-viewport { position: relative; overflow: auto; margin-top: 10px;
+  display: flex;                 /* 全景比视口小时居中，不留一块空白在左上角 */
   height: clamp(300px, calc(100vh - 268px), 700px);
   max-height: calc(100vh - 76px);
   background: var(--bone1); border: 1px solid var(--edge);
   touch-action: pan-x pan-y; overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scroll-margin-top: 76px; }
-.wy2-stage { position: relative; }
+.wy2-stage { position: relative; flex: 0 0 auto; margin: auto; }
 .wy2-art { position: absolute; inset: 0; display: block; width: 100%; height: 100%;
   user-select: none; -webkit-user-drag: none; }
 .wy2-hotspots { position: absolute; inset: 0; display: block; }
@@ -866,15 +898,20 @@
 .wy2-hit { fill: rgba(255, 255, 255, .001); cursor: pointer; }
 .wy2-ring { fill: none; stroke: var(--cinnabar); stroke-width: 3px; opacity: 0;
   pointer-events: none; }
-.wy2-spot.done .wy2-ring { opacity: .3; stroke-dasharray: 6 7; }
+/* 已学：**不再画大圈**——完成标记交给那枚小小的朱砂印记（.wy2-seal-*）。
+   需求「一、4」明确：不要扎眼的红色大圆框，也不要闪烁。 */
+.wy2-spot.done .wy2-ring { opacity: 0; }
 .wy2-spot.focus .wy2-ring { opacity: .95; stroke-dasharray: none; }
 /* 「标出可点处」是给游客看"哪里有东西"的，类挂在视口上 */
 .wy2-viewport.show-hots .wy2-ring { opacity: .78; stroke-dasharray: 7 6; stroke-width: 4px; }
-.wy2-viewport.show-hots .wy2-spot.done .wy2-ring { opacity: .9; stroke-dasharray: none; }
+/* 已学的那些：只留一圈极细的虚线，区别于未学的实心大圈 */
+.wy2-viewport.show-hots .wy2-spot.done .wy2-ring { opacity: .34;
+  stroke-width: 2px; stroke-dasharray: 2 8; }
 .wy2-spot { cursor: pointer; }
 
-/* 已学印记：小小的朱砂点，克制但看得见 */
-.wy2-seal-bg { fill: rgba(166, 62, 47, .82); stroke: rgba(255, 240, 214, .6);
+/* 已学印记：一枚小小的朱砂印，静态不闪烁 */
+.wy2-seal { pointer-events: none; }
+.wy2-seal-bg { fill: rgba(166, 62, 47, .86); stroke: rgba(255, 240, 214, .72);
   stroke-width: 1.5px; }
 .wy2-seal-text { fill: #fff3dc; font-family: var(--font-serif); font-size: 22px; }
 
@@ -981,13 +1018,27 @@
   .wy2-guide-copy span { font-size: 10px; }
   .wy2-reset { padding: 5px 8px; font-size: 9px; }
   .wy2-credit { font-size: 9px; }
-  /* 小地图在手机上占满一屏，标题压到一行 */
-  .wy2-zone-top { grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 8px; padding-bottom: 8px; }
+  /* 小地图顶栏：手机上改成**两行**——标题独占一行，返回 + 工具条一行。
+     从前是三列 `auto 1fr auto`，工具条把中间那列压到 ~28px，
+     分区名连带进度被逼成竖排（一列一个字），白吃掉 300px 纵向空间，
+     结果整幅全景被顶到首屏之外。 */
+  .wy2-zone-top { grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "zhead zhead" "zback ztools";
+    gap: 7px 8px; padding-bottom: 8px; }
+  .wy2-zone-head { grid-area: zhead; display: flex; align-items: baseline;
+    gap: 4px 9px; flex-wrap: wrap; }
+  .wy2-zone-head b { font-size: 17px; }
+  .wy2-back { grid-area: zback; }
+  .wy2-tools { grid-area: ztools; }
   .wy2-zone-meter { display: none; }
-  .wy2-zone-head span { font-size: 9px; }
-  .wy2-viewport { height: clamp(300px, calc(100vh - 236px), 540px);
-    max-height: calc(100vh - 76px); }
+  .wy2-zone-head span { font-size: 9.5px; }
+  /* 视口高度交给 JS 实测（fitViewportHeight），这里只兜底，别写死大值 */
+  .wy2-viewport { height: clamp(210px, calc(100vh - 320px), 460px);
+    max-height: calc(100vh - 90px); }
+  /* 区域栏压薄，别占掉两行以上 */
+  .wy2-regions { gap: 5px; }
+  .wy2-regions-label { font-size: 9px; }
+  .wy2-region { padding: 4px 8px; font-size: 10px; }
   .wy2-tool { padding: 6px 9px; font-size: 10px; }
   .wy2-card { grid-template-columns: minmax(0, 1fr); gap: 12px;
     max-height: 88vh; padding: 16px 15px 18px; }
@@ -2422,14 +2473,17 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
    阶段二起整池收成细栏，见 .bd-pool.is-dead。
    ============================================================================ */
 .bd-pool {
-  max-width: 1180px; margin: 0 auto var(--s-4);
+  /* 池子收成 4 个之后不能再铺满 1180：4 块摊在一整行里，右边空一大片，
+     看着像"没铺完"，反而像是加载失败。收成一条居中的选择带，
+     4 块各占一格、一眼看全，也不用滚。 */
+  max-width: 620px; margin: 0 auto var(--s-3);
   padding: var(--s-3) var(--s-4) var(--s-4);
   border: 1px solid var(--edge); border-radius: var(--r);
   background: color-mix(in srgb, var(--bone-hi) 86%, transparent);
 }
 .bd-pool-head {
   display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap;
-  margin-bottom: var(--s-3);
+  margin-bottom: var(--s-2);
 }
 .bd-pool-head b { font-size: var(--fs-md); letter-spacing: 2px; }
 .bd-pool-note { font-size: var(--fs-sm); color: var(--bronze-tint); }
@@ -2437,10 +2491,10 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 
 .bd-poolgrid {
   display: grid; gap: var(--s-2);
-  /* 轨道下限从 56 提到 86：池子收窄到 12 个之后，56 的下限会排出
-     约 21 条轨道，12 块只占掉半行、右边空一大片，看着像没铺完。
-     86 在桌面宽度下正好排出 12 条——12 块均分一整行。 */
-  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  /* 定死 4 列：池子恒为 4 个（见 js 里的 POOL_SIZE），4 块正好铺满一行。
+     原来用 auto-fill + minmax(86px,1fr) 是给 12 个铺的，收到 4 个之后
+     会排出十几条空轨道，4 块只占左边一角。 */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .bd-chip {
   display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -2809,15 +2863,46 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .scene.boss-raid .bd-phases { gap: 6px; }
 .scene.boss-raid .bd-phase { background: color-mix(in srgb, var(--bone-hi) 80%, transparent); }
 
+/* ---------------------------------------------------------------------------
+   战场的竖向尺寸随视口高度走（--bd-arena）
+   ----------------------------------------------------------------------------
+   原先字形与立绘是定值（字形 274、立绘 clamp(150,13.6vw,190)），于是战场高度
+   被钉在 633px。而它下面还压着构件池（131px）——**池子才是这一屏必须露出来的
+   东西**（需求「二、3」：一屏看全、不用滚）。实测：
+     1440×1000  池子 867→998，刚好卡在 1000 里（余量 2px）
+     1280×900   池子 851→982，**整块掉出首屏**（1366×768 的笔记本更糟）
+   也就是说先前只按 1000 高调过，低一点就废。
+   现在把「字形 + 立绘」绑到一个随视口高度线性收缩的变量上：
+   992px 以上恒为 274（保持原先调好的样子，一点没动），
+   往下每矮 1px 就收 1px，收到 168 打住（再小字形就点不准了）。
+   池子因此始终留在首屏内，且各视口高度下都留有同一档余量。
+   --------------------------------------------------------------------------- */
+.scene.boss-raid {
+  /* 两个上限取小：--bd-arena-max 是"这一档宽度最多允许多大"（改在媒体查询里），
+     右边是"这一档高度最多允许多大"。窄屏要缩字形，是因为栏变窄了字形会顶到
+     边框；窄屏**同时**也可能是矮屏（1024×768 这种老笔记本），两条限制都得认，
+     所以这里是 min() 而不是各写各的定值——原先 @media (max-width:1024px) 里
+     写死 height:250px，把高度这一路整个盖掉了，768 高的机器就必然出屏。 */
+  --bd-arena-max: 274px;
+  /* 地板 138 而不是 146：手机那一档的宽度上限正好也是 138，所以地板设 138
+     对手机毫无影响（min(138, 138) 还是 138，那 138 是量过"相邻笔画仍隔 20px
+     以上、点得准"的），却让 768 高的桌面笔记本（1366×768）也能多让出 8px——
+     那一档实测余量最紧，只有 5px。 */
+  --bd-arena: min(var(--bd-arena-max), clamp(138px, calc(100vh - 724px), 274px));
+}
 .scene.boss-raid .bd-field {
   grid-template-columns: minmax(170px, 230px) minmax(180px, 1fr) minmax(280px, 360px);
   grid-template-areas: "hero guide boss";
   align-items: stretch;
   gap: clamp(15px, 2.5vw, 32px);
-  min-height: 440px;
+  min-height: 400px;
   max-width: 1240px;
-  margin-bottom: 14px;
-  padding: 28px clamp(18px, 3vw, 38px) 68px;
+  /* 战场与池子之间那道外边距也随高度收：1000 高时是调好的 10px；
+     矮屏上这 10px 和下面的池子抢的是同一段首屏，收到 4px 为止。 */
+  margin-bottom: clamp(4px, calc(100vh - 900px), 10px);
+  /* 下内边距也随高度收：1000 高时是调好的 48px；视口一矮，这 48px 就是
+     纯浪费（它下面本来就有 10px 外边距 + 池子），收到 20px 为止。 */
+  padding: 22px clamp(18px, 3vw, 38px) clamp(20px, calc(100vh - 884px), 48px);
   border: 1px solid rgba(221, 187, 137, .34);
   border-radius: 5px;
   background:
@@ -2844,7 +2929,10 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   grid-area: hero;
   align-self: stretch;
   min-width: 0;
-  justify-content: space-between;
+  /* 底部成组：多出来的纵向空间全落在上方。气泡、龟宝、进度条
+     因此永远挨在一起——气泡不会飘到离龟宝半屏远的地方。 */
+  justify-content: flex-end;
+  gap: 9px;
   padding: 4px 0 0;
   color: #f0e0c5;
 }
@@ -2854,11 +2942,37 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 }
 .bd-player-name { color: #f3dfbc; font-family: inherit; font-size: 19px; font-weight: 500; }
 .bd-hero-portrait {
-  display: flex; flex: 1 1 auto; min-height: 250px; align-items: end; justify-content: center;
-  margin: -9px -16px -5px;
+  position: relative;                 /* 龟宝嘴边那只小气泡挂在它上面 */
+  display: flex; flex: 0 0 auto; min-height: 196px; max-height: 272px;
+  align-items: end; justify-content: center;
+  /* 上边距不能再是负的：气泡贴着这一栏的顶边，负边距会让它整个骑到名字行上。 */
+  margin: 0 -16px -5px;
   background: radial-gradient(ellipse at 53% 80%, rgba(204, 166, 103, .2), transparent 61%);
   animation: bdGuibaoIdle 3.8s ease-in-out infinite;
 }
+/* 龟宝的短句气泡（需求「二、5」）。在流里紧跟龟宝正上方，尾巴朝下指着他；
+   整条只占左栏宽度——不压 Boss，也不压字形那块可点的攻击区。 */
+.bd-hero-bubble {
+  position: relative; z-index: 2; align-self: center;
+  width: max-content; max-width: 100%;
+  padding: 7px 11px 8px;
+  color: #f7e9d1;
+  background: rgba(28, 22, 18, .88);
+  border: 1px solid rgba(226, 198, 155, .28);
+  border-left: 2px solid #c75b42;
+  font-size: 11.5px; line-height: 1.55; letter-spacing: .3px; text-align: center;
+}
+.bd-hero-bubble::after {
+  position: absolute; left: 50%; bottom: -5px; width: 9px; height: 9px;
+  margin-left: -4.5px; transform: rotate(45deg);
+  background: rgba(28, 22, 18, .88);
+  border-right: 1px solid rgba(226, 198, 155, .28);
+  border-bottom: 1px solid rgba(226, 198, 155, .28);
+  content: '';
+}
+.bd-hero-bubble.tone-success { border-left-color: #a5a76c; }
+.bd-hero-bubble.tone-alert { border-left-color: #df916e; }
+.bd-hero-bubble.tone-gentle { border-left-color: #c9a06a; }
 .bd-avatar {
   display: block; width: min(132%, 260px); max-width: none; max-height: 282px;
   object-fit: contain; object-position: bottom center; transform: scaleX(-1);
@@ -2879,9 +2993,12 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .scene.boss-raid .bd-field-guide {
   grid-area: guide;
   position: relative; z-index: 1; align-self: center; min-width: 0;
-  padding: clamp(15px, 2vw, 24px);
+  /* 从"一大块卡纸"收成"龟宝说的话"：留白减半、正文缩小、行距收紧，
+     腾出来的纵向空间全给下面那块可点的字形与构件池。 */
+  max-width: 470px; justify-self: center;
+  padding: clamp(12px, 1.5vw, 18px) clamp(13px, 1.8vw, 21px);
   color: #f1e3cb;
-  background: linear-gradient(145deg, rgba(240, 220, 188, .105), rgba(240, 220, 188, .035));
+  background: linear-gradient(145deg, rgba(240, 220, 188, .1), rgba(240, 220, 188, .032));
   border: 1px solid rgba(226, 198, 155, .23);
   border-left: 2px solid #c75b42;
   box-shadow: 0 12px 30px rgba(5, 4, 3, .13);
@@ -2891,13 +3008,13 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   background: #332720; border-left: 1px solid rgba(226, 198, 155, .23);
   border-bottom: 1px solid rgba(226, 198, 155, .23); content: ''; transform: rotate(45deg);
 }
-.bd-guide-kicker { color: #dfa77b; font-size: 9px; letter-spacing: 2px; }
-.bd-guide-title { margin: 10px 0 8px; color: #faecd6; font-family: inherit; font-size: clamp(19px, 2vw, 26px); font-weight: 500; }
-.bd-guide-copy { min-height: 3.5em; margin: 0; color: rgba(245, 231, 208, .76); font-size: 12px; line-height: 1.8; }
+.bd-guide-kicker { color: #dfa77b; font-size: 8.5px; letter-spacing: 2px; }
+.bd-guide-title { margin: 7px 0 6px; color: #faecd6; font-family: inherit; font-size: clamp(17px, 1.7vw, 21px); font-weight: 500; }
+.bd-guide-copy { min-height: 0; margin: 0; color: rgba(245, 231, 208, .76); font-size: 11.5px; line-height: 1.75; }
 .bd-guide-foot {
-  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 12px;
-  margin-top: 17px; padding-top: 10px; border-top: 1px solid rgba(226, 198, 155, .16);
-  color: rgba(234, 212, 179, .52); font-size: 9px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px;
+  margin-top: 11px; padding-top: 8px; border-top: 1px solid rgba(226, 198, 155, .16);
+  color: rgba(234, 212, 179, .52); font-size: 8.5px;
 }
 .bd-field-guide.success { border-left-color: #a5a76c; }
 .bd-field-guide.success .bd-guide-kicker { color: #c3ca8c; }
@@ -2953,15 +3070,91 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   gap: clamp(10px, 1.6vw, 18px); margin-top: 8px;
 }
 .scene.boss-raid .bd-figure-art {
-  height: 196px;
+  /* 立绘的尺寸要按「读起来一样大」给，不是按画布给：
+     88 张形象原图高都对齐到 460，但主体占画布的比例从 74% 到 100% 不等，
+     宽高比从 0.25（矢）到 1.52（卿）都有。用 contain + 上限高度定住视觉体量，
+     再用 max-width 兜住极宽的那几张，免得撑破右栏。 */
+  /* 立绘高度跟着 --bd-arena 走（0.62 倍）：字形缩多少，立绘缩多少，
+     两栏的相对体量不变，读起来仍是「兽在上、字在下」的一尊整体。 */
+  height: clamp(112px, calc(var(--bd-arena) * .62), 190px);
+  width: auto; max-width: 100%;
+  object-fit: contain; object-position: center bottom;
   filter: drop-shadow(0 10px 16px rgba(0, 0, 0, .5));
 }
 .scene.boss-raid .bd-figure-tag { color: #c9a97c; font-size: 10px; }
-.scene.boss-raid .bd-body { width: min(100%, 300px); height: 300px; color: #ead7b5; filter: drop-shadow(0 0 16px rgba(220, 176, 117, .12)); }
-.scene-wide .scene.boss-raid .bd-body { width: min(100%, 330px); height: 330px; }
+.scene.boss-raid .bd-body { width: min(100%, var(--bd-arena)); height: var(--bd-arena); color: #ead7b5; filter: drop-shadow(0 0 16px rgba(220, 176, 117, .12)); }
+/* 宽屏那档原先比窄屏再大 6px（274 对 268）——现在两档都由 --bd-arena 定，
+   上限就是 274，所以这一条只剩「跟窄屏同源」的作用，留着不影响。 */
+.scene-wide .scene.boss-raid .bd-body { width: min(100%, var(--bd-arena)); height: var(--bd-arena); }
 .scene.boss-raid .bd-body .bo-part:hover path,
 .scene.boss-raid .bd-body .bo-cut:hover path { stroke: #ef9b76; }
 .scene.boss-raid .bd-field.final .bd-body { color: #efb08e; }
+
+/* ---------------------------------------------------------------------------
+   笔画终局：把「本次该打的那一段」直接标在图上（需求「二、4」）
+
+   原先终局只把笔画一根根摊在那儿，提示卡里写一句"点一段清晰的纹路"，
+   玩家得自己在十几根细线里认哪一段是活的。现在：
+     · 当前该打的那一段用 `is-next` 标出来——笔画本身提亮 + 一圈随形的暖光；
+     · 暖光画在那根已经存在的透明加粗描边（.bo-hit）上，
+       所以光晕**严丝合缝贴着这段笔画的形状**，不是另套一个圆形准星；
+     · 只是缓呼吸（1.5s 一个来回，透明度 .3↔.88），不做闪烁。
+   斩掉之后 is-next 自动落到下一段，玩家不用回头找。
+   --------------------------------------------------------------------------- */
+.scene.boss-raid .bd-body .bo-cut.is-next path {
+  stroke: #ffd9a0;
+  filter: drop-shadow(0 0 6px rgba(255, 202, 132, .9));
+}
+.scene.boss-raid .bd-body .bo-cut.is-next .bo-hit path {
+  stroke: rgba(255, 196, 118, .9);
+  animation: bdNextBreath 1.5s ease-in-out infinite;
+}
+@keyframes bdNextBreath {
+  0%, 100% { opacity: .3; }
+  50%      { opacity: .88; }
+}
+/* 其余还没轮到的笔画压暗一点，视线自然落到那一段上 */
+.scene.boss-raid .bd-body .bo-cut:not(.is-next) path { opacity: .62; }
+.scene.boss-raid .bd-body .bo-cut:not(.is-next):hover path { opacity: 1; }
+
+/* 首次进终局的演示层：一个缓点的指尖 + 一句"从这一段开始"，
+   位置由那段笔画自己的 bbox 算出（见 renderFight），几秒后自己收走。
+   它 pointer-events:none —— 绝不吃掉玩家的点击。 */
+.bd-demo {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none;
+}
+.bd-demo-hand {
+  position: absolute; width: 32px; height: 32px; margin: -24px 0 0 -16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 208, 136, .95);
+  background: radial-gradient(circle, rgba(255, 205, 130, .34), transparent 70%);
+  animation: bdDemoTap 1.5s ease-in-out infinite;
+}
+.bd-demo-hand::after {
+  position: absolute; left: 50%; top: 50%; width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: #ffe0af; content: '';
+}
+@keyframes bdDemoTap {
+  0%, 100% { transform: scale(1); opacity: .96; }
+  46%      { transform: scale(.7); opacity: .58; }
+}
+.bd-demo-text {
+  position: absolute; transform: translate(-50%, 26px);
+  padding: 4px 9px; white-space: nowrap;
+  color: #2a211a; background: #ffd9a0;
+  font-size: 11px; letter-spacing: 1px;
+  animation: bdDemoTextNudge 1.5s ease-in-out infinite;
+}
+@keyframes bdDemoTextNudge {
+  0%, 100% { transform: translate(-50%, 26px); }
+  46%      { transform: translate(-50%, 31px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene.boss-raid .bd-body .bo-cut.is-next .bo-hit path,
+  .bd-demo-hand, .bd-demo-text { animation: none; }
+  .scene.boss-raid .bd-body .bo-cut.is-next .bo-hit path { opacity: .7; }
+}
 .scene.boss-raid .bd-field.broken .bd-field-guide { animation: bdGuideAlert .5s ease-out; }
 
 /* ============================================================================
@@ -3071,17 +3264,20 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 }
 
 .scene.boss-raid .bd-pool {
-  max-width: 1240px; margin: 0 auto 14px; padding: 15px 18px 17px;
+  /* 池子恒为 4 块（js 的 POOL_SIZE），1240 宽会让每块摊到近 300px，
+     35px 的构件形落在一片空白正中，反而像没铺完。收成 620 居中，
+     4 块各约 150px——一眼扫完，且不把下面/上面的东西顶出首屏。 */
+  max-width: 620px; margin: 0 auto 10px; padding: 12px 14px 13px;
   background: linear-gradient(155deg, #f4ead6, #e7d8bd);
   border: 1px solid #b9a27c; border-top: 2px solid #a54a38; border-radius: 3px;
   box-shadow: 0 11px 28px rgba(40, 25, 15, .11);
 }
-.scene.boss-raid .bd-pool-head { align-items: center; gap: 8px 13px; margin-bottom: 12px; }
+.scene.boss-raid .bd-pool-head { align-items: center; gap: 6px 12px; margin-bottom: 8px; }
 .scene.boss-raid .bd-pool-head b { color: #3d3025; font-family: inherit; font-size: 16px; letter-spacing: 1px; }
 .scene.boss-raid .bd-pool-note { color: #71583a; font-size: 10px; line-height: 1.55; }
 .scene.boss-raid .bd-pool-note.dead { color: #796b59; }
 .scene.boss-raid .bd-chip {
-  min-height: 64px; justify-content: center; padding: 5px 2px;
+  min-height: 58px; justify-content: center; padding: 5px 2px;
   background: rgba(255, 251, 241, .76); border-color: #cfc0a4; border-radius: 2px;
 }
 .scene.boss-raid .bd-chip:hover,
@@ -3128,15 +3324,18 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .bd-hero-portrait.mood-alert { animation: bdGuibaoReassure .48s ease-out; }
 
 @media (max-width: 1024px) {
+  /* 这一档只改"宽度上限"，高度那条路仍旧由 --bd-arena 管。 */
+  .scene.boss-raid { --bd-arena-max: 250px; }
   .scene.boss-raid .bd-field { grid-template-columns: minmax(145px, 185px) minmax(170px, 1fr) minmax(205px, 280px); gap: 14px; }
-  .bd-hero-portrait { min-height: 210px; }
-  .bd-avatar { max-height: 240px; }
+  /* 龟宝立绘与怪像也一起跟着 --bd-arena 走，不再各自钉死一个值：
+     1024×768（老笔记本最常见的分辨率）时 --bd-arena 只有 146，
+     原先钉死的 210 / 240 / 132 会把战场撑到 529，池子整块掉出首屏。 */
+  .bd-hero-portrait { min-height: max(134px, calc(var(--bd-arena) * .76)); }
+  .bd-avatar { max-height: clamp(152px, calc(var(--bd-arena) * .87), 240px); }
   /* 中屏放不下"怪像 + 字形"并排了，改成怪像压在字形上方，并缩小 */
   .scene.boss-raid .bd-figure { flex-direction: column; flex-wrap: nowrap; gap: 9px; }
-  .scene.boss-raid .bd-figure-art { height: 132px; }
+  .scene.boss-raid .bd-figure-art { height: clamp(96px, calc(var(--bd-arena) * .62), 132px); }
   .scene.boss-raid .bd-figure-tag { font-size: 9px; }
-  .scene.boss-raid .bd-body,
-  .scene-wide .scene.boss-raid .bd-body { width: min(100%, 250px); height: 250px; }
 }
 @media (max-width: 760px) {
   .scene.boss-raid .bd-hud { align-items: flex-start; margin-bottom: 10px; }
@@ -3166,8 +3365,10 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .scene.boss-raid .bd-figure-media { gap: 3px; }
   .scene.boss-raid .bd-figure-art { height: 84px; }
   .scene.boss-raid .bd-figure-tag { font-size: 8px; letter-spacing: 1px; }
-  .scene.boss-raid .bd-body,
-  .scene-wide .scene.boss-raid .bd-body { width: min(100%, 160px); height: 160px; }
+  /* 这一档的字形上限 160；紧接着下面还有 138 那一档，实际生效的是 138。
+     和上面两档一样，这里给的只是"上限"——真尺寸由 --bd-arena 取 min 决定，
+     所以特别矮的手机（100vh-724 也会落到 146 的地板）依旧能再往下收。 */
+  .scene.boss-raid { --bd-arena-max: 160px; }
   .scene.boss-raid .bd-field-guide { padding: 13px 14px; }
   .scene.boss-raid .bd-field-guide::before { top: -7px; left: 22%; transform: rotate(135deg); }
   .bd-guide-title { margin: 7px 0 5px; font-size: 19px; }
@@ -3176,11 +3377,51 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   /* 阶段二的"改用笔画"按钮在手机上一度贴着首屏下沿（底边差 13px 出屏）。
      提示卡排在「玩家 + 怪像」那一行下面，是被上面那一行顶下去的；
      所以这里收的是"上一行的高度"和"卡片自己的间距"，不是盲调卡片内边距。 */
-  .scene.boss-raid .bd-hero-portrait { min-height: 132px; max-height: 158px; }
+  /* —— 手机竖屏（≤760）：把"构件选项"挤进首屏 ——
+     实测 390×780 时池子顶边落在 y=824，整条完全在屏外，要点构件得先滚一屏。
+     下面这几刀都是量出来的，不是估的：
+       · 提示卡的正文与页脚，龟宝气泡已经用一句短话把同一件事说了（-70）；
+       · 龟宝一栏是"气泡 + 立绘 + 进度条"竖着排，立绘给到 132 富余，收到 104（-28）；
+       · 战场下沿那道地面留白 57 → 36（-21）；
+       · 池子自己的内边距与格子高度各收一档（-19）。
+     字形（.bd-body）**不动 160**：终局要点单笔，一缩就点不准。 */
+  .scene.boss-raid .bd-guide-copy,
+  .scene.boss-raid .bd-guide-foot { display: none; }
+  .bd-guide-title { margin: 5px 0 0; font-size: 15px; }
+  .scene.boss-raid .bd-field-guide { padding: 10px 12px 11px; }
+  /* 第二刀：把"玩家化身"那行压成一行、立绘与字形各收一档，
+     让"战场 + 构件选项"整个落进 780px（实测池子随后落在 630~757）。 */
+  .bd-player-kicker { display: none; }
+  .bd-player-name { font-size: 14px; }
+  .bd-player-head { gap: 5px; }
+  .scene.boss-raid .bd-hero-portrait { min-height: 76px; max-height: 92px; }
+  .bd-avatar { width: 108%; max-height: 96px; }
+  .bd-player-progress { padding: 5px 6px 6px; }
+  .scene.boss-raid .bd-field { padding-bottom: 10px; }
+  .scene.boss-raid .bd-figure { gap: 4px; }
+  .scene.boss-raid .bd-figure-art { height: 72px; }
+  /* 字形收到 138：终局要点单笔，但命中区是笔画本身的 7 倍宽（.bo-hit），
+     138 下相邻笔画仍隔 20px 以上，点得准。 */
+  .scene.boss-raid { --bd-arena-max: 138px; }
+  .scene.boss-raid .bd-pool { padding: 8px 10px 9px; }
+  /* 池子标题那一行在手机上只留"显示名字"开关：挑构件这件事，
+     龟宝气泡与提示卡标题都已经说过了，重复一遍就是白占 30px 屏高。 */
+  .scene.boss-raid .bd-pool-head { justify-content: flex-end; margin-bottom: 6px; }
+  .scene.boss-raid .bd-pool-head b,
+  .scene.boss-raid .bd-pool-note { display: none; }
+  /* 构件名默认不占位（它本来就 opacity:0）：手机上省下那一行，
+     点「显示名字」时再让格子长回来。 */
+  .scene.boss-raid .bd-chip { min-height: 42px; }
+  .scene.boss-raid .bd-chipname { display: none; }
+  .scene.boss-raid .bd-pool.show-names .bd-chipname { display: block; }
+  .scene.boss-raid .bd-pool-toggle { min-height: 30px; }
   .bd-guide-cta { margin-top: 10px; gap: 7px 10px; }
   .bd-guide-btn { --btn-h: 38px; }
-  .scene.boss-raid .bd-pool { padding: 12px 10px; }
-  .scene.boss-raid .bd-poolgrid { grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 5px; }
+  /* 下内边距 12 → 5：390×780 那一档池子盒子的下沿本来差 7px 出屏（构件的
+     格子是全在屏内的，出屏的只是池子自身那点留白）。留白本来也不必和上边
+     一样厚——池子底下紧挨着就是战报那一条。 */
+  .scene.boss-raid .bd-pool { padding: 10px 10px 5px; }
+  .scene.boss-raid .bd-poolgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
   .scene.boss-raid .bd-chip { min-height: 58px; }
   .scene.boss-raid .bd-chipglyph { width: 30px; height: 30px; }
   .scene.boss-raid .bd-logs { grid-template-columns: 1fr; }
@@ -3192,6 +3433,48 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .bd-winfig { gap: var(--s-4); }
   .bd-winfig-art { height: 76px; }
   .bd-winglyph { width: 132px; height: 132px; }
+}
+
+/* —— 矮手机（≤700 高；iPhone 8 / SE2 这一档，375×667）——
+   上面那一档是按 780 高量的：390×780 构件的格子底边落在 774，正好进首屏。
+   但同一套尺寸搬到 667 高，格子底边跑到 774——差 107px，还是得先滚一屏。
+   这一档**不动字形 138**（那是"点得准"的下限，也是手机这一档的宽度上限），
+   只收不参与"打这一场"的东西。每一项都是量出来的，不是估的：
+     · 战报 .bd-log（28 + 10 外边距 = 38）：同一句反馈，提示卡标题和龟宝
+       气泡都已经说了，它是第三遍；
+     · 提示卡顶上那行"龟宝的观察提示"小字（17）：正文标题已经说明谁在说话；
+     · 怪像名字那栏从"两行竖排"收回"一行"（-16），两条分隔条外边距各收一档（-6），
+       HP 数字（-15）：数字和紧挨着的 HP 条说的是同一件事，条留着；
+     · 战场上下内边距 12/10 → 8/6（-8）；阶段条那栏的外边距与行距（-10）；
+     · 池子自己的内边距与格子高度各收一档（-16）：46px 仍在 44px 触控线以上。
+   合计约 165px，量到构件格子底边从 774 回到 ~634。
+   360×640（最矮一档）另需 16px，来源是 HUD 那条装饰性的下分隔线与下内边距
+   （13）加战场/池子内边距各收一档（9）——同样是"不参与这一场"的留白。
+   "← 关卡"返回键、阶段条、HP 条、提示卡、构件池一个都没动。 */
+@media (max-width: 760px) and (max-height: 700px) {
+  .scene.boss-raid .bd-log { display: none; }
+  .scene.boss-raid .bd-guide-kicker { display: none; }
+  .scene.boss-raid .bd-side-head {
+    flex-direction: row; align-items: baseline; gap: 6px; margin-bottom: 4px;
+  }
+  .scene.boss-raid .bd-sidebar { margin-bottom: 3px; }
+  .scene.boss-raid .bd-hpnum { display: none; }
+  .scene.boss-raid .bd-hud {
+    margin-bottom: 2px; gap: 6px;
+    /* 这条 HUD 底下的分隔线与它自己的下内边距（12+1）是纯装饰：阶段条已经在
+       视觉上收尾了，底下再吊一横线只是把战场往下推。360×640 上正好要这 13px。 */
+    padding-bottom: 0; border-bottom: 0;
+  }
+  .scene.boss-raid .bd-field { padding: 4px 12px 2px; }
+  /* 提示卡是这一屏的第二高度源（在战场上另起一行）。它的正文与页脚在手机档
+     已经隐藏，这里只把剩下的标题行自身的上下留白收一档。 */
+  .scene.boss-raid .bd-field-guide { padding: 8px 12px; }
+  .bd-guide-title { margin: 3px 0 0; }
+  /* 池子自己只留 4px 内边距：格子已经全在首屏（余量 3），但 360×640 上池子的
+     下边框还差 4px 露不出来——裁掉一条边看起来像渲染坏了，所以再收一档。 */
+  .scene.boss-raid .bd-pool { padding: 4px 8px 4px; }
+  .scene.boss-raid .bd-pool-head { margin-bottom: 1px; }
+  .scene.boss-raid .bd-chip { min-height: 46px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bd-hero-portrait,

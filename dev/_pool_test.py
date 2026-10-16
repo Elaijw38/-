@@ -33,7 +33,8 @@ W = int(sys.argv[2]) if len(sys.argv) > 2 else 1440
 H = int(sys.argv[3]) if len(sys.argv) > 3 else 1000
 OUT = os.path.join(REPO, "_check")
 os.makedirs(OUT, exist_ok=True)
-URL = "http://127.0.0.1:8099/index.html#/play/boss-raid"
+URL = (os.environ.get("RAID_URL")
+       or "http://127.0.0.1:8099/index.html#/play/boss-raid")
 
 CDP = r'''
 /* 这个脚本里有顶层 await，Node 会把它按 ESM 跑——

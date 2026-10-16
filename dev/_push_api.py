@@ -32,13 +32,26 @@ API = "https://api.github.com"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 临时产物目录：验证脚本的截图/日志/profile 都往这些地方丢，不属于仓库内容
-SKIP_DIRS = {"_check", "_bak", "_edgeprof", "_docpages", "__pycache__", ".git"}
+SKIP_DIRS = {"_check", "_bak", "_edgeprof", "_docpages", "__pycache__", ".git",
+             # 核验截图与量测日志：16800+ 个文件、1GB 出头，站点用不到。
+             # 之前这份脚本没跟着 .gitignore 走，--dry 会把这堆全列成"待推送"，
+             # 一不小心就是一次 1.2GB 的提交，所以在这里显式挡掉。
+             "out"}
+# 目录名前缀：每一轮改动前留的备份目录（_backup_YYYYMMDD_xxx）只在本机有用
+SKIP_DIR_PREFIX = ("_backup",)
 
 # 刻意不推的文件。
 # deploy.ps1：与远端只差行尾符（远端 LF、本地 CRLF 是 Windows 解包带进来的）。
 #             推上去等于把整个文件重写一遍，提交里全是没有意义的噪音。
 #             `_eol_check` 那个文件里有逐字节的核验过程。
-SKIP_FILES = {"deploy.ps1"}
+# _artcheck_report.py：核验期在仓库根手写的临时汇总脚本，已被 dev/_build_deliverable.py
+#             取代；仓库约定自查脚本放 dev/，不放根目录。
+# 交付说明-第三关形象与竖排.html：本机交付说明，里面引用的图片在 out/（不推），
+#             推上去线上会是一堆碎图链接。
+SKIP_FILES = {"deploy.ps1", "_artcheck_report.py", "交付说明-第三关形象与竖排.html"}
+
+# 后缀：本机留的备份/临时副本，永远不推（例如 js/core/_data.js.bak）
+SKIP_SUFFIX = (".bak", ".orig", ".tmp", "~")
 
 
 def call(H, method, url, **kw):
@@ -91,7 +104,9 @@ def main():
 
     todo, skipped = [], []
     for dp, dns, fns in os.walk(ROOT):
-        dns[:] = [d for d in dns if d not in SKIP_DIRS]
+        dns[:] = [d for d in dns
+                  if d not in SKIP_DIRS
+                  and not any(d.startswith(pre) for pre in SKIP_DIR_PREFIX)]
         for fn in fns:
             if fn.endswith(".pyc"):
                 continue
@@ -99,6 +114,9 @@ def main():
             rel = os.path.relpath(p, ROOT).replace("\\", "/")
             if rel in SKIP_FILES:
                 skipped.append((rel, "仅行尾符差异，见文件头说明"))
+                continue
+            if fn.endswith(SKIP_SUFFIX):
+                skipped.append((rel, "本机备份/临时副本"))
                 continue
             # 根目录下跑验证时生成的 _cdp_*.js 探针
             if "/" not in rel and fn.startswith("_cdp") and fn.endswith(".js"):

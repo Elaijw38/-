@@ -23,7 +23,8 @@ REPO = r"C:\DSH\字趣"
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 NODE = r"C:\Users\32058\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe"
 OUT = os.path.join(REPO, "_check")
-URL = "http://127.0.0.1:8099/index.html#/play/boss-raid"
+URL = (os.environ.get("RAID_URL")
+       or "http://127.0.0.1:8099/index.html#/play/boss-raid")
 
 CDP = r'''
 const ws = new WebSocket(process.argv[2]);
