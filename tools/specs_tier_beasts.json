@@ -1,0 +1,36 @@
+{
+  "//": "第三关三个档位的「兽」形象：一阶拼合之兽 / 二阶独体之兽 / 终极图画之兽",
+  "//why": "现有三张是扁平色块图（方块拼接），语义对但画风与全站手绘不搭。改成同一套水彩+细墨线的兽形立绘，浅底便于抠图贴在米色卡片上。",
+  "//logic": "三只的差别必须在**身体结构**上，不是配色：拼合＝能看出接缝与分块；独体＝一整块浑然无接缝；图画＝棘刺纹路纠缠、构件混同。",
+  "stage": "base",
+  "out_dir": "C:/DSH/comfy_assets/tier",
+  "defaults": {
+    "size": [1024, 1024],
+    "steps": 32,
+    "cfg": 6.0,
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "model": "sdxl",
+    "negative": "text, letters, numbers, words, chinese characters, oracle bone script, calligraphy, seal, signature, watermark, logo, ui, border, frame, grid, multiple animals, herd, cute, chibi, kawaii, cartoon mascot, big round eyes, smiling, plush toy, photograph, realistic photo, 3d render, flat vector art, flat colour blocks, clipart, thick uniform outline, neon, oversaturated, dark background, misty background, scenery, landscape, ground shadow, cast shadow, ming dynasty, qing dynasty, palace, xianxia, fantasy armour"
+  },
+  "jobs": [
+    {
+      "id": "tier-grunt",
+      "seed": 995101,
+      "purpose": "一阶「拼合之兽」——身体由方块/构件拼成，接缝可见",
+      "prompt": "a single strange beast standing in profile facing left, its body visibly assembled from separate rectangular blocks and plates, clear seams and joint lines between the blocks like a creature made of stacked tiles, blocky angular torso built of distinct segments, a separate head plate, four blocky legs each made of two stacked blocks, thin tail, one small calm red eye, hand painted ink and watercolour illustration, muted warm bone and pale ochre palette with a single cinnabar accent, fine dark ink contour lines with visible construction seams, soft flat wash, plain flat warm cream background, whole animal fully inside the frame, no scenery, no ground shadow, no lettering"
+    },
+    {
+      "id": "tier-solo",
+      "seed": 995102,
+      "purpose": "二阶「独体之兽」——一整块浑然，无接缝",
+      "prompt": "a single strange beast standing in profile facing left, one solid seamless rounded body carved from a single mass, smooth continuous hide with no joints and no seams, heavy rounded torso merging straight into the legs, short curved horns, one small calm red eye, hand painted ink and watercolour illustration, muted warm bone and pale ochre palette with a single cinnabar accent, fine dark ink contour lines, soft volumetric wash, plain flat warm cream background, whole animal fully inside the frame, no scenery, no ground shadow, no lettering"
+    },
+    {
+      "id": "tier-elite",
+      "seed": 995103,
+      "purpose": "终极「图画之兽」——棘刺蔓生、纹路纠缠、构件混同",
+      "prompt": "a single terrifying beast standing in profile facing left, its hide covered in dense tangled scales and thorny spines that grow into each other, knot of intertwined ridges and coiled patterns across the whole body, several small extra eyes and plate shards fused into the mass, long jagged spikes along the spine, one burning cinnabar eye at the head, hand painted ink and watercolour illustration, muted warm bone and pale ochre with deep ink and a single cinnabar accent, fine dense ink linework, soft dark wash, plain flat warm cream background, whole animal fully inside the frame, no scenery, no ground shadow, no lettering"
+    }
+  ]
+}

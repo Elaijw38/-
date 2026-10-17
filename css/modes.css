@@ -2011,7 +2011,12 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   object-fit: contain;
   /* 这三只是线稿代用图，本身是冷灰；套一层暖调让它跟全站的骨色手绘同一色温。
      换成正式立绘后可以去掉 sepia。 */
-  filter: sepia(.42) saturate(1.08) contrast(.97)
+  filter: sepia(.34) saturate(1.06) contrast(1.02);
+  /* 立绘是「米色纸上画的水墨兽」，纸底与卡片同为米色，
+     用 multiply 混合让纸底直接融进卡片，不留一圈方形底色。 */
+  /* 立绘底是比卡片更亮的米白纸；用 darken 让「更亮的那层」被卡片顶替，
+     纸底自然消失，只留下比卡片深的墨与色块。 */
+
     drop-shadow(0 7px 11px rgba(62, 45, 28, .16));
 }
 .bo-tier-artname {
