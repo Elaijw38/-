@@ -50,7 +50,7 @@
        tangled = 多个字形叠压错位，读作"纹路纠缠、构件混同" */
   var TIER_ART = {
     grunt: {
-      glyphs: ['牛', '羊', '犬'], mode: 'gaps',
+      glyphs: ['牛', '羊', '犬', '豕'], mode: 'gaps',
       name: '拼合之兽',
       note: '身体由方块拼接，接缝就是它的弱点——拆掉一块，它就不成形。'
     },
@@ -60,7 +60,7 @@
       note: '一整块浑然的身体，找不出一条可拆的缝，只能拆笔画。'
     },
     elite: {
-      glyphs: ['虎', '鹿', '龜', '龍'], mode: 'tangled',
+      glyphs: ['虎', '龜'], mode: 'tangled',
       name: '图画之兽',
       note: '棘刺蔓生、纹路纠缠，构件在它身上彻底混同——只能一段段斩。'
     }
@@ -77,19 +77,23 @@
     sv.setAttribute('aria-label', art.name + '：甲骨字形 ' + list.join(' ＋ '));
     var inner = '';
     if (art.mode === 'gaps') {
-      var n = list.length, gap = 2;
-      var s = (96 - gap * (n - 1)) / n / 100;
+      /* 拼合：4 块字形按 2×2 拼在一起，块与块之间画**接缝虚线**，
+         让"由构件拼成"一眼可读，同时不至于像原来那样只剩三根小棍。 */
+      var CELL = [[2, 2], [52, 2], [2, 52], [52, 52]];
       list.forEach(function (c, k) {
-        var x = 2 + k * (s * 100 + gap);
-        inner += '<g transform="translate(' + x.toFixed(2) + ',4) scale(' + s.toFixed(4) + ')">' +
+        var q = CELL[k] || [2, 2];
+        inner += '<g transform="translate(' + q[0] + ',' + q[1] + ') scale(.46)">' +
           App.glyphSvg(c, 'currentColor') + '</g>';
       });
+      inner += '<g stroke="currentColor" stroke-width=".7" stroke-dasharray="2 2.6" opacity=".42">' +
+        '<line x1="50" y1="4" x2="50" y2="96"/>' +
+        '<line x1="4" y1="50" x2="96" y2="50"/></g>';
     } else if (art.mode === 'tangled') {
-      var rots = [-9, 7, -4, 5], ops = [1, 0.62, 0.46, 0.34];
+      var rots = [-5, 4], ops = [1, 0.55];
       list.forEach(function (c, k) {
-        var dx = (k % 2 ? 6 : -6), dy = (k * 4) - 6;
+        var dx = (k % 2 ? 4 : -4), dy = (k * 3) - 3;
         inner += '<g transform="translate(' + dx + ',' + dy +
-          ') rotate(' + (rots[k] || 0) + ' 50 50) scale(.86)" opacity="' +
+          ') rotate(' + (rots[k] || 0) + ' 50 50) scale(.90)" opacity="' +
           (ops[k] || 0.4) + '">' + App.glyphSvg(c, 'currentColor') + '</g>';
       });
     } else {
