@@ -1,0 +1,35 @@
+{
+  "//": "第三关 9 关缺专属形象：涉 鸣 逐 安 家 木 象 龜 車",
+  "//style": "必须与 assets/boss/ 那 88 尊同一套语言：米色平涂 + 棕墨单线勾边、无阴影无渐变无背景、全身居中。",
+  "stage": "base",
+  "out_dir": "C:/DSH/comfy_assets/boss9",
+  "defaults": {
+    "size": [1024, 1024],
+    "steps": 30,
+    "cfg": 5.2,
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "model": "sdxl",
+    "negative": "text, letters, chinese characters, watermark, signature, logo, border, frame, shading, gradient, crosshatch, texture, colour, colors, watercolour, watercolor, soft shading, background scenery, landscape, ground, cast shadow, photograph, realistic, 3d render, rendering, fur texture, detailed hair, cute, kawaii, chibi, cartoon mascot, big eyes, smile, multiple creatures, herd, thick black outline, neon"
+  },
+  "jobs": [
+    { "id": "b9-she", "seed": 997101, "purpose": "涉：涉水人形怪",
+      "prompt": "simple line art creature silhouette, a tall gaunt humanoid river spirit wading, water swirling around its shins, long arms hanging low, deep hood instead of a face, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, centered, plain paper" },
+    { "id": "b9-ming", "seed": 997102, "purpose": "鸣：张口鸟怪",
+      "prompt": "simple line art creature silhouette, a tall crow-like bird creature with a huge open vertical mouth splitting its head, wings half lifted, tail feathers spread, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, centered, plain paper" },
+    { "id": "b9-zhu", "seed": 997103, "purpose": "逐：奔豕",
+      "prompt": "simple line art creature silhouette, a running boar charging low to the ground, heavy shoulder, short legs stretched in mid stride, small tail curled up, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, side view, centered, plain paper" },
+    { "id": "b9-an", "seed": 997104, "purpose": "安：屋顶形怪",
+      "prompt": "simple line art creature silhouette, a squat monster whose body is a two-slope thatched roof house, a dark doorway gaping in the middle like a mouth, two thin arms folded in front, four short legs, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, centered, plain paper" },
+    { "id": "b9-jia", "seed": 997105, "purpose": "家：屋顶下豕",
+      "prompt": "simple line art creature silhouette, a low broad monster shaped like a thatched shelter with a bristled boar standing under it, roof ridge forming its back, snout and tusks at the front, four stout legs, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, centered, plain paper" },
+    { "id": "b9-mu", "seed": 997106, "purpose": "木：树身怪",
+      "prompt": "simple line art creature silhouette, a towering tree creature with a thick trunk for a body, branches for raised arms, roots splayed as feet, a simple carved face in the bark, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, centered, plain paper" },
+    { "id": "b9-xiang", "seed": 997107, "purpose": "象：长鼻象怪",
+      "prompt": "simple line art creature silhouette, a heavy elephant creature with a very long curling trunk lifted high, short tusks, wide ears, thick legs like pillars, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, side view, centered, plain paper" },
+    { "id": "b9-gui", "seed": 997108, "purpose": "龜：巨龟",
+      "prompt": "simple line art creature silhouette, a giant turtle with a domed ridged shell, wrinkled neck stretched forward, hooked beak, four clawed flippers, short tail, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, side view, centered, plain paper" },
+    { "id": "b9-che", "seed": 997109, "purpose": "車：双轮车形怪",
+      "prompt": "simple line art creature silhouette, a monster built like a two-wheeled ancient war chariot, spoked wheels as its sides, a yoke rising into a horned head, clawed legs under the axle, flat pale cream fill, single dark brown ink outline, no shading, no gradient, no background, full body, side view, centered, plain paper" }
+  ]
+}
