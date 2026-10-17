@@ -258,7 +258,11 @@
        压一层薄纱把文字托出来即可，不必把照片压得看不见。
        来源 Gary Todd，CC0 1.0 公有领域（法律上无需署名，仍照标）。 */
     var bg = App.el('img', 'hero-bg');
-    bg.src = 'assets/oracle-bone.jpg';
+    /* 首屏大图：优先 WebP（1600px，61KB，比原 JPG 省 82%），
+       老浏览器不认 WebP 时回落到 JPG。 */
+    bg.src = 'assets/oracle-bone.webp';
+    bg.onerror = function () { bg.onerror = null; bg.src = 'assets/oracle-bone.jpg'; };
+    bg.decoding = 'async';
     bg.alt = '';
     bg.setAttribute('aria-hidden', 'true');
     hero.appendChild(bg);
