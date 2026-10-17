@@ -3512,3 +3512,45 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   overflow-wrap: normal;
   word-break: keep-all;
 }
+
+/* 第三关三档徽记：甲骨字形拼成，不用图片。高度沿用原来那张立绘，左右两栏不跳。 */
+.bo-tier-emblem { display:block; width:100%; height:clamp(84px,9.4vw,136px);
+  color:var(--ink); filter: drop-shadow(0 7px 11px rgba(62,45,28,.10)); }
+.bo-tier-emblem path { stroke-width: 1.9px; }
+
+/* ============================================================
+   第三关三档：改成「开始游戏」页那种三栏卡片并排。
+   原来是三张横向长条（左图右字）竖着堆，占满整屏高度、
+   一屏只看得到一阶；改成三列后，三阶一屏看全，像选关页一样。
+   ============================================================ */
+.bo-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+  align-items: stretch;
+}
+/* 卡片内部改竖排：徽记在上、阶名与关卡在下 */
+.bo-tier {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  align-items: start;
+  gap: var(--s-3);
+  padding: var(--s-4);
+}
+.bo-tier.current { border-left: 1px solid var(--edge); }
+.bo-tier.current::before {
+  content: ''; position: absolute; left: -1px; top: 10px; bottom: 10px;
+  width: 3px; border-radius: 2px; background: var(--cinnabar);
+}
+.bo-tier-art { align-items: center; }
+.bo-tier-emblem { height: clamp(112px, 9.4vw, 156px); }
+.bo-tier-head { flex-wrap: wrap; }
+/* 六到九颗珠子在一张窄卡里必须能换行，否则挤出卡片 */
+.bo-tier-beads { flex-wrap: wrap; row-gap: var(--s-2); }
+@media (max-width: 1080px) {
+  .bo-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .bo-board { grid-template-columns: minmax(0, 1fr); }
+  .bo-tier-emblem { height: 108px; }
+}

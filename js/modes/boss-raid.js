@@ -42,23 +42,63 @@
      关系是：怪是躯体，字形是刻在它胸前骨版上的纹路——
      所以字形不是被形象替代，而是被形象承载。
      三张图由同一次生成切出，笔触同源，是一家人。 */
+  /* 三档标识改用**真甲骨字形**拼，不用生成的水墨兽。
+     实测：AI 出的兽再怎么调都更像"奇幻插画兽"，和甲骨气质对不上；
+     而本项目的字形本来就是真甲骨形，用它做徽记风格不会跑偏。
+       gaps    = 字形并排留缝，读作"由构件拼成"
+       single  = 一个字形撑满，读作"一整块无接缝"
+       tangled = 多个字形叠压错位，读作"纹路纠缠、构件混同" */
   var TIER_ART = {
     grunt: {
-      src: 'assets/boss-01-grunt.png',
+      glyphs: ['牛', '羊', '犬'], mode: 'gaps',
       name: '拼合之兽',
       note: '身体由方块拼接，接缝就是它的弱点——拆掉一块，它就不成形。'
     },
     solo: {
-      src: 'assets/boss-02-solo.png',
+      glyphs: ['虎'], mode: 'single',
       name: '独体之兽',
       note: '一整块浑然的身体，找不出一条可拆的缝，只能拆笔画。'
     },
     elite: {
-      src: 'assets/boss-03-elite.png',
+      glyphs: ['虎', '鹿', '龜', '龍'], mode: 'tangled',
       name: '图画之兽',
       note: '棘刺蔓生、纹路纠缠，构件在它身上彻底混同——只能一段段斩。'
     }
   };
+
+  /* 把一组字拼成一张甲骨徽记。缺字形的直接跳过，绝不画一个假的。 */
+  function tierEmblem(art) {
+    var list = (art.glyphs || []).filter(function (c) { return App.hasGlyph(c); });
+    if (!list.length) { return null; }
+    var sv = svgEl('svg');
+    sv.setAttribute('viewBox', '0 0 100 100');
+    sv.setAttribute('class', 'obglyph bo-tier-emblem');
+    sv.setAttribute('role', 'img');
+    sv.setAttribute('aria-label', art.name + '：甲骨字形 ' + list.join(' ＋ '));
+    var inner = '';
+    if (art.mode === 'gaps') {
+      var n = list.length, gap = 6;
+      var s = (96 - gap * (n - 1)) / n / 100;
+      list.forEach(function (c, k) {
+        var x = 2 + k * (s * 100 + gap);
+        inner += '<g transform="translate(' + x.toFixed(2) + ',4) scale(' + s.toFixed(4) + ')">' +
+          App.glyphSvg(c, 'currentColor') + '</g>';
+      });
+    } else if (art.mode === 'tangled') {
+      var rots = [-9, 7, -4, 5], ops = [1, 0.62, 0.46, 0.34];
+      list.forEach(function (c, k) {
+        var dx = (k % 2 ? 6 : -6), dy = (k * 4) - 6;
+        inner += '<g transform="translate(' + dx + ',' + dy +
+          ') rotate(' + (rots[k] || 0) + ' 50 50) scale(.74)" opacity="' +
+          (ops[k] || 0.4) + '">' + App.glyphSvg(c, 'currentColor') + '</g>';
+      });
+    } else {
+      inner = '<g transform="translate(6,3) scale(.88)">' +
+        App.glyphSvg(list[0], 'currentColor') + '</g>';
+    }
+    sv.innerHTML = inner;
+    return sv;
+  }
   function tierArt(id) { return TIER_ART[id] || null; }
 
   /* ---------- 讨伐名录：按「字」取专属形象 ----------
@@ -358,18 +398,15 @@
           (done === items.length && items.length ? ' cleared' : '') +
           (isNow ? ' current' : ''));
 
-        /* 左：本阶的怪（Boss 形象）。它只是身份与压迫感，
-           真正可拆的字形在战斗里、挂在它胸前的骨版上。 */
+        /* 左：本阶的标识（徽记）。它只是身份与压迫感，
+           真正可拆的字形在战斗里、挂在它胸前的骨版上。
+           徽记由**真甲骨字形**拼成（见 tierEmblem），不再是图片，
+           所以不会出现"图没加载出来留一格空白"的情况。 */
         var artBox = App.el('div', 'bo-tier-art');
         var artImg = null, artName = null;
-        if (art) {
-          artImg = App.el('img', 'bo-tier-img');
-          artImg.src = art.src;
-          artImg.alt = art.name + '——' + art.note;
-          artImg.draggable = false;
-          /* 图万一加载不出来就把这一栏整块收掉，别留一格空白 */
-          artImg.onerror = function () { band.classList.add('no-art'); };
-          artBox.appendChild(artImg);
+        var emblem = art ? tierEmblem(art) : null;
+        if (emblem) {
+          artBox.appendChild(emblem);
           artName = App.el('span', 'bo-tier-artname', art.name);
           artBox.appendChild(artName);
         } else {
@@ -383,15 +420,6 @@
         function showArtOf(ch) {
           var a = charArt(ch) || art;
           if (!a) { return; }
-          if (!artImg) {
-            artImg = App.el('img', 'bo-tier-img');
-            artImg.draggable = false;
-            artImg.onerror = function () { band.classList.add('no-art'); };
-            artBox.insertBefore(artImg, artName);
-            band.classList.remove('no-art');
-          }
-          if (artImg.getAttribute('src') !== a.src) { artImg.src = a.src; }
-          artImg.alt = a.name + '——' + a.note;
           if (!artName) {
             artName = App.el('span', 'bo-tier-artname', a.name);
             artBox.appendChild(artName);
@@ -400,7 +428,6 @@
         }
         function resetArt() {
           if (!art) { return; }
-          if (artImg) { artImg.src = art.src; artImg.alt = art.name + '——' + art.note; }
           if (artName) { artName.textContent = art.name; }
         }
 
