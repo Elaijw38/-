@@ -1,0 +1,29 @@
+{
+  "//": "第三关 二阶「独体之兽」与终极「图画之兽」· 重出（第一阶拼合之兽保留）",
+  "//fix": "上一版两个问题：② 独体之兽画成了写实照片（毛皮质感、没了水墨笔触）；③ 图画之兽太暗太糊，身体结构看不清。这版正面压这两点：强调整块的轮廓线、平涂淡彩、浅底；禁止照片质感与暗底。",
+  "stage": "base",
+  "out_dir": "C:/DSH/comfy_assets/tier2",
+  "defaults": {
+    "size": [1024, 1024],
+    "steps": 34,
+    "cfg": 5.6,
+    "sampler": "dpmpp_2m",
+    "scheduler": "karras",
+    "model": "sdxl",
+    "negative": "text, letters, numbers, words, chinese characters, oracle bone script, calligraphy, seal, signature, watermark, logo, ui, border, frame, grid, multiple animals, herd, cute, chibi, kawaii, cartoon mascot, big round eyes, smiling, plush toy, photograph, realistic photo, photorealistic, fur texture, detailed hair, 3d render, fur, hair detail, flat vector art, flat colour blocks, clipart, thick uniform outline, neon, oversaturated, dark background, black background, heavy black shading, misty background, fog, scenery, landscape, ground shadow, cast shadow, clutter, mush, muddy, low contrast, xianxia, fantasy armour, three legs, deformed legs, extra limbs, two heads"
+  },
+  "jobs": [
+    {
+      "id": "tier-solo2",
+      "seed": 996201,
+      "purpose": "二阶「独体之兽」：一整块浑然、轮廓清楚、手绘平涂",
+      "prompt": "a single strange stout beast standing in profile facing left, one solid seamless mass carved from a single block, smooth continuous silhouette with no joints and no seams anywhere, heavy rounded barrel torso merging directly into four thick legs, short blunt curved horns on a plain head, one small calm cinnabar eye, the whole body painted in broad flat washes of pale bone and warm ochre with crisp dark ink contour lines around the entire silhouette, hand painted ink and watercolour illustration, very light pale cream paper background, plain flat and empty around the animal, whole animal fully inside the frame, no fur texture, no photographic detail, no scenery, no ground shadow, no lettering"
+    },
+    {
+      "id": "tier-elite2",
+      "seed": 996202,
+      "purpose": "终极「图画之兽」：棘刺纠缠但结构仍清楚、浅底不糊",
+      "prompt": "a single fierce beast standing in profile facing left, its hide covered in dense tangled thorny spines and layered scale plates that grow into each other, intertwined ridges coiling across a clearly readable heavy body, long jagged spikes along the spine and shoulders, thick clawed forelegs planted firmly, one burning cinnabar eye, drawn with crisp fine dark ink linework over broad flat washes of pale bone and warm ochre, the tangled detail dense but the whole body silhouette still clean and clearly readable, hand painted ink and watercolour illustration, very light pale cream paper background, plain flat and empty around the animal, whole animal fully inside the frame, no scenery, no ground shadow, no lettering"
+    }
+  ]
+}
