@@ -372,7 +372,7 @@
       copy.appendChild(U.el('p', 'bb-cover-lead',
         '龟宝带你认识了甲骨文的材料与记录方式，也一起拼了 ' + state.deck.length + ' 个字形。接下来可以去第二关，在王邑小地图里继续探索。'));
       copy.appendChild(U.el('p', 'bb-finish-summary', '本地已收集 ' + learnedCount() + ' 个构字字形'));
-      var nextMap = U.el('a', 'btn primary bb-start', '进入第二关 · 点亮王邑 →');
+      var nextMap = U.el('a', 'btn primary bb-start', '进入第二关 · 走遍王邑 →');
       nextMap.href = '#/play/wangyi-map';
       copy.appendChild(nextMap);
       var replay = U.el('button', 'btn bb-replay', '再上一遍入门课');

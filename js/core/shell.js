@@ -212,7 +212,7 @@
           if (wy.done.hasOwnProperty(z2)) { n += (wy.done[z2] || []).length; }
         }
       }
-      return { now: n, all: all, label: '已点亮' };
+      return { now: n, all: all, label: '已学完' };
     }
     if (m.id === 'boss-raid') {
       var total = 0;
@@ -1044,7 +1044,7 @@
     var guideCopy = App.el('div', 'lv-guide-copy');
     guideCopy.appendChild(App.el('span', 'lv-guide-name', '龟宝 · 甲骨小向导'));
     guideCopy.appendChild(App.el('p', 'lv-guide-note',
-      '先上入门课，再进入五幅主题小地图；学会一片，王邑大地图就亮起一域。'));
+      '先上入门课，再进入五幅主题小地图；学会一片，这一片的进度就记满了。'));
     guide.appendChild(guideCopy);
     intro.appendChild(guide);
     host.appendChild(intro);

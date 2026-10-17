@@ -194,7 +194,7 @@
       copy.appendChild(App.el('p', 'wy2-kicker', '第二关 · 殷商王邑'));
       copy.appendChild(App.el('h2', 'wy2-title', '五片王邑，点一处进去'));
       copy.appendChild(App.el('p', 'wy2-lead',
-        '这是一座三千年前的王邑。五片区域任意顺序进入：点图中的实物认甲骨文，认得的字就记在这一片名下。一片学完，这一片就亮起来。'));
+        '这是一座三千年前的王邑。五片区域任意顺序进入：点图中的实物认甲骨文，认得的字就记在这一片名下。一片学完，这一片的进度就记满了。'));
       head.appendChild(copy);
 
       var meter = App.el('div', 'wy2-head-meter');

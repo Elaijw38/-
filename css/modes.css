@@ -2009,7 +2009,10 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
 .bo-tier-img {
   display: block; width: 100%; height: clamp(84px, 9.4vw, 136px);
   object-fit: contain;
-  filter: drop-shadow(0 7px 11px rgba(62, 45, 28, .16));
+  /* 这三只是线稿代用图，本身是冷灰；套一层暖调让它跟全站的骨色手绘同一色温。
+     换成正式立绘后可以去掉 sepia。 */
+  filter: sepia(.42) saturate(1.08) contrast(.97)
+    drop-shadow(0 7px 11px rgba(62, 45, 28, .16));
 }
 .bo-tier-artname {
   font-size: var(--fs-sm); letter-spacing: 2px; color: var(--bronze-tint);
@@ -2745,7 +2748,8 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .modes-scene .lv-intro-copy { order: 1; }
   .modes-scene .lv-guide { order: 2; }
 
-  .modes-scene .lv-title { font-size: clamp(30px, 8vw, 40px); }
+  .modes-scene .lv-title { font-size: clamp(28px, 6.6vw, 38px);
+  text-wrap: balance; max-width: 20em; }
   .modes-scene .lv-row { gap: 0; padding: 10px 0 4px; }
   .modes-scene .lv-row::before { display: none; }
   .modes-scene .lv,
