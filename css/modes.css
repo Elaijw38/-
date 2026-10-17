@@ -3567,3 +3567,6 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
               inset 0 2px 10px rgba(120, 96, 60, .10);
 }
 .bo-tier-done-mark { position: absolute; right: 10px; top: 8px; }
+
+/* 悬停换出来的专属形象：叠在徽记之上，等高居中 */
+.bo-tier-hover { position: relative; }

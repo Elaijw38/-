@@ -407,9 +407,10 @@
            徽记由**真甲骨字形**拼成（见 tierEmblem），不再是图片，
            所以不会出现"图没加载出来留一格空白"的情况。 */
         var artBox = App.el('div', 'bo-tier-art');
-        var artImg = null, artName = null;
+        var artImg = null, artName = null, emblemEl = null, hoverImg = null;
         var emblem = art ? tierEmblem(art) : null;
         if (emblem) {
+          emblemEl = emblem;
           artBox.appendChild(emblem);
           artName = App.el('span', 'bo-tier-artname', art.name);
           artBox.appendChild(artName);
@@ -421,9 +422,26 @@
            **这一关自己要打的那尊**——名录里那 88 张形象，从选关页就能
            一张张看过去，不必先进战斗去认。移开就还原成这一阶的写法图。
            只对已解锁的关卡生效：没解锁的，连它长什么样都还不该先看到。 */
+        /* 悬停某关 → 换成那一关**自己的**形象（名录 artSwap 里的图）。
+           注意：这一段在改成字形徽记时被我误删过一次，导致 21 关都只剩徽记，
+           所以这里保留 img 层，只是叠在徽记之上、默认隐藏。 */
         function showArtOf(ch) {
           var a = charArt(ch) || art;
           if (!a) { return; }
+          if (a.src) {
+            if (!hoverImg) {
+              hoverImg = App.el('img', 'bo-tier-img bo-tier-hover');
+              hoverImg.alt = '';
+              hoverImg.draggable = false;
+              artBox.insertBefore(hoverImg, artName);
+            }
+            if (hoverImg.getAttribute('src') !== a.art) { hoverImg.src = a.src; }
+            hoverImg.style.display = '';
+            if (emblemEl) { emblemEl.style.display = 'none'; }
+          } else if (hoverImg) {
+            hoverImg.style.display = 'none';
+            if (emblemEl) { emblemEl.style.display = ''; }
+          }
           if (!artName) {
             artName = App.el('span', 'bo-tier-artname', a.name);
             artBox.appendChild(artName);
@@ -432,6 +450,8 @@
         }
         function resetArt() {
           if (!art) { return; }
+          if (hoverImg) { hoverImg.style.display = 'none'; }
+          if (emblemEl) { emblemEl.style.display = ''; }
           if (artName) { artName.textContent = art.name; }
         }
 
