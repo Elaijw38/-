@@ -84,6 +84,11 @@
 
     var right = App.el('div', 'top-right');
     right.appendChild(App.el('span', 'seal top-seal', App.BRAND_SEAL || '正式版'));
+    /* 演示中常驻一枚印章，点一下就退出并还原（不让人在假进度里迷路） */
+    if (App.demo && App.demo.active()) {
+      var demoSeal = App.demo.badge();
+      if (demoSeal) { right.appendChild(demoSeal); }
+    }
     var set = App.el('a', 'top-link top-set' + (act === 'settings' ? ' on' : ''), '设置');
     set.href = '#/settings';
     set.setAttribute('aria-label', '设置与备份');
@@ -1247,6 +1252,8 @@
     s2.appendChild(ioBar);
     wrap.appendChild(s2);
 
+    /* 演示模式：给演示与评审用的一键填充（可逆，见 js/core/demo.js） */
+    if (App.demo) { wrap.appendChild(App.demo.panel()); }
 
     return sheetWrap(wrap);
   }
