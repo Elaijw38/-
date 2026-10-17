@@ -3543,7 +3543,7 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   width: 3px; border-radius: 2px; background: var(--cinnabar);
 }
 .bo-tier-art { align-items: center; }
-.bo-tier-emblem { height: clamp(112px, 9.4vw, 156px); }
+.bo-tier-emblem { height: clamp(116px, 9.6vw, 148px); }
 .bo-tier-head { flex-wrap: wrap; }
 /* 六到九颗珠子在一张窄卡里必须能换行，否则挤出卡片 */
 .bo-tier-beads { flex-wrap: wrap; row-gap: var(--s-2); }
@@ -3554,3 +3554,16 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   .bo-board { grid-template-columns: minmax(0, 1fr); }
   .bo-tier-emblem { height: 108px; }
 }
+
+/* 徽记底衬：一块浅色「骨版」，让字形像拓在骨面上而不是飘在卡片里。
+   用径向渐变模拟骨面的凹凸，不引入任何图片。 */
+.bo-tier-art {
+  position: relative;
+  padding: 8px 10px 4px;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 38% 30%, #fffdf8 0%, #f6ecda 46%, #eadfc6 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--edge) 62%, transparent),
+              inset 0 2px 10px rgba(120, 96, 60, .10);
+}
+.bo-tier-done-mark { position: absolute; right: 10px; top: 8px; }

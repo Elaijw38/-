@@ -77,7 +77,7 @@
     sv.setAttribute('aria-label', art.name + '：甲骨字形 ' + list.join(' ＋ '));
     var inner = '';
     if (art.mode === 'gaps') {
-      var n = list.length, gap = 6;
+      var n = list.length, gap = 2;
       var s = (96 - gap * (n - 1)) / n / 100;
       list.forEach(function (c, k) {
         var x = 2 + k * (s * 100 + gap);
@@ -89,11 +89,11 @@
       list.forEach(function (c, k) {
         var dx = (k % 2 ? 6 : -6), dy = (k * 4) - 6;
         inner += '<g transform="translate(' + dx + ',' + dy +
-          ') rotate(' + (rots[k] || 0) + ' 50 50) scale(.74)" opacity="' +
+          ') rotate(' + (rots[k] || 0) + ' 50 50) scale(.86)" opacity="' +
           (ops[k] || 0.4) + '">' + App.glyphSvg(c, 'currentColor') + '</g>';
       });
     } else {
-      inner = '<g transform="translate(6,3) scale(.88)">' +
+      inner = '<g transform="translate(2,1) scale(.96)">' +
         App.glyphSvg(list[0], 'currentColor') + '</g>';
     }
     sv.innerHTML = inner;
