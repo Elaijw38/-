@@ -3496,3 +3496,14 @@ h3.sec { font-size: 14px; margin: 14px 0 6px; letter-spacing: .5px; }
   /* 呼吸环去掉；按钮仍是朱砂实底，位置本身已经够醒目了 */
   .scene.boss-raid .bd-guide-btn { animation: none; }
 }
+
+/* 首页/开始游戏页大标题：不许把最后一个字挤到第二行。
+   实测：多条 .lv-title 的字号规则互相覆盖，前面改的会被后面的盖掉，
+   所以这里用「高特异性 + 放在文件末尾 + balance」一次性定死。 */
+.scene.modes-scene .lv-title {
+  font-size: clamp(24px, 2.4vw, 34px);
+  max-width: 22em;
+  text-wrap: balance;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
