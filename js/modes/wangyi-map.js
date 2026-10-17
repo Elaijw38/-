@@ -200,7 +200,7 @@
       var meter = App.el('div', 'wy2-head-meter');
       var mline = App.el('p', 'wy2-meter-line');
       mline.appendChild(App.el('strong', null, st.clear + ' / ' + st.zones));
-      mline.appendChild(App.el('span', null, ' 片已点亮'));
+      mline.appendChild(App.el('span', null, ' 片已学完'));
       meter.appendChild(mline);
       var bar = App.el('span', 'wy2-meter');
       var fill = App.el('i', 'wy2-meter-fill');
@@ -246,7 +246,7 @@
         var txt = App.el('span', 'wy2-pin-txt');
         txt.appendChild(App.el('b', null, z.name));
         txt.appendChild(App.el('span', null,
-          s.clear ? '已点亮' : (s.done ? s.done + ' / ' + s.total : s.total + ' 个字')));
+          s.clear ? '已学完' : (s.done ? s.done + ' / ' + s.total : s.total + ' 个字')));
         pin.appendChild(txt);
         pin.setAttribute('aria-label',
           '进入' + z.name + '（' + s.done + ' / ' + s.total + ' 个字已学）');
@@ -267,14 +267,14 @@
       var gcopy = App.el('div', 'wy2-guide-copy');
       if (st.clear >= st.zones && st.zones) {
         gcopy.appendChild(App.el('b', null, '五片都亮了'));
-        gcopy.appendChild(App.el('span', null, '王邑全图复明。想再看一遍，随时点回去。'));
+        gcopy.appendChild(App.el('span', null, '五片都学完了。想再看一遍，随时点回去。'));
       } else if (st.done === 0) {
         gcopy.appendChild(App.el('b', null, '龟宝：先挑一片顺眼的'));
         gcopy.appendChild(App.el('span', null, '五个区域都能进。进去后点图上看得见的东西。'));
       } else {
         gcopy.appendChild(App.el('b', null, '龟宝：还差 ' + (st.total - st.done) + ' 个字'));
         gcopy.appendChild(App.el('span', null,
-          '已点亮 ' + st.clear + ' 片。点地图上还暗着的地方，继续认。'));
+          '已学完 ' + st.clear + ' 片。点地图上别的区域，继续认。'));
       }
       guide.appendChild(gcopy);
       var reset = App.el('button', 'wy2-reset', '重置本关进度');
@@ -329,7 +329,7 @@
       var zhead = App.el('div', 'wy2-zone-head');
       zhead.appendChild(App.el('b', null, z.name));
       zhead.appendChild(App.el('span', null,
-        s.clear ? '这一片已学完 · 大地图已点亮'
+        s.clear ? '这一片已学完'
                 : '已学 ' + s.done + ' / ' + s.total
                   + ' · 点图上看得见的实物'));
       top.appendChild(zhead);
@@ -495,11 +495,14 @@
         var ih = window.innerHeight || 800;
         var avail = ih - head - vpOff - 16;
         avail = Math.max(190, Math.min(avail, ih - head - 50));
-        /* 全景态让视口贴着图高，别在图上下一人留一大片空白；
-           一旦放大就用满剩余空间（不然放大后没有可拖动的余量）。 */
+        /* 桌面全景态让视口贴着图高，别在图上下一人留一大片空白；
+           一旦放大就用满剩余空间（不然放大后没有可拖动的余量）。
+           窄屏例外：图按宽度铺开只有约 200px 高，贴图高会把视口压成一条缝，
+           所以窄屏一律用满剩余高度（配合 fitScale 的按高度铺满）。 */
         var vw = vp.clientWidth || 360;
         var hug = Math.round(vw * AY / AX);
-        var want = (S.zoom <= 1.02 && hug < avail) ? hug : avail;
+        var narrow = window.innerWidth <= 620;
+        var want = (!narrow && S.zoom <= 1.02 && hug < avail) ? hug : avail;
         vp.style.height = Math.max(150, want) + 'px';
       }
 
@@ -508,12 +511,18 @@
          svg 也显式给同样的像素宽高 + meet，于是两者永远严丝合缝。
          这样「放大后热点还在实物上」不需要任何额外换算。
 
-         基准是 **contain**：zoom=1 时整幅图完整铺进视口（需求「一、5」：
-         进地图先给完整全景）。之前用的是 fill-height，会把图横向裁掉。 */
+         基准：桌面用 **contain**（zoom=1 时整幅图完整铺进视口，需求「一、5」）。
+         窄屏例外：图是 16:9、手机是竖屏，按宽度 contain 只有约 200px 高，
+         整张地图会被压成一条细缝（实测 390x844 只有 204px）。所以窄屏
+         全景态改成**按高度铺满**（cover），图撑满视口、横向可拖动。 */
       function fitScale(vp) {
         var vw = vp.clientWidth || 900;
         var vh = vp.clientHeight || 500;
-        return Math.min(vw / AX, vh / AY);
+        var contain = Math.min(vw / AX, vh / AY);
+        if (window.innerWidth <= 620 && S.zoom <= 1.02) {
+          return Math.max(contain, vh / AY);
+        }
+        return contain;
       }
       function sizeFor(vp, zf) {
         var bs = fitScale(vp);
@@ -913,10 +922,10 @@
 
       if (s.clear) {
         var done = App.el('aside', 'wy2-zone-clear');
-        done.appendChild(App.el('span', 'wy2-clear-seal', '已点亮'));
+        done.appendChild(App.el('span', 'wy2-clear-seal', '已学完'));
         done.appendChild(App.el('span', null,
           '「' + z.name + '」' + s.total + ' 个字都认过了，大地图上这一片亮了。'));
-        var nxt = App.el('button', 'btn sm', '回大地图看点亮 →');
+        var nxt = App.el('button', 'btn sm', '回大地图 →');
         nxt.type = 'button';
         nxt.onclick = backToWorld;
         done.appendChild(nxt);
@@ -1084,7 +1093,7 @@
         var s = zoneStat(p, flow.zone);
         verdict.className = 'wy2-flow-verdict ok';
         verdict.textContent = '✔ 拼成了「' + ch + '」，已记进「' + flow.zone.name + '」。'
-          + (s.clear ? '这一片学完了，大地图上已经点亮。'
+          + (s.clear ? '这一片学完了。'
                      : '这一片还差 ' + (s.total - s.done) + ' 个字。');
         /* 记录落下后，重画小地图（印记与进度条跟着变） */
         setTimeout(function () { S.flow = null; redrawZone(); }, 1400);
@@ -1123,10 +1132,10 @@
     id: 'wangyi-map',
     name: '殷商王邑',
     tagline: '在大地图上挑一片，点实物认甲骨文',
-    desc: '五片主题区域任意顺序进入：在分区插画上点实物认甲骨文，认得的字就记下来。一片学完，大地图上对应的那一片便亮起，最终点亮整座王邑。',
+    desc: '五片主题区域任意顺序进入：在分区插画上点实物认甲骨文，认得的字就记下来。每片进度独立记录，学完一片会给完成标记。',
     icon: '邑',
     accent: 'var(--bronze)',
-    tags: ['五片任意进入', '61 个学习点', '点亮大地图'],
+    tags: ['五片任意进入', '61 个学习点', '进度独立记录'],
     layout: 'wide',
     minPlayers: 1, maxPlayers: 1,
     status: 'ready',

@@ -83,7 +83,7 @@
     top.appendChild(nav);
 
     var right = App.el('div', 'top-right');
-    right.appendChild(App.el('span', 'seal top-seal', App.BRAND_SEAL || '试玩版'));
+    right.appendChild(App.el('span', 'seal top-seal', App.BRAND_SEAL || '正式版'));
     var set = App.el('a', 'top-link top-set' + (act === 'settings' ? ' on' : ''), '设置');
     set.href = '#/settings';
     set.setAttribute('aria-label', '设置与备份');
@@ -271,7 +271,7 @@
     hb.appendChild(App.el('p', 'hero-kicker', '甲骨文互动叙事　/　CULTURAL GAME LAB'));
     hb.appendChild(App.el('h1', 'hero-title', '从一片卜骨，\n读懂汉字的来处'));
     hb.appendChild(App.el('p', 'hero-lead',
-      '亲手拼出甲骨字形，点亮殷商王邑，最后迎战构件 Boss。把三千年前的文字，'
+      '亲手拼出甲骨字形，走遍殷商王邑，最后迎战构件 Boss。把三千年前的文字，'
       + '从展柜里的知识，变成一场可以亲自参与的探索。'));
 
     var cta = App.el('div', 'hero-cta');
@@ -284,7 +284,7 @@
     b2.href = '#/atlas';
     cta.appendChild(b2);
     hb.appendChild(cta);
-    hb.appendChild(App.el('p', 'hero-trust', '辨形 → 构字 → 点亮王邑 → 迎战 Boss'));
+    hb.appendChild(App.el('p', 'hero-trust', '辨形 → 构字 → 走遍王邑 → 迎战 Boss'));
     var guide = App.el('a', 'hero-guide');
     guide.href = '#/play/bone-build';
     guide.setAttribute('aria-label', '跟龟宝从第一关认识甲骨字形与构件');
@@ -346,7 +346,7 @@
     var sec1 = App.el('section', 'home-sec');
     sec1.id = 'playSection';
     sec1.appendChild(sectionHead('三步，开启甲骨探索',
-      '从认字形，到点亮王邑，再迎战 Boss 终局',
+      '从认字形，到走遍王邑，再迎战 Boss 终局',
       '#/modes', '全部玩法 →'));
     /* 主线：给每张卡排上步骤号，卡之间用一条贯穿的细线串起来。
        顺序仍按 App.modes.playable() 的注册顺序，**不重排**——
@@ -487,7 +487,7 @@
     } else {
       cbody.appendChild(App.el('p', 'cc-note',
         st.learned ? '三个玩法里学会的字都会记进这里。'
-                   : '还没开始收集——去图卷上点亮第一个实物，或进图鉴看看有哪些字。'));
+                   : '还没开始收集——去王邑地图上认第一个实物，或进图鉴看看有哪些字。'));
     }
     var cgo = App.el('a', 'btn primary', '进入图鉴');
     cgo.href = '#/atlas';
@@ -675,7 +675,7 @@
         + (q ? '　筛选：「' + atlasFilter.q + '」' : '');
       if (!list.length) {
         grid.appendChild(App.el('p', 'lead', atlasFilter.kind === 'got'
-          ? '还没有解锁任何字。去玩一局——点亮、通关、答对都会记进这里。'
+          ? '还没有解锁任何字。去玩一局——学会、通关、答对都会记进这里。'
           : '没有匹配的字。换个关键词，或点上面的「全部」。'));
         return;
       }
@@ -800,7 +800,7 @@
     var apps = App.atlas.appearancesOf(e.char);
     var links = App.el('div', 'as-links');
     if (apps.some(function (x) { return x.kind === 'object'; })) {
-      var a1 = App.el('a', 'btn sm', '去王邑点亮它');
+      var a1 = App.el('a', 'btn sm', '去王邑认出它');
       a1.href = '#/play/wangyi-map';
       links.appendChild(a1);
     }
@@ -892,7 +892,7 @@
       ['鼠标', '点一下就是选中；带悬停提示的地方，把指针放上去就能看到名字与说明。'],
       ['触屏', '直接点按；需要"悬停才出现"的内容，按住不放同样会显示。'],
       ['键盘', 'Tab 可以在可点元素之间移动，回车/空格选中；焦点所在处有朱砂描边。'],
-      ['进度', '点亮记录、通关记录都存在本机浏览器里，不上传服务器；换设备前记得在「设置」里导出备份。']
+      ['进度', '学习记录与通关记录都存在本机浏览器里，不上传服务器；换设备前记得在「设置」里导出备份。']
     ].forEach(function (x) {
       var li = App.el('li');
       li.appendChild(App.el('b', null, x[0]));
@@ -950,14 +950,14 @@
       ['判断构件', '看它由哪几块构件拼成——构件台里有真甲骨字形可对照。'],
       ['拼字', '把构件拖到放置槽，位置对了才会吸附。'],
       ['得甲片', '拼对即入账，结算里能看到这个字的构件与释义。'],
-      ['双人模式', '对手可以在倒计时里抢答，比谁先拼出来。']
+      ['随时可退', '没有倒计时，答错可以再试；卡住了能求提示。']
     ],
     'wangyi-map': [
-      ['一幅灰图', '整幅殷商王邑图卷初始是灰的。'],
-      ['点实物', '点图上的实物热区，认出它对应的字。'],
-      ['构字', '上面给甲骨文原字，下面给笔画，拖到正确位置拼出来。'],
-      ['点亮', '拼成一个字，地图上那一块就亮起来。'],
-      ['一键点亮', '演示或展示时，可以一次点亮全部 61 处。']
+      ['选一片', '大地图是唯一入口，五片主题区域任意顺序进入，不分先后。'],
+      ['点实物', '进图后直接点插画上的实物，点中会自动放大到它。'],
+      ['看字卡', '再点一次打开学习卡：甲骨字形、释义、构形说明。'],
+      ['拼笔画', '按学习卡去练，把笔画摆回原位即算学会这个字。'],
+      ['各片独立', '每片进度单独记；一片学完，大地图上该片给出完成标记。']
     ],
     'boss-raid': [
       ['一条线走到底', '21 道关卡沿一枚甲骨片的轮廓推进，通关才解锁下一关。'],
@@ -995,8 +995,8 @@
     },
     'wangyi-map': {
       step: '实物探索', char: '邑', chain: true,
-      seal: '5 幅主题小地图', cap: '61 个甲骨字形 · 完成一图，点亮一域',
-      summary: '从主题小地图学习甲骨字形；学完一个分区，就点亮大地图上的对应王邑。',
+      seal: '5 幅主题小地图', cap: '61 个甲骨字形 · 五片任意顺序',
+      summary: '从大地图挑一片主题区域，点插画上的实物学甲骨字形；每片进度独立记录。',
       action: '进入王邑地图'
     },
     'boss-raid': {
